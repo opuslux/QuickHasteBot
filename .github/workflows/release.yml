@@ -1,0 +1,63 @@
+name: Build and Release QuickHasteBot
+
+on:
+  push:
+    tags:
+      - 'v*'
+  # Notfall-Knopf zum Testen, baut dann "2.0.0-dev"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v7
+
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Extract and Parse Version
+      shell: pwsh
+      run: |
+        $tag = "${{ github.ref_name }}"
+        if ($tag -notmatch '^v') { $tag = "v2.0.0-dev" }
+
+        $fullVersion = $tag -replace '^v\.?', ''
+        $numericVersion = "2.0.0"
+        if ($fullVersion -match '^(\d+\.\d+\.\d+(?:\.\d+)?)') {
+            $numericVersion = $Matches[1]
+        }
+
+        echo "FULL_VERSION=$fullVersion" >> $env:GITHUB_ENV
+        echo "NUMERIC_VERSION=$numericVersion" >> $env:GITHUB_ENV
+
+    # Schlägt ein Test fehl, bricht der Workflow hier ab und es entsteht kein Release
+    - name: Run Tests
+      run: dotnet test tests/QuickHasteBot.Tests/QuickHasteBot.Tests.csproj -c Release
+
+    - name: Publish Single-File Exe
+      run: >
+        dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish
+        -p:Version=${{ env.FULL_VERSION }} -p:FileVersion=${{ env.NUMERIC_VERSION }} -p:AssemblyVersion=${{ env.NUMERIC_VERSION }}
+
+    - name: Create Zip Archive
+      shell: pwsh
+      run: |
+        Copy-Item README.md publish -ErrorAction SilentlyContinue
+        $zipName = "QuickHasteBot-${{ env.FULL_VERSION }}-win-x64.zip"
+        Compress-Archive -Path "publish\*" -DestinationPath $zipName
+        echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v3
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ${{ env.ZIP_NAME }}
+        generate_release_notes: true

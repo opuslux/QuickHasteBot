@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>QuickHasteBot</RootNamespace>
+    <AssemblyName>QuickHasteBot</AssemblyName>
+    <ApplicationIcon>Assets\QuickHasteBot.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <Product>QuickHasteBot</Product>
+    <Description>Textbausteine per Hotkey suchen und einfügen</Description>
+    <Authors>opuslux</Authors>
+    <Version>2.0.0-dev</Version>
+
+    <!-- WPF0001: ThemeMode (Fluent) ist in .NET 10 noch als experimentell markiert -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+
+    <!-- dotnet publish -c Release -r win-x64 → eine einzelne exe, braucht die .NET 10 Desktop Runtime -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <DebugType Condition="'$(Configuration)' == 'Release'">embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\QuickHasteBot.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="QuickHasteBot.Tests" />
+    <!-- WPF lässt System.IO aus den ImplicitUsings weg (Konflikt mit Shapes.Path), wir brauchen es überall -->
+    <Using Include="System.IO" />
+  </ItemGroup>
+
+</Project>

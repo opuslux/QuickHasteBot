@@ -1,0 +1,50 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            // Eine laufende Instanz hält die exe gesperrt und den Hotkey belegt
+            "label": "Kill QuickHasteBot",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "Stop-Process -Name 'QuickHasteBot' -Force -ErrorAction SilentlyContinue; exit 0"
+            ],
+            "presentation": { "reveal": "silent" }
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/QuickHasteBot/QuickHasteBot.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile",
+            "dependsOn": "Kill QuickHasteBot",
+            "group": { "kind": "build", "isDefault": true }
+        },
+        {
+            "label": "Test",
+            "type": "process",
+            "command": "dotnet",
+            "args": [ "test", "${workspaceFolder}/tests/QuickHasteBot.Tests/QuickHasteBot.Tests.csproj" ],
+            "problemMatcher": "$msCompile",
+            "group": { "kind": "test", "isDefault": true }
+        },
+        {
+            "label": "Publish",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "publish",
+                "${workspaceFolder}/src/QuickHasteBot/QuickHasteBot.csproj",
+                "-c", "Release", "-r", "win-x64", "-o", "${workspaceFolder}/publish"
+            ],
+            "problemMatcher": "$msCompile",
+            "dependsOn": "Kill QuickHasteBot"
+        }
+    ]
+}

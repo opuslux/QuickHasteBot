@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Läuft aus bin\Debug: dort wird beim ersten Start ein leerer structure-Ordner angelegt.
+            // Für echte Textbausteine in settings.json "StructurePath" auf einen absoluten Pfad setzen.
+            "name": "QuickHasteBot (Debug)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build",
+            "program": "${workspaceFolder}/src/QuickHasteBot/bin/Debug/net10.0-windows/QuickHasteBot.exe",
+            "cwd": "${workspaceFolder}/src/QuickHasteBot/bin/Debug/net10.0-windows",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        }
+    ]
+}
