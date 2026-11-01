@@ -46,6 +46,8 @@
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      VirtualizingPanel.IsVirtualizing="True"
                      SelectionChanged="OnSelectionChanged"
+                     PreviewMouseLeftButtonDown="OnResultsMouseDown"
+                     PreviewMouseLeftButtonUp="OnResultsMouseUp"
                      MouseDoubleClick="OnResultsDoubleClick">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">

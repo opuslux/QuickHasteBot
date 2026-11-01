@@ -18,6 +18,7 @@ internal partial class SearchPopup : Window
     readonly AppController _app;
     readonly SearchPopupViewModel _viewModel;
     nint _targetWindow;
+    SnippetItem? _pressedItem;
 
     public SearchPopup(AppController app)
     {
@@ -55,11 +56,37 @@ internal partial class SearchPopup : Window
             Results.ScrollIntoView(Results.SelectedItem);
     }
 
-    void OnResultsDoubleClick(object sender, MouseButtonEventArgs e)
+    // Die Einträge sind nicht fokussierbar, deshalb wählt die ListBox per Klick nichts aus – das übernehmen wir
+    void OnResultsMouseDown(object sender, MouseButtonEventArgs e)
     {
+        _pressedItem = e.ClickCount == 1 ? ItemAt(e) : null;
+        if (_pressedItem is not null)
+            _viewModel.Selected = _pressedItem;
+    }
+
+    // Wie in einem Menü erst beim Loslassen auslösen, und nur wenn die Maus noch auf demselben Eintrag ist.
+    // Der zweite Klick eines Doppelklicks zählt nicht, sonst würde er gleich im geöffneten Ordner weiterklicken.
+    void OnResultsMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        var pressed = _pressedItem;
+        _pressedItem = null;
+        if (!_app.Settings.SingleClick || pressed is null || ItemAt(e) != pressed) return;
+
         ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
         Keyboard.Focus(SearchBox);
     }
+
+    void OnResultsDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        // Doppelklick auf Scrollbalken oder Leerfläche ignorieren
+        if (_app.Settings.SingleClick || ItemAt(e) is null) return;
+
+        ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+        Keyboard.Focus(SearchBox);
+    }
+
+    SnippetItem? ItemAt(MouseButtonEventArgs e) =>
+        Results.ContainerFromElement((DependencyObject)e.OriginalSource) is ListBoxItem { DataContext: SnippetItem item } ? item : null;
 
     void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {

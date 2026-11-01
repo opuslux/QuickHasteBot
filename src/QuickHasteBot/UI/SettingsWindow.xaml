@@ -39,6 +39,14 @@
         <TextBlock Text="Shift+Enter nimmt jeweils die andere Methode." FontSize="12" Margin="0,2,0,0"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
+        <TextBlock Text="Maus im Popup" FontWeight="SemiBold" Margin="0,16,0,6" />
+        <RadioButton x:Name="ClickSingle" GroupName="Click" Checked="OnClickModeChanged"
+                     Content="Einfacher Klick fügt ein" />
+        <RadioButton x:Name="ClickDouble" GroupName="Click" Checked="OnClickModeChanged"
+                     Content="Klick wählt aus, Doppelklick fügt ein" />
+        <TextBlock Text="Mit gedrückter Shift-Taste wird die andere Methode genommen." FontSize="12" Margin="0,2,0,0"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
         <TextBlock Text="Textbausteine" FontWeight="SemiBold" Margin="0,16,0,6" />
         <DockPanel>
             <Button DockPanel.Dock="Right" Content="Öffnen" Click="OnOpenStructure" Margin="6,0,0,0" />

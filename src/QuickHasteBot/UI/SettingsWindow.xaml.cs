@@ -23,6 +23,8 @@ internal partial class SettingsWindow : Window
         HotkeyInput.Gesture = app.ConfiguredHotkey;
         PasteClipboard.IsChecked = app.Settings.PasteMode == PasteMode.Clipboard;
         PasteTyping.IsChecked = app.Settings.PasteMode == PasteMode.Typing;
+        ClickSingle.IsChecked = app.Settings.SingleClick;
+        ClickDouble.IsChecked = !app.Settings.SingleClick;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
@@ -67,6 +69,13 @@ internal partial class SettingsWindow : Window
     {
         if (_loading) return;
         _app.Settings.PasteMode = PasteTyping.IsChecked == true ? PasteMode.Typing : PasteMode.Clipboard;
+        _app.SaveSettings();
+    }
+
+    void OnClickModeChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _app.Settings.SingleClick = ClickSingle.IsChecked == true;
         _app.SaveSettings();
     }
 

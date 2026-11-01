@@ -10,12 +10,13 @@ public class SettingsTests
         using var dir = new TempDirectory();
         var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
 
-        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, StructurePath = @"D:\Bausteine" });
+        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, SingleClick = false, StructurePath = @"D:\Bausteine" });
         var loaded = store.Load();
 
         Assert.Equal("Ctrl+Alt+Q", loaded.Hotkey);
         Assert.Equal(PasteMode.Typing, loaded.PasteMode);
         Assert.False(loaded.ShowTrayIcon);
+        Assert.False(loaded.SingleClick);
         Assert.Equal(@"D:\Bausteine", loaded.StructurePath);
         // Von Hand lesbar: Enum als Text, "+" und Backslash nicht als \u-Escape
         var json = File.ReadAllText(store.FilePath);
@@ -34,6 +35,7 @@ public class SettingsTests
 
         Assert.Equal(HotkeyGesture.Default.ToString(), loaded.Hotkey);
         Assert.Equal(PasteMode.Clipboard, loaded.PasteMode);
+        Assert.True(loaded.SingleClick);
     }
 
     [Fact]

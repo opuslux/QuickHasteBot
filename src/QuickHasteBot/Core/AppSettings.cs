@@ -21,6 +21,9 @@ public sealed class AppSettings
 
     public bool ShowTrayIcon { get; set; } = true;
 
+    /// <summary>Ein Klick im Popup fügt ein bzw. öffnet den Ordner, sonst wählt er nur aus und es braucht einen Doppelklick.</summary>
+    public bool SingleClick { get; set; } = true;
+
     /// <summary>Suche auch im Inhalt der Textbausteine, nicht nur im Namen.</summary>
     public bool SearchContent { get; set; } = true;
 

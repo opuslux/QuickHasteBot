@@ -37,6 +37,8 @@ structure\
 | Strg+, | Einstellungen |
 | Esc | Schliessen |
 
+Mit der Maus fügt ein Klick ein oder öffnet den Ordner, mit Shift die andere Methode. In den Einstellungen lässt sich auf „Klick wählt aus, Doppelklick fügt ein“ umstellen.
+
 ## Einfügen: zwei Methoden
 
 - **Zwischenablage** (Standard): Der Text kommt kurz in die Zwischenablage, dann wird Strg+V gesendet. Danach wird der alte Inhalt der Zwischenablage wiederhergestellt. Der Clipboard-Verlauf (Win+V) wird dabei nicht vollgemüllt.
