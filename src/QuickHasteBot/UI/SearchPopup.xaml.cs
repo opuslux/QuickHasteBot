@@ -431,6 +431,13 @@ internal partial class SearchPopup : Window
             case Key.Enter:
                 ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
                 break;
+            // Alt+1 bis Alt+9 wie ein Klick auf die Zeile mit der Nummer, mit Shift die andere Einfügemethode.
+            // AltGr meldet sich als Strg+Alt und tippt weiter ins Suchfeld ({, [, ] …).
+            case Key.System when (Keyboard.Modifiers & ~ModifierKeys.Shift) == ModifierKeys.Alt &&
+                                 e.SystemKey is >= Key.D1 and <= Key.D9:
+                if (_viewModel.SelectNumber(e.SystemKey - Key.D0))
+                    ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+                break;
             case Key.Right when browsing && selected is { IsFolder: true }:
                 _viewModel.EnterFolder(selected);
                 break;

@@ -60,6 +60,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 | Ctrl+Home / Ctrl+End | First / last entry |
 | Enter | Paste (or open the folder) |
 | Shift+Enter | Paste with the other method (typing instead of clipboard or vice versa) |
+| Alt+1 … Alt+9 | Like a click on the entry with that number (the first nine entries in the list are numbered on the right); with Shift, the other paste method |
 | → / ← / Backspace | With an empty search box: open folder / go up one level |
 | Ctrl+O | Open the snippet in its editor |
 | Ctrl+E | Show it in Explorer |

@@ -42,6 +42,15 @@ internal sealed class SnippetItem
 
     public bool IsFolder => Snippet.IsFolder;
 
+    /// <summary>
+    /// Ziffer für Alt+1 bis Alt+9, nur bei den ersten neun Zeilen links. Leer bei den übrigen Zeilen links,
+    /// damit die Pfeile der Ordner untereinander stehen; null in der rechten Spalte, dort gibt es keine Nummern.
+    /// </summary>
+    public string? Shortcut { get; set; }
+
+    /// <summary>Hover-Text über der Nummer, ohne Nummer keiner.</summary>
+    public string? ShortcutTooltip => string.IsNullOrEmpty(Shortcut) ? null : string.Format(Strings.ShortcutTooltipFormat, Shortcut);
+
     public ImageSource? Icon
     {
         get

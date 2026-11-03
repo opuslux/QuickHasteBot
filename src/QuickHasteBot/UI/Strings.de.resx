@@ -48,6 +48,7 @@
   <data name="HintSettings" xml:space="preserve"><value>Strg+, Einstellungen</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Beim nächsten Öffnen wieder in diesem Ordner beginnen</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
+  <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – wie ein Klick auf diesen Eintrag</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Textbausteine</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 Treffer</value></data>
   <data name="MatchesFormat" xml:space="preserve"><value>{0} Treffer</value></data>
