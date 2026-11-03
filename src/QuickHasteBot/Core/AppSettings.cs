@@ -30,5 +30,8 @@ public sealed class AppSettings
     /// <summary>Diese Dateien werden eingefügt, alle anderen mit der zugeordneten Anwendung geöffnet.</summary>
     public List<string> TextExtensions { get; set; } = [".txt"];
 
+    /// <summary>"en" oder "de", leer heisst: wie die Anzeigesprache von Windows.</summary>
+    public string Language { get; set; } = "";
+
     public static PasteMode Other(PasteMode mode) => mode == PasteMode.Clipboard ? PasteMode.Typing : PasteMode.Clipboard;
 }

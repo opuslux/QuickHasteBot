@@ -26,6 +26,7 @@ internal sealed class AppController : IDisposable
         _paths = paths;
         _store = new SettingsStore(paths.SettingsFile);
         Settings = LoadSettings();
+        UiLanguage.Apply(Settings.Language);
         Library = CreateLibrary();
     }
 
@@ -58,7 +59,7 @@ internal sealed class AppController : IDisposable
             // Typisch beim Umstieg: QuickPasteBot läuft noch und hält Ctrl+Shift+Y
             ShowSettings();
             _settingsWindow?.ShowMessage(
-                $"{ConfiguredHotkey} ist bereits belegt. Läuft QuickPasteBot noch? Beende die alte Version oder wähle hier eine andere Kombination.");
+                string.Format(Strings.HotkeyTakenAtStartFormat, ConfiguredHotkey));
         }
 
         Log.Info($"Gestartet, Hotkey {ConfiguredHotkey} {(HotkeyActive ? "aktiv" : "belegt")}, {Library.All.Count} Einträge in {StructureRoot}");
@@ -71,13 +72,25 @@ internal sealed class AppController : IDisposable
         _popup?.ShowFor(target);
     }
 
-    public void ShowSettings()
+    public void ShowSettings() => ShowSettings(position: null);
+
+    internal void ShowSettings(Point? position)
     {
         if (_settingsWindow is null)
         {
-            _settingsWindow = new SettingsWindow(this);
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-            _settingsWindow.Show();
+            var window = new SettingsWindow(this);
+            if (position is { } p)
+            {
+                window.WindowStartupLocation = WindowStartupLocation.Manual;
+                (window.Left, window.Top) = (p.X, p.Y);
+            }
+            window.Closed += (_, _) =>
+            {
+                if (_settingsWindow == window)
+                    _settingsWindow = null;
+            };
+            _settingsWindow = window;
+            window.Show();
         }
 
         if (_settingsWindow.WindowState == WindowState.Minimized)
@@ -101,7 +114,7 @@ internal sealed class AppController : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Error($"Textbaustein konnte nicht gelesen werden: {snippet.FullPath}", ex);
-            MessageBox.Show($"Der Textbaustein konnte nicht gelesen werden:\n{ex.Message}", "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -174,6 +187,37 @@ internal sealed class AppController : IDisposable
         }
     }
 
+    /// <summary>
+    /// Ohne Neustart: XAML-Texte werden nur beim Erzeugen gelesen, darum Popup, Tray-Icon und
+    /// Einstellungsfenster neu aufbauen. Das Einstellungsfenster öffnet sich an derselben Stelle wieder.
+    /// </summary>
+    public void ChangeLanguage(string code)
+    {
+        Settings.Language = code;
+        SaveSettings();
+        UiLanguage.Apply(code);
+
+        if (_popup is not null)
+        {
+            _popup.Close();
+            _popup = new SearchPopup(this);
+        }
+
+        if (_tray is not null)
+        {
+            _tray.Dispose();
+            _tray = new TrayIcon(this);
+        }
+
+        if (_settingsWindow is { } old)
+        {
+            var position = new Point(old.Left, old.Top);
+            _settingsWindow = null;
+            old.Close();
+            ShowSettings(position);
+        }
+    }
+
     public void SaveSettings() => _store.Save(Settings);
 
     public void Exit()
@@ -228,8 +272,7 @@ internal sealed class AppController : IDisposable
         try
         {
             Directory.CreateDirectory(root);
-            File.WriteAllText(Path.Combine(root, "Willkommen.txt"),
-                "Hallo von QuickHasteBot! Lege .txt-Dateien und Unterordner im Ordner structure an, sie erscheinen sofort im Popup.");
+            File.WriteAllText(Path.Combine(root, Strings.WelcomeFileName), Strings.WelcomeText);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

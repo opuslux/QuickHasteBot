@@ -43,7 +43,7 @@ internal sealed class HotkeyBox : TextBox
     protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
     {
         base.OnGotKeyboardFocus(e);
-        Text = "Tastenkombination drücken…";
+        Text = Strings.HotkeyPrompt;
     }
 
     protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
@@ -74,14 +74,14 @@ internal sealed class HotkeyBox : TextBox
         if (HotkeyGesture.IsModifierKey(key))
         {
             // Zwischenstand anzeigen, z.B. "Ctrl+Shift+…"
-            Text = modifiers == HotkeyModifiers.None ? "Tastenkombination drücken…" : HotkeyGesture.FormatModifiers(modifiers) + "+…";
+            Text = modifiers == HotkeyModifiers.None ? Strings.HotkeyPrompt : HotkeyGesture.FormatModifiers(modifiers) + "+…";
             return;
         }
 
         var gesture = new HotkeyGesture(modifiers, key);
         if (!gesture.IsValid)
         {
-            Text = $"{gesture} geht nicht – bitte mit Ctrl, Alt, Shift oder Win";
+            Text = string.Format(Strings.HotkeyInvalidFormat, gesture);
             return;
         }
 

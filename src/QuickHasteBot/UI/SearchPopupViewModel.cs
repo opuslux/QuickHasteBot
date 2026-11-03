@@ -77,8 +77,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     /// <summary>Bearbeiten, Explorer und Einstellungen stehen daneben als Links im Popup.</summary>
     public string PasteHints => app.Settings.PasteMode == PasteMode.Clipboard
-        ? "↵ Einfügen   ⇧↵ Tippen"
-        : "↵ Tippen   ⇧↵ Einfügen";
+        ? Strings.HintsClipboard
+        : Strings.HintsTyping;
 
     /// <summary>Der gerade angezeigte Ordner im Blätter-Modus.</summary>
     public Snippet CurrentFolder => app.Library.Find(_folderPath) ?? app.Library.Root;
@@ -104,8 +104,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         {
             var contentProvider = app.Settings.SearchContent ? library.GetSearchableText : (Func<Snippet, string?>?)null;
             items = SnippetSearch.Search(library.All, _query, contentProvider).Select(SnippetItem.ForHit).ToList();
-            Breadcrumbs = [new(items.Count == 1 ? "1 Treffer" : $"{items.Count} Treffer", Target: null, ShowSeparator: false)];
-            EmptyText = items.Count == 0 ? "Keine Treffer" : "";
+            Breadcrumbs = [new(items.Count == 1 ? Strings.MatchesOne : string.Format(Strings.MatchesFormat, items.Count), Target: null, ShowSeparator: false)];
+            EmptyText = items.Count == 0 ? Strings.NoMatches : "";
         }
         else
         {
@@ -119,8 +119,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
             items = folder.Children.Select(SnippetItem.ForBrowsing).ToList();
             Breadcrumbs = BuildBreadcrumbs(folder.RelativePath);
             EmptyText = items.Count > 0 ? ""
-                : !Directory.Exists(library.RootPath) ? $"Ordner nicht gefunden: {library.RootPath}"
-                : "Dieser Ordner ist leer. Strg+E öffnet ihn im Explorer.";
+                : !Directory.Exists(library.RootPath) ? string.Format(Strings.FolderNotFoundFormat, library.RootPath)
+                : Strings.FolderEmpty;
         }
 
         Items.Clear();
@@ -178,7 +178,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     static IReadOnlyList<Breadcrumb> BuildBreadcrumbs(string folderPath)
     {
         var parts = SplitPath(folderPath);
-        var crumbs = new List<Breadcrumb> { new("Textbausteine", parts.Length > 0 ? "" : null, ShowSeparator: false) };
+        var crumbs = new List<Breadcrumb> { new(Strings.BreadcrumbRoot, parts.Length > 0 ? "" : null, ShowSeparator: false) };
         for (var i = 0; i < parts.Length; i++)
         {
             var isCurrent = i == parts.Length - 1;
@@ -197,11 +197,11 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         switch (snippet.Kind)
         {
             case SnippetKind.Folder:
-                return snippet.Children.Count == 1 ? "1 Eintrag" : $"{snippet.Children.Count} Einträge";
+                return snippet.Children.Count == 1 ? Strings.ItemsOne : string.Format(Strings.ItemsFormat, snippet.Children.Count);
 
             case SnippetKind.Text:
                 var text = app.Library.GetSearchableText(snippet);
-                if (text is null) return "(Datei zu gross für die Vorschau)";
+                if (text is null) return Strings.PreviewTooLarge;
                 var lines = text.ReplaceLineEndings("\n").Split('\n');
                 var preview = string.Join(Environment.NewLine, lines.Take(PreviewLines));
                 return lines.Length > PreviewLines ? preview + Environment.NewLine + "…" : preview;
@@ -210,9 +210,9 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
                 if (Path.GetExtension(snippet.FullPath).Equals(".url", StringComparison.OrdinalIgnoreCase))
                 {
                     var url = TryReadUrl(snippet.FullPath);
-                    if (url is not null) return "Öffnet " + url;
+                    if (url is not null) return string.Format(Strings.OpensUrlFormat, url);
                 }
-                return "Öffnet mit der zugeordneten Anwendung";
+                return Strings.OpensWithApp;
         }
     }
 

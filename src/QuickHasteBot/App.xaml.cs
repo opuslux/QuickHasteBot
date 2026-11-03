@@ -2,6 +2,7 @@
 using System.Windows.Threading;
 using QuickHasteBot.Core;
 using QuickHasteBot.Interop;
+using QuickHasteBot.UI;
 
 namespace QuickHasteBot;
 
@@ -79,7 +80,7 @@ public partial class App : Application
     void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error("Unbehandelter Fehler im UI-Thread", e.Exception);
-        MessageBox.Show($"Unerwarteter Fehler:\n{e.Exception.Message}\n\nDetails stehen in QuickHasteBot.log.",
+        MessageBox.Show(string.Format(Strings.UnexpectedErrorFormat, e.Exception.Message),
             "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }

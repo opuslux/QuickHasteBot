@@ -11,10 +11,10 @@ internal sealed class TrayIcon : IDisposable
     public TrayIcon(AppController app)
     {
         var menu = new ContextMenu();
-        menu.Items.Add(MenuItem("Einstellungen", app.ShowSettings));
-        menu.Items.Add(MenuItem("Textbausteine öffnen", app.OpenStructureFolder));
+        menu.Items.Add(MenuItem(Strings.TraySettings, app.ShowSettings));
+        menu.Items.Add(MenuItem(Strings.TrayOpenStructure, app.OpenStructureFolder));
         menu.Items.Add(new Separator());
-        menu.Items.Add(MenuItem("Beenden", app.Exit));
+        menu.Items.Add(MenuItem(Strings.TrayExit, app.Exit));
 
         _icon = new TaskbarIcon
         {

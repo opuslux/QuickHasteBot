@@ -1,75 +1,99 @@
 # QuickHasteBot
 
-Textbausteine per Hotkey suchen und einfügen. Der Nachfolger von QuickPasteBot (2012, WinForms), neu gebaut mit .NET 10 und WPF.
+Find and paste text snippets with a hotkey. The successor to QuickPasteBot (2012, WinForms), rebuilt with .NET 10 and WPF.
 
-**Ctrl+Shift+Y** öffnet am Mauszeiger ein Popup mit allen Textbausteinen. Tippen filtert, **Enter** fügt den Text in das Fenster ein, in dem du gerade warst.
+**Ctrl+Shift+Y** opens a popup with all your snippets at the mouse cursor. Type to filter, press **Enter** to paste the text into the window you were just working in.
+
+The user interface is available in English and German. By default it follows the Windows display language (German on a German Windows, English everywhere else); the settings let you pick a language explicitly, which applies immediately.
 
 ## Download
 
-Jedes Release hat zwei ZIPs mit derselben App:
+Every release comes with two ZIPs containing the same app:
 
-- `QuickHasteBot-x.y.z-win-x64.zip` (ca. 1,5 MB) braucht die [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
-- `QuickHasteBot-x.y.z-win-x64-standalone.zip` (ca. 60 MB) bringt die Runtime mit und läuft auch auf Rechnern, auf denen nur ein älteres .NET installiert ist.
+- `QuickHasteBot-x.y.z-win-x64.zip` (about 3 MB) requires the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+- `QuickHasteBot-x.y.z-win-x64-standalone.zip` (about 60 MB) includes the runtime and also works on machines that only have an older .NET installed.
 
-## Textbausteine
+## Snippets
 
-Die Textbausteine sind normale Dateien im Ordner `structure` neben der exe. Unterordner werden zu Ordnern im Popup.
+Snippets are plain files in the `structure` folder next to the exe. Subfolders become folders in the popup.
 
 ```
 structure\
-  2-Adressen\
-    1-max.muster@example.com.txt
-  4-Grüsse\
-    01-MfG-DE.txt
-  6-Weblinks\
-    www.google.com.url
+  1-Addresses\
+    1-Office address.txt
+    2-Shipping address.txt
+    3-Bank details.txt
+  2-Email\
+    1-Thanks for your message.txt
+    2-Meeting confirmation.txt
+    3-Out of office.txt
+  3-Sign-offs\
+    1-Kind regards (EN).txt
+    2-Freundliche Grüsse (DE).txt
+    3-Meilleures salutations (FR).txt
+  4-Support\
+    Replies\
+      Password reset.txt
+      Ticket received.txt
+    Onboarding checklist.xlsx
+  5-Links\
+    Intranet.url
+    Ticket system.url
+  Phone numbers.txt
 ```
 
-- **`.txt`** wird eingefügt. Die Kodierung (ANSI, UTF-8 oder UTF-16) wird automatisch erkannt.
-- **Alle anderen Dateien** (z.B. `.url`, `.xlsx`) öffnen sich mit der zugeordneten Anwendung.
-- **Sortierung** nach Name, darum funktionieren Nummern-Präfixe wie `1-`, `2-`.
-- **Änderungen** im Ordner erscheinen sofort, ohne Neustart.
+In the popup this shows up as five folders followed by `Phone numbers`. Opening `4-Support` shows the `Replies` folder and the checklist; typing `ticket` finds `Ticket received` and `Ticket system` regardless of which folder they are in.
 
-## Bedienung im Popup
+- **`.txt`** files are pasted. The encoding (ANSI, UTF-8 or UTF-16) is detected automatically. More extensions can be added under `TextExtensions` in `settings.json`.
+- **All other files** (e.g. `.url`, `.xlsx`, `.pdf`) open with their associated application, which makes the popup a quick launcher as well.
+- **The file name** without its extension is the name shown in the popup, so name files after what they contain.
+- **Sorting** is by name, folders first, so number prefixes like `1-`, `2-` set the order.
+- **Hidden files** as well as `desktop.ini` and `thumbs.db` are ignored.
+- **Changes** in the folder show up immediately, no restart needed.
 
-| Taste | Aktion |
+## Using the popup
+
+| Key | Action |
 |---|---|
-| Tippen | Suche über alle Ordner. Mehrere Wörter müssen alle passen, Groß/Klein und Umlaute sind egal (`grusse` findet `Grüsse`) |
-| ↑ ↓ / Bild↑ Bild↓ | Auswahl |
-| Enter | Einfügen (oder Ordner öffnen) |
-| Shift+Enter | Mit der anderen Methode einfügen (Tippen statt Zwischenablage oder umgekehrt) |
-| → / ← / Backspace | Bei leerem Suchfeld: in Ordner hinein / eine Ebene hoch |
-| Strg+O | Textbaustein im Editor öffnen |
-| Strg+E | Im Explorer zeigen |
-| Strg+, | Einstellungen |
-| Esc | Schliessen |
+| Typing | Searches all folders. With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Folder names and, optionally, the text inside the snippets are searched as well. |
+| ↑ ↓ / Page Up, Page Down | Move the selection |
+| Ctrl+Home / Ctrl+End | First / last entry |
+| Enter | Paste (or open the folder) |
+| Shift+Enter | Paste with the other method (typing instead of clipboard or vice versa) |
+| → / ← / Backspace | With an empty search box: open folder / go up one level |
+| Ctrl+O | Open the snippet in its editor |
+| Ctrl+E | Show it in Explorer |
+| Ctrl+, | Settings |
+| Esc | Close |
 
-Mit der Maus fügt ein Klick ein oder öffnet den Ordner, mit Shift die andere Methode. In den Einstellungen lässt sich auf „Klick wählt aus, Doppelklick fügt ein“ umstellen.
+With the mouse, a click pastes the snippet or opens the folder; hold Shift for the other paste method. The settings can switch this to "Click selects, double-click pastes". The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
 
-## Einfügen: zwei Methoden
+## Pasting: two methods
 
-- **Zwischenablage** (Standard): Der Text kommt kurz in die Zwischenablage, dann wird Strg+V gesendet. Danach wird der alte Inhalt der Zwischenablage wiederhergestellt. Der Clipboard-Verlauf (Win+V) wird dabei nicht vollgemüllt.
-- **Tippen**: Der Text wird Zeichen für Zeichen als Unicode-Eingabe gesendet. Das funktioniert auch dort, wo Einfügen gesperrt ist, ist bei langen Texten aber langsamer.
+- **Clipboard** (default): the text is placed on the clipboard briefly, then Ctrl+V is sent. Afterwards the previous clipboard content is restored, and the clipboard history (Win+V) is not cluttered.
+- **Typing**: the text is sent character by character as Unicode input. This also works where pasting is blocked, but is slower for long texts.
 
 ## Portable
 
-Alles liegt neben `QuickHasteBot.exe`:
+Everything lives next to `QuickHasteBot.exe`:
 
-- `structure\` mit den Textbausteinen. Der Pfad lässt sich in den Einstellungen ändern (relativ, absolut oder mit `%USERPROFILE%`).
-- `settings.json` mit den Einstellungen. Sie wird beim Ändern sofort gespeichert und kann auch von Hand bearbeitet werden.
-- `QuickHasteBot.log` mit Fehlern und Startinfos.
+- `structure\` with your snippets. The path can be changed in the settings (relative, absolute, or with `%USERPROFILE%`).
+- `settings.json` with the settings. It is saved immediately on every change and can also be edited by hand (`"Language": "en"`, `"de"`, or empty for the Windows language).
+- `QuickHasteBot.log` with errors and startup information.
 
-Ein zweiter Start öffnet die Einstellungen der laufenden Instanz. `QuickHasteBot.exe --search` öffnet das Popup, zum Beispiel aus einem anderen Launcher heraus.
+The only thing written elsewhere is the short animation in the settings window, which is extracted to `%TEMP%\QuickHasteBot` the first time the settings open.
 
-## Umstieg von QuickPasteBot
+Starting the exe a second time opens the settings of the running instance. `QuickHasteBot.exe --search` opens the popup, for example from another launcher.
 
-1. `structure\` und `settings.xml` aus dem alten Ordner neben die neue exe kopieren. Der Hotkey wird beim ersten Start übernommen.
-2. QuickPasteBot beenden, sonst ist der Hotkey doppelt belegt. QuickHasteBot meldet das.
-3. In den Einstellungen „Mit Windows starten“ aktivieren und den alten Autostart-Eintrag mit „Eintrag entfernen“ löschen.
+## Switching from QuickPasteBot
 
-## Entwicklung
+1. Copy `structure\` and `settings.xml` from the old folder next to the new exe. The hotkey is taken over on first start.
+2. Quit QuickPasteBot, otherwise the hotkey is registered twice. QuickHasteBot will tell you if that happens.
+3. In the settings, enable "Start with Windows" and remove the old autostart entry with "Remove entry".
 
-Voraussetzung ist das .NET 10 SDK.
+## Development
+
+Requires the .NET 10 SDK.
 
 ```
 dotnet build
@@ -77,20 +101,24 @@ dotnet test
 dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish
 ```
 
-`publish\QuickHasteBot.exe` ist eine einzelne Datei (ca. 1,5 MB) und braucht die .NET 10 Desktop Runtime. Die Standalone-Variante mit eingebauter Runtime entsteht mit:
+`publish\QuickHasteBot.exe` is a single file and requires the .NET 10 Desktop Runtime. The standalone variant with the runtime built in is created with:
 
 ```
 dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish/standalone -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 ```
 
-`QHB_SNAPSHOTS=<Ordner> dotnet test` speichert zusätzlich Bilder des Popups und der Einstellungen. Das ist praktisch, um UI-Änderungen ohne Starten anzuschauen.
+The version comes from the latest `vX.Y.Z` git tag: a build exactly on the tag is `2.2.0`, three commits later it is `2.2.0-dev.3`, and uncommitted changes add `.dirty`. The settings window shows it together with the commit.
 
-Ein Release entsteht, wenn ein Tag `vX.Y.Z` gepusht wird. Der Workflow testet, baut beide Varianten und hängt die ZIPs an das GitHub-Release.
+User interface texts live in `src/QuickHasteBot/UI/Strings.resx` (English, also the fallback for every other language) and `Strings.de.resx` (German). The build generates the `Strings` class from them, used in code (`Strings.HotkeyActive`) and XAML (`{x:Static ui:Strings.HotkeyActive}`). A test makes sure both files contain the same keys and placeholders; adding a language means adding another `Strings.<code>.resx` and an entry in `UiLanguage.Choices`.
+
+`QHB_SNAPSHOTS=<folder> dotnet test` additionally saves images of the popup and the settings window, which is handy for checking UI changes without starting the app.
+
+A release is created by pushing a `vX.Y.Z` tag. The workflow runs the tests, builds both variants and attaches the ZIPs to the GitHub release.
 
 ```
 src/QuickHasteBot/
-  Core/      Einstellungen, Bibliothek, Suche, Kodierung – ohne UI, getestet
-  Interop/   Win32: Hotkey, Einfügen (SendInput/Clipboard), Icons, Fenster-Platzierung
-  UI/        Such-Popup, Einstellungen, Tray-Icon
+  Core/      Settings, library, search, encoding – no UI, covered by tests
+  Interop/   Win32: hotkey, pasting (SendInput/clipboard), icons, window placement
+  UI/        Search popup, settings, tray icon, texts (Strings.resx, Strings.de.resx)
 tests/QuickHasteBot.Tests/
 ```

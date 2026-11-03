@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="SettingsTitle" xml:space="preserve"><value>QuickHasteBot – Einstellungen</value></data>
+  <data name="VersionFormat" xml:space="preserve"><value>Version {0}</value></data>
+  <data name="LegacyHint" xml:space="preserve"><value>Die alte Version QuickPasteBot startet noch mit Windows und belegt evtl. denselben Hotkey.</value></data>
+  <data name="LegacyRemove" xml:space="preserve"><value>Eintrag entfernen</value></data>
+  <data name="HotkeyHeading" xml:space="preserve"><value>Hotkey</value></data>
+  <data name="HotkeyActive" xml:space="preserve"><value>Aktiv. Klicken und neue Kombination drücken, um sie zu ändern.</value></data>
+  <data name="HotkeyTakenFormat" xml:space="preserve"><value>{0} ist bereits von einem anderen Programm belegt. Bitte eine andere Kombination wählen.</value></data>
+  <data name="HotkeyTakenAtStartFormat" xml:space="preserve"><value>{0} ist bereits belegt. Läuft QuickPasteBot noch? Beende die alte Version oder wähle hier eine andere Kombination.</value></data>
+  <data name="HotkeyPrompt" xml:space="preserve"><value>Tastenkombination drücken…</value></data>
+  <data name="HotkeyInvalidFormat" xml:space="preserve"><value>{0} geht nicht – bitte mit Ctrl, Alt, Shift oder Win</value></data>
+  <data name="PasteHeading" xml:space="preserve"><value>Einfügen mit Enter</value></data>
+  <data name="PasteClipboard" xml:space="preserve"><value>Über die Zwischenablage (schnell, Zwischenablage bleibt erhalten)</value></data>
+  <data name="PasteTyping" xml:space="preserve"><value>Tippen (auch dort, wo Einfügen gesperrt ist)</value></data>
+  <data name="PasteHint" xml:space="preserve"><value>Shift+Enter nimmt jeweils die andere Methode.</value></data>
+  <data name="ClickHeading" xml:space="preserve"><value>Maus im Popup</value></data>
+  <data name="ClickSingle" xml:space="preserve"><value>Einfacher Klick fügt ein</value></data>
+  <data name="ClickDouble" xml:space="preserve"><value>Klick wählt aus, Doppelklick fügt ein</value></data>
+  <data name="ClickHint" xml:space="preserve"><value>Mit gedrückter Shift-Taste wird die andere Methode genommen.</value></data>
+  <data name="StructureHeading" xml:space="preserve"><value>Textbausteine</value></data>
+  <data name="StructureChange" xml:space="preserve"><value>Ändern…</value></data>
+  <data name="StructureOpen" xml:space="preserve"><value>Öffnen</value></data>
+  <data name="StructureToolTip" xml:space="preserve"><value>Relativ zur exe oder absolut, Umgebungsvariablen wie %USERPROFILE% gehen auch</value></data>
+  <data name="StructureFilesFormat" xml:space="preserve"><value>{0}  ({1} Dateien)</value></data>
+  <data name="StructureMissingFormat" xml:space="preserve"><value>{0}  (existiert nicht)</value></data>
+  <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Textbausteinen wählen</value></data>
+  <data name="SearchContent" xml:space="preserve"><value>Auch im Inhalt der Textbausteine suchen</value></data>
+  <data name="GeneralHeading" xml:space="preserve"><value>Allgemein</value></data>
+  <data name="Autostart" xml:space="preserve"><value>Mit Windows starten</value></data>
+  <data name="ShowTray" xml:space="preserve"><value>Tray-Icon anzeigen</value></data>
+  <data name="LanguageLabel" xml:space="preserve"><value>Sprache</value></data>
+  <data name="LanguageAuto" xml:space="preserve"><value>Automatisch (Windows)</value></data>
+  <data name="ExitApp" xml:space="preserve"><value>QuickHasteBot beenden</value></data>
+  <data name="Close" xml:space="preserve"><value>Schliessen</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Textbaustein suchen…</value></data>
+  <data name="HintsClipboard" xml:space="preserve"><value>↵ Einfügen   ⇧↵ Tippen</value></data>
+  <data name="HintsTyping" xml:space="preserve"><value>↵ Tippen   ⇧↵ Einfügen</value></data>
+  <data name="HintEdit" xml:space="preserve"><value>Strg+O Bearbeiten</value></data>
+  <data name="HintExplorer" xml:space="preserve"><value>Strg+E Explorer</value></data>
+  <data name="HintSettings" xml:space="preserve"><value>Strg+, Einstellungen</value></data>
+  <data name="BreadcrumbRoot" xml:space="preserve"><value>Textbausteine</value></data>
+  <data name="MatchesOne" xml:space="preserve"><value>1 Treffer</value></data>
+  <data name="MatchesFormat" xml:space="preserve"><value>{0} Treffer</value></data>
+  <data name="NoMatches" xml:space="preserve"><value>Keine Treffer</value></data>
+  <data name="FolderNotFoundFormat" xml:space="preserve"><value>Ordner nicht gefunden: {0}</value></data>
+  <data name="FolderEmpty" xml:space="preserve"><value>Dieser Ordner ist leer. Strg+E öffnet ihn im Explorer.</value></data>
+  <data name="ItemsOne" xml:space="preserve"><value>1 Eintrag</value></data>
+  <data name="ItemsFormat" xml:space="preserve"><value>{0} Einträge</value></data>
+  <data name="PreviewTooLarge" xml:space="preserve"><value>(Datei zu gross für die Vorschau)</value></data>
+  <data name="OpensUrlFormat" xml:space="preserve"><value>Öffnet {0}</value></data>
+  <data name="OpensWithApp" xml:space="preserve"><value>Öffnet mit der zugeordneten Anwendung</value></data>
+  <data name="TraySettings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="TrayOpenStructure" xml:space="preserve"><value>Textbausteine öffnen</value></data>
+  <data name="TrayExit" xml:space="preserve"><value>Beenden</value></data>
+  <data name="SnippetReadErrorFormat" xml:space="preserve"><value>Der Textbaustein konnte nicht gelesen werden:
+{0}</value></data>
+  <data name="UnexpectedErrorFormat" xml:space="preserve"><value>Unerwarteter Fehler:
+{0}
+
+Details stehen in QuickHasteBot.log.</value></data>
+  <data name="WelcomeFileName" xml:space="preserve"><value>Willkommen.txt</value></data>
+  <data name="WelcomeText" xml:space="preserve"><value>Hallo von QuickHasteBot! Lege .txt-Dateien und Unterordner im Ordner structure an, sie erscheinen sofort im Popup.</value></data>
+</root>

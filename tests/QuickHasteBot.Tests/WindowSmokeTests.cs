@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Media;
@@ -13,8 +14,28 @@ namespace QuickHasteBot.Tests;
 /// </summary>
 public class WindowSmokeTests
 {
+    // Eine Application pro Prozess: beide Sprachen laufen nacheinander im selben Test
     [Fact]
-    public void Popup_and_settings_render_with_real_structure() => RunOnSta(() =>
+    public void Popup_and_settings_render_in_german_and_english() => RunOnSta(() =>
+    {
+        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown, ThemeMode = ThemeMode.Light };
+        app.Resources.Add("BoolToVisibility", new System.Windows.Controls.BooleanToVisibilityConverter());
+        try
+        {
+            // Wie ein deutsches Windows, damit der Test überall gleich läuft. English() stellt per settings.json um.
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de");
+            German();
+            English();
+            SwitchLanguage();
+        }
+        finally
+        {
+            app.Shutdown();
+        }
+    });
+
+    /// <summary>Blättern, Suchen und Kopfzeile, dazu die deutschen Texte.</summary>
+    static void German()
     {
         using var dir = new TempDirectory();
         dir.File(@"structure\1-Temp\00-Temp.txt", "temp");
@@ -24,49 +45,91 @@ public class WindowSmokeTests
         dir.File(@"structure\6-Weblinks\www.google.com.url", "[InternetShortcut]\r\nURL=https://www.google.com");
         dir.File(@"structure\ascii-table.txt", "!\"#$%&'()*+,-./");
 
-        var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown, ThemeMode = ThemeMode.Light };
-        app.Resources.Add("BoolToVisibility", new System.Windows.Controls.BooleanToVisibilityConverter());
-        try
-        {
-            using var controller = new AppController(new AppPaths(dir.Path));
+        using var controller = new AppController(new AppPaths(dir.Path));
 
-            var popup = new SearchPopup(controller);
-            var viewModel = (SearchPopupViewModel)popup.DataContext;
-            viewModel.Reset();
-            Assert.Equal(["1-Temp", "4-Grüsse", "6-Weblinks", "ascii-table"], viewModel.Items.Select(i => i.Snippet.Name));
-            Snapshot(popup, "popup-browse.png");
+        var popup = new SearchPopup(controller);
+        var viewModel = (SearchPopupViewModel)popup.DataContext;
+        viewModel.Reset();
+        Assert.Equal(["1-Temp", "4-Grüsse", "6-Weblinks", "ascii-table"], viewModel.Items.Select(i => i.Snippet.Name));
+        Snapshot(popup, "popup-browse.png");
 
-            viewModel.Query = "mfg";
-            Assert.Equal(2, viewModel.Items.Count);
-            Assert.Contains("Freundliche Grüsse", viewModel.Preview);
-            Snapshot(popup, "popup-search.png");
+        viewModel.Query = "mfg";
+        Assert.Equal(2, viewModel.Items.Count);
+        Assert.Contains("Freundliche Grüsse", viewModel.Preview);
+        Snapshot(popup, "popup-search.png");
 
-            viewModel.Query = "";
-            viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
-            Assert.Equal(["Textbausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));
-            Assert.Equal(["", null], viewModel.Breadcrumbs.Select(c => c.Target));
-            Assert.Equal("Öffnet https://www.google.com", viewModel.Preview);
-            Assert.True(viewModel.GoUp());
-            Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
+        viewModel.Query = "";
+        viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
+        Assert.Equal(["Textbausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["", null], viewModel.Breadcrumbs.Select(c => c.Target));
+        Assert.Equal("Öffnet https://www.google.com", viewModel.Preview);
+        Assert.True(viewModel.GoUp());
+        Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
 
-            // Über die Kopfzeile zurück, der Ordner auf dem Weg bleibt ausgewählt
-            viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);
-            viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "Intern").Snippet);
-            Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
-            Snapshot(popup, "popup-breadcrumbs.png");
-            viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
-            Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        // Über die Kopfzeile zurück, der Ordner auf dem Weg bleibt ausgewählt
+        viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);
+        viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "Intern").Snippet);
+        Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Snapshot(popup, "popup-breadcrumbs.png");
+        viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
 
-            var settings = new SettingsWindow(controller);
-            Snapshot(settings, "settings.png");
-            settings.Close();
-            popup.Close();
-        }
-        finally
-        {
-            app.Shutdown();
-        }
-    });
+        var settings = new SettingsWindow(controller);
+        Snapshot(settings, "settings.png");
+        settings.Close();
+        popup.Close();
+    }
+
+    /// <summary>Dieselben Fenster mit englischen Texten, eingestellt über settings.json.</summary>
+    static void English()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"structure\5-Links\Intranet.url", "[InternetShortcut]\r\nURL=https://intranet.example.com");
+        dir.File(@"structure\Phone numbers.txt", "Reception 100");
+        dir.File("settings.json", """{ "Language": "en" }""");
+
+        using var controller = new AppController(new AppPaths(dir.Path));
+
+        var popup = new SearchPopup(controller);
+        var viewModel = (SearchPopupViewModel)popup.DataContext;
+        viewModel.Reset();
+        Assert.Equal("1 item", viewModel.Preview);
+        Snapshot(popup, "popup-en.png");
+
+        viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "5-Links").Snippet);
+        Assert.Equal(["Snippets", "5-Links"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("Opens https://intranet.example.com", viewModel.Preview);
+
+        viewModel.Query = "xyz";
+        Assert.Equal("0 matches", viewModel.Breadcrumbs.Single().Name);
+
+        var settings = new SettingsWindow(controller);
+        Assert.Equal("QuickHasteBot – Settings", settings.Title);
+        Snapshot(settings, "settings-en.png");
+        settings.Close();
+        popup.Close();
+    }
+
+    /// <summary>Sprachwechsel ohne Neustart: das Einstellungsfenster kommt an derselben Stelle in der neuen Sprache wieder.</summary>
+    static void SwitchLanguage()
+    {
+        using var dir = new TempDirectory();
+        using var controller = new AppController(new AppPaths(dir.Path));
+        SettingsWindow Current() => Application.Current.Windows.OfType<SettingsWindow>().Single();
+
+        controller.ShowSettings(new Point(-20000, -20000));
+        Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);
+
+        controller.ChangeLanguage("en");
+        Assert.Equal("QuickHasteBot – Settings", Current().Title);
+        Assert.Equal(-20000, Current().Left);
+        Assert.Equal("Snippets", Strings.BreadcrumbRoot);
+        Assert.Equal("en", controller.Settings.Language);
+
+        controller.ChangeLanguage("de");
+        Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);
+        Current().Close();
+    }
 
     static void Snapshot(Window window, string fileName)
     {

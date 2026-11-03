@@ -32,7 +32,7 @@
                 <TextBox x:Name="SearchBox"
                          Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
                          FontSize="16" Padding="10,7" />
-                <TextBlock Text="Textbaustein suchen…"
+                <TextBlock Text="{x:Static ui:Strings.SearchPlaceholder}"
                            FontSize="16" Margin="13,0,0,0" VerticalAlignment="Center"
                            IsHitTestVisible="False"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
@@ -163,9 +163,9 @@
                 </Style>
             </StackPanel.Resources>
             <TextBlock Text="{Binding PasteHints}" />
-            <TextBlock Text="Strg+O Bearbeiten" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnEditClick" />
-            <TextBlock Text="Strg+E Explorer" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnExplorerClick" />
-            <TextBlock Text="Strg+, Einstellungen" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnSettingsClick" />
+            <TextBlock Text="{x:Static ui:Strings.HintEdit}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnEditClick" />
+            <TextBlock Text="{x:Static ui:Strings.HintExplorer}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnExplorerClick" />
+            <TextBlock Text="{x:Static ui:Strings.HintSettings}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnSettingsClick" />
         </StackPanel>
     </Grid>
 </Window>

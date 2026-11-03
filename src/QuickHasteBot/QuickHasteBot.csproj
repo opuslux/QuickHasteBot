@@ -37,6 +37,23 @@
     <EmbeddedResource Include="Assets\RoboClip.mp4" LogicalName="RoboClip.mp4" />
   </ItemGroup>
 
+  <!-- Oberflächentexte: Strings.resx Englisch (Standard), Strings.de.resx Deutsch. Die Klasse Strings entsteht beim Build. -->
+  <ItemGroup>
+    <EmbeddedResource Update="UI\Strings.resx" StronglyTypedLanguage="CSharp" StronglyTypedClassName="Strings"
+                      StronglyTypedNamespace="QuickHasteBot.UI" StronglyTypedFileName="$(IntermediateOutputPath)Strings.Designer.cs"
+                      PublicClass="true" />
+  </ItemGroup>
+
+  <!--
+    Der WPF-Zwischenbau für das XAML (…_wpftmp.csproj) erzeugt keine Ressourcen und kennt Strings sonst nicht.
+    Darum die Klasse schon vor dem XAML-Schritt erzeugen und dem Zwischenbau als fertige Datei mitgeben.
+  -->
+  <Target Name="StringsBeforeMarkupCompile" BeforeTargets="MarkupCompilePass1" DependsOnTargets="PrepareResourceNames;CoreResGen"
+          Condition="!$(MSBuildProjectName.EndsWith('_wpftmp'))" />
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('_wpftmp'))">
+    <Compile Include="$(IntermediateOutputPath)Strings.Designer.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="QuickHasteBot.Tests" />
     <!-- WPF lässt System.IO aus den ImplicitUsings weg (Konflikt mit Shapes.Path), wir brauchen es überall -->

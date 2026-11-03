@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using static QuickHasteBot.Interop.NativeMethods;
 
 namespace QuickHasteBot.Interop;
@@ -20,16 +21,31 @@ internal static class PopupPlacement
         GetCursorPos(out var cursor);
         var work = WorkArea(MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST));
 
+        // Unsichtbar bleiben, bis das Fenster am Cursor steht und den neuen Inhalt gezeichnet hat,
+        // sonst blitzt es kurz in der Ecke bzw. mit dem Inhalt vom letzten Mal auf
+        SetCloaked(hwnd, true);
+
         // Erst auf den richtigen Monitor schieben: WPF passt die Größe an dessen DPI an
         SetWindowPos(hwnd, 0, work.Left, work.Top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         LimitHeight(window, hwnd, work);
         window.Show();
+        // SizeToContent gleich auflösen, damit die Höhe für die Richtung schon stimmt
+        window.UpdateLayout();
 
         GetWindowRect(hwnd, out var rect);
         // Passt das Fenster unter dem Cursor nicht mehr hin, öffnet es nach oben
         var anchor = new Anchor(cursor, work, OpensUp: cursor.Y + (rect.Bottom - rect.Top) > work.Bottom);
         KeepAnchored(window, anchor);
+
+        // Nach dem Zeichnen aufdecken
+        window.Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => SetCloaked(hwnd, false));
         return anchor;
+    }
+
+    static void SetCloaked(nint hwnd, bool cloaked)
+    {
+        var value = cloaked ? 1 : 0;
+        DwmSetWindowAttribute(hwnd, DWMWA_CLOAK, ref value, sizeof(int));
     }
 
     /// <summary>

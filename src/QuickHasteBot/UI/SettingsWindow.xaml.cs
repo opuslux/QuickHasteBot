@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
@@ -19,7 +20,7 @@ internal partial class SettingsWindow : Window
         _app = app;
 
         _loading = true;
-        VersionText.Text = "Version " + DisplayVersion();
+        VersionText.Text = string.Format(Strings.VersionFormat, DisplayVersion());
         HotkeyInput.Gesture = app.ConfiguredHotkey;
         PasteClipboard.IsChecked = app.Settings.PasteMode == PasteMode.Clipboard;
         PasteTyping.IsChecked = app.Settings.PasteMode == PasteMode.Typing;
@@ -29,6 +30,8 @@ internal partial class SettingsWindow : Window
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
+        LanguageInput.ItemsSource = UiLanguage.Choices;
+        LanguageInput.SelectedItem = UiLanguage.Choices.FirstOrDefault(c => c.Code == app.Settings.Language) ?? UiLanguage.Choices[0];
         _loading = false;
 
         UpdateHotkeyStatus();
@@ -57,12 +60,12 @@ internal partial class SettingsWindow : Window
     {
         if (_app.HotkeyActive)
         {
-            HotkeyStatus.Text = "Aktiv. Klicken und neue Kombination drücken, um sie zu ändern.";
+            HotkeyStatus.Text = Strings.HotkeyActive;
             HotkeyStatus.Foreground = (Brush)FindResource("TextFillColorSecondaryBrush");
         }
         else
         {
-            ShowMessage($"{_app.ConfiguredHotkey} ist bereits von einem anderen Programm belegt. Bitte eine andere Kombination wählen.");
+            ShowMessage(string.Format(Strings.HotkeyTakenFormat, _app.ConfiguredHotkey));
         }
     }
 
@@ -158,7 +161,7 @@ internal partial class SettingsWindow : Window
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Ordner mit den Textbausteinen wählen",
+            Title = Strings.StructureDialogTitle,
             InitialDirectory = Directory.Exists(_app.StructureRoot) ? _app.StructureRoot : AppController.ExeDirectory,
         };
         if (dialog.ShowDialog(this) != true) return;
@@ -175,8 +178,8 @@ internal partial class SettingsWindow : Window
     {
         var root = _app.StructureRoot;
         StructureResolved.Text = Directory.Exists(root)
-            ? $"{root}  ({_app.Library.All.Count(s => !s.IsFolder)} Dateien)"
-            : $"{root}  (existiert nicht)";
+            ? string.Format(Strings.StructureFilesFormat, root, _app.Library.All.Count(s => !s.IsFolder))
+            : string.Format(Strings.StructureMissingFormat, root);
     }
 
     void OnAutostartChanged(object sender, RoutedEventArgs e)
@@ -188,6 +191,14 @@ internal partial class SettingsWindow : Window
     }
 
     void OnTrayChanged(object sender, RoutedEventArgs e) => _app.SetTrayIconVisible(TrayInput.IsChecked == true);
+
+    void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || LanguageInput.SelectedItem is not LanguageChoice choice || choice.Code == _app.Settings.Language) return;
+
+        // Dieses Fenster wird dabei ersetzt, darum erst nach dem Auswahl-Ereignis
+        Dispatcher.BeginInvoke(() => _app.ChangeLanguage(choice.Code));
+    }
 
     void OnRemoveLegacyAutostart(object sender, RoutedEventArgs e)
     {

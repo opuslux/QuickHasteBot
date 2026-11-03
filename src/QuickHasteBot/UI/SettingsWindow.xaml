@@ -3,7 +3,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:QuickHasteBot.UI"
-        Title="QuickHasteBot – Einstellungen"
+        Title="{x:Static ui:Strings.SettingsTitle}"
         Icon="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
         Width="904" SizeToContent="Height"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen">
@@ -26,21 +26,21 @@
                           LoadedBehavior="Manual" IsMuted="True"
                           MediaEnded="OnClipEnded" MediaFailed="OnClipFailed" SizeChanged="OnClipSizeChanged" />
 
-            <TextBlock Text="Einfügen mit Enter" FontWeight="SemiBold" Margin="0,0,0,6" />
+            <TextBlock Text="{x:Static ui:Strings.PasteHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
             <RadioButton x:Name="PasteClipboard" GroupName="Paste" Checked="OnPasteModeChanged">
-                <TextBlock Text="Über die Zwischenablage (schnell, Zwischenablage bleibt erhalten)" TextWrapping="Wrap" />
+                <TextBlock Text="{x:Static ui:Strings.PasteClipboard}" TextWrapping="Wrap" />
             </RadioButton>
             <RadioButton x:Name="PasteTyping" GroupName="Paste" Checked="OnPasteModeChanged"
-                         Content="Tippen (auch dort, wo Einfügen gesperrt ist)" />
-            <TextBlock Text="Shift+Enter nimmt jeweils die andere Methode." FontSize="12" Margin="0,2,0,0"
+                         Content="{x:Static ui:Strings.PasteTyping}" />
+            <TextBlock Text="{x:Static ui:Strings.PasteHint}" FontSize="12" Margin="0,2,0,0"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
-            <TextBlock Text="Maus im Popup" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <TextBlock Text="{x:Static ui:Strings.ClickHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
             <RadioButton x:Name="ClickSingle" GroupName="Click" Checked="OnClickModeChanged"
-                         Content="Einfacher Klick fügt ein" />
+                         Content="{x:Static ui:Strings.ClickSingle}" />
             <RadioButton x:Name="ClickDouble" GroupName="Click" Checked="OnClickModeChanged"
-                         Content="Klick wählt aus, Doppelklick fügt ein" />
-            <TextBlock Text="Mit gedrückter Shift-Taste wird die andere Methode genommen." FontSize="12" Margin="0,2,0,0"
+                         Content="{x:Static ui:Strings.ClickDouble}" />
+            <TextBlock Text="{x:Static ui:Strings.ClickHint}" FontSize="12" Margin="0,2,0,0"
                        TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         </StackPanel>
 
@@ -57,36 +57,42 @@
             <Border x:Name="LegacyHint" Visibility="Collapsed" Margin="0,0,0,16" Padding="12" CornerRadius="6"
                     Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
                 <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Eintrag entfernen" Click="OnRemoveLegacyAutostart" VerticalAlignment="Center" />
-                    <TextBlock Text="Die alte Version QuickPasteBot startet noch mit Windows und belegt evtl. denselben Hotkey."
+                    <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.LegacyRemove}" Click="OnRemoveLegacyAutostart" VerticalAlignment="Center" />
+                    <TextBlock Text="{x:Static ui:Strings.LegacyHint}"
                                TextWrapping="Wrap" Margin="0,0,12,0" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
 
-            <TextBlock Text="Hotkey" FontWeight="SemiBold" Margin="0,0,0,6" />
+            <TextBlock Text="{x:Static ui:Strings.HotkeyHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
             <ui:HotkeyBox x:Name="HotkeyInput" GestureCaptured="OnHotkeyCaptured" />
             <TextBlock x:Name="HotkeyStatus" Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap" />
 
-            <TextBlock Text="Textbausteine" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <TextBlock Text="{x:Static ui:Strings.StructureHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
             <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Öffnen" Click="OnOpenStructure" Margin="6,0,0,0" />
-                <Button DockPanel.Dock="Right" Content="Ändern…" Click="OnBrowseStructure" Margin="6,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.StructureOpen}" Click="OnOpenStructure" Margin="6,0,0,0" />
+                <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.StructureChange}" Click="OnBrowseStructure" Margin="6,0,0,0" />
                 <TextBox x:Name="StructureInput" LostKeyboardFocus="OnStructureInputCommitted" KeyDown="OnStructureInputKeyDown"
-                         ToolTip="Relativ zur exe oder absolut, Umgebungsvariablen wie %USERPROFILE% gehen auch" />
+                         ToolTip="{x:Static ui:Strings.StructureToolTip}" />
             </DockPanel>
             <TextBlock x:Name="StructureResolved" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <CheckBox x:Name="SearchContentInput" Content="Auch im Inhalt der Textbausteine suchen" Margin="0,8,0,0"
+            <CheckBox x:Name="SearchContentInput" Content="{x:Static ui:Strings.SearchContent}" Margin="0,8,0,0"
                       Click="OnSearchContentChanged" />
 
-            <TextBlock Text="Allgemein" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <CheckBox x:Name="AutostartInput" Content="Mit Windows starten" Click="OnAutostartChanged" />
-            <CheckBox x:Name="TrayInput" Content="Tray-Icon anzeigen" Click="OnTrayChanged" Margin="0,4,0,0" />
+            <TextBlock Text="{x:Static ui:Strings.GeneralHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <CheckBox x:Name="AutostartInput" Content="{x:Static ui:Strings.Autostart}" Click="OnAutostartChanged" />
+            <CheckBox x:Name="TrayInput" Content="{x:Static ui:Strings.ShowTray}" Click="OnTrayChanged" Margin="0,4,0,0" />
+
+            <DockPanel Margin="0,10,0,0">
+                <TextBlock Text="{x:Static ui:Strings.LanguageLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                <ComboBox x:Name="LanguageInput" Width="220" HorizontalAlignment="Left"
+                          SelectionChanged="OnLanguageChanged" />
+            </DockPanel>
         </StackPanel>
 
         <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,24,0,0" LastChildFill="False">
-            <Button DockPanel.Dock="Left" Content="QuickHasteBot beenden" Click="OnExit" />
-            <Button DockPanel.Dock="Right" Content="Schliessen" Click="OnClose" IsDefault="True" IsCancel="True" />
+            <Button DockPanel.Dock="Left" Content="{x:Static ui:Strings.ExitApp}" Click="OnExit" />
+            <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.Close}" Click="OnClose" IsDefault="True" IsCancel="True" />
         </DockPanel>
     </Grid>
 </Window>
