@@ -22,6 +22,9 @@
   <data name="ClickSingle" xml:space="preserve"><value>A single click pastes</value></data>
   <data name="ClickDouble" xml:space="preserve"><value>Click selects, double-click pastes</value></data>
   <data name="ClickHint" xml:space="preserve"><value>Hold Shift to use the other method.</value></data>
+  <data name="OpenHeading" xml:space="preserve"><value>When opening</value></data>
+  <data name="RememberFolder" xml:space="preserve"><value>Start in the last opened folder</value></data>
+  <data name="RememberFolderHint" xml:space="preserve"><value>Can also be switched in the popup with the pin next to the folder path.</value></data>
   <data name="StructureHeading" xml:space="preserve"><value>Snippets</value></data>
   <data name="StructureChange" xml:space="preserve"><value>Change…</value></data>
   <data name="StructureOpen" xml:space="preserve"><value>Open</value></data>
@@ -43,14 +46,14 @@
   <data name="HintEdit" xml:space="preserve"><value>Ctrl+O Edit</value></data>
   <data name="HintExplorer" xml:space="preserve"><value>Ctrl+E Explorer</value></data>
   <data name="HintSettings" xml:space="preserve"><value>Ctrl+, Settings</value></data>
+  <data name="RememberFolderTooltip" xml:space="preserve"><value>Start in this folder next time</value></data>
+  <data name="WrapTooltip" xml:space="preserve"><value>Wrap long lines</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Snippets</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 match</value></data>
   <data name="MatchesFormat" xml:space="preserve"><value>{0} matches</value></data>
   <data name="NoMatches" xml:space="preserve"><value>No matches</value></data>
   <data name="FolderNotFoundFormat" xml:space="preserve"><value>Folder not found: {0}</value></data>
   <data name="FolderEmpty" xml:space="preserve"><value>This folder is empty. Ctrl+E opens it in Explorer.</value></data>
-  <data name="ItemsOne" xml:space="preserve"><value>1 item</value></data>
-  <data name="ItemsFormat" xml:space="preserve"><value>{0} items</value></data>
   <data name="PreviewTooLarge" xml:space="preserve"><value>(File too large to preview)</value></data>
   <data name="OpensUrlFormat" xml:space="preserve"><value>Opens {0}</value></data>
   <data name="OpensWithApp" xml:space="preserve"><value>Opens with the associated application</value></data>

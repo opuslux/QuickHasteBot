@@ -4,7 +4,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:QuickHasteBot.UI"
         Title="QuickHasteBot"
-        Width="460" SizeToContent="Height"
+        Width="720" SizeToContent="Height"
         WindowStyle="None" ResizeMode="NoResize"
         ShowInTaskbar="False" Topmost="True" ShowActivated="True"
         Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
@@ -14,158 +14,308 @@
         PreviewMouseMove="OnWindowMouseMove"
         PreviewKeyDown="OnPreviewKeyDown">
 
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Window.Resources>
+        <!-- Die Einträge sind nicht fokussierbar, die Tastatur bleibt im Suchfeld -->
+        <Style x:Key="SnippetContainer" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Padding" Value="6,3" />
+        </Style>
 
-        <!-- Suchfeld mit Platzhalter, links das App-Icon -->
-        <DockPanel Grid.Row="0">
-            <Image DockPanel.Dock="Left" Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
-                   Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"
-                   RenderOptions.BitmapScalingMode="HighQuality" />
+        <!-- Kleine Umschalter mit Symbol, eingeschaltet in Akzentfarbe -->
+        <Style x:Key="IconToggle" TargetType="ToggleButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Linker und rechter Fensterrand zum Ändern der Breite, unsichtbar bis auf den Mauszeiger -->
+        <Style x:Key="ResizeEdge" TargetType="Thumb">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="SizeWE" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Eine Zeile, links in der Liste und rechts im Inhalt eines Ordners -->
+        <DataTemplate x:Key="SnippetTemplate" DataType="{x:Type ui:SnippetItem}">
             <Grid>
-                <TextBox x:Name="SearchBox"
-                         Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
-                         FontSize="16" Padding="10,7" />
-                <TextBlock Text="{x:Static ui:Strings.SearchPlaceholder}"
-                           FontSize="16" Margin="13,0,0,0" VerticalAlignment="Center"
-                           IsHitTestVisible="False"
-                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                           Visibility="{Binding ShowPlaceholder, Converter={StaticResource BoolToVisibility}}" />
-            </Grid>
-        </DockPanel>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="26" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <!-- Ordnerpfad, übergeordnete Ordner sind anklickbar -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding Breadcrumbs}" Margin="4,10,4,4" Focusable="False">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type ui:Breadcrumb}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="›" FontSize="12" Margin="5,0"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Visibility="{Binding ShowSeparator, Converter={StaticResource BoolToVisibility}}" />
-                        <TextBlock Text="{Binding Name}" FontSize="12" MouseLeftButtonUp="OnBreadcrumbClick">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                <Image Source="{Binding Icon}" Width="16" Height="16"
+                       VerticalAlignment="Center" HorizontalAlignment="Left"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="12.5">
+                        <Run Text="{Binding NameBefore, Mode=OneWay}" /><Run Text="{Binding NameMatch, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" /><Run Text="{Binding NameAfter, Mode=OneWay}" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding Location}" FontSize="10.5" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Visibility="{Binding ShowLocation, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+
+                <TextBlock Grid.Column="2" Text="›" FontSize="14" Margin="6,0,2,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid x:Name="Body" Margin="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Suchfeld mit Platzhalter, links das App-Icon -->
+            <DockPanel Grid.Row="0">
+                <Image DockPanel.Dock="Left" Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
+                       Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+                <Grid>
+                    <TextBox x:Name="SearchBox"
+                             Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+                             FontSize="16" Padding="10,7" />
+                    <TextBlock Text="{x:Static ui:Strings.SearchPlaceholder}"
+                               FontSize="16" Margin="13,0,0,0" VerticalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               Visibility="{Binding ShowPlaceholder, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </DockPanel>
+
+            <!-- Ordnerpfad, übergeordnete Ordner sind anklickbar. Rechts die Stecknadel: nächstes Mal wieder hier beginnen. -->
+            <DockPanel Grid.Row="1" Margin="4,6,0,2">
+                <ToggleButton DockPanel.Dock="Right" Style="{StaticResource IconToggle}" Content="&#xE718;"
+                              IsChecked="{Binding RememberFolder}" ToolTip="{x:Static ui:Strings.RememberFolderTooltip}" />
+                <ItemsControl ItemsSource="{Binding Breadcrumbs}" VerticalAlignment="Center" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type ui:Breadcrumb}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="›" FontSize="12" Margin="5,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                           Visibility="{Binding ShowSeparator, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Text="{Binding Name}" FontSize="12" MouseLeftButtonUp="OnBreadcrumbClick">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsNavigable}" Value="True">
+                                                    <Setter Property="Cursor" Value="Hand" />
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsNavigable}" Value="True" />
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                                    <Setter Property="TextDecorations" Value="Underline" />
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+
+            <!-- Links die Liste, rechts der Inhalt des markierten Eintrags. Die Höhe gibt die linke Liste vor. -->
+            <Grid Grid.Row="2" MinHeight="240">
+                <!-- Die Aufteilung kommt aus den Einstellungen, siehe ApplyColumnShare -->
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ListColumn" Width="*" MinWidth="100" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition x:Name="DetailColumn" Width="2*" MinWidth="100" />
+                </Grid.ColumnDefinitions>
+
+                <ListBox x:Name="Results"
+                         ItemsSource="{Binding Items}"
+                         SelectedItem="{Binding Selected}"
+                         Focusable="False"
+                         Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         ItemContainerStyle="{StaticResource SnippetContainer}"
+                         ItemTemplate="{StaticResource SnippetTemplate}"
+                         SelectionChanged="OnSelectionChanged"
+                         PreviewMouseLeftButtonDown="OnResultsMouseDown"
+                         PreviewMouseLeftButtonUp="OnResultsMouseUp"
+                         PreviewMouseMove="OnResultsMouseMove"
+                         MouseLeave="OnResultsMouseLeave"
+                         MouseDoubleClick="OnResultsDoubleClick" />
+
+                <TextBlock Text="{Binding EmptyText}" Margin="12" TextWrapping="Wrap"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+
+                <!-- Trenner zum Verschieben: sichtbar ist nur die Linie, greifen lässt er sich auf der ganzen Breite -->
+                <GridSplitter Grid.Column="1" Width="17" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                              ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Focusable="False"
+                              Background="Transparent" DragCompleted="OnSplitterDragCompleted">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Border Background="{TemplateBinding Background}">
+                                <!-- Rahmenfarbe von Checkboxen: im hellen wie im dunklen Theme gut sichtbar -->
+                                <Border x:Name="Line" Width="1" HorizontalAlignment="Center"
+                                        Background="{DynamicResource ControlStrongStrokeColorDefaultBrush}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Line" Property="Width" Value="2" />
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsDragging" Value="True">
+                                    <Setter TargetName="Line" Property="Width" Value="2" />
+                                    <Setter TargetName="Line" Property="Background" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
+
+                <ui:FillDecorator x:Name="DetailHost" Grid.Column="2">
+                    <Grid>
+                        <ListBox x:Name="DetailList"
+                                 ItemsSource="{Binding DetailItems}"
+                                 Focusable="False"
+                                 Background="Transparent" BorderThickness="0"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 ItemContainerStyle="{StaticResource SnippetContainer}"
+                                 ItemTemplate="{StaticResource SnippetTemplate}"
+                                 Visibility="{Binding ShowDetailItems, Converter={StaticResource BoolToVisibility}}"
+                                 PreviewMouseLeftButtonDown="OnDetailMouseDown"
+                                 PreviewMouseLeftButtonUp="OnDetailMouseUp"
+                                 MouseDoubleClick="OnDetailDoubleClick" />
+
+                        <!-- Text, Adresse oder Hinweis. Lange Zeilen eines Textes nur auf Wunsch umbrochen, sonst wird horizontal gescrollt. -->
+                        <ScrollViewer x:Name="DetailScroll" Focusable="False" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer.Style>
+                                <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
+                                    <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsNavigable}" Value="True">
-                                            <Setter Property="Cursor" Value="Hand" />
-                                        </DataTrigger>
                                         <MultiDataTrigger>
                                             <MultiDataTrigger.Conditions>
-                                                <Condition Binding="{Binding IsNavigable}" Value="True" />
-                                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                                <Condition Binding="{Binding DetailIsText}" Value="True" />
+                                                <Condition Binding="{Binding WrapPreview}" Value="False" />
                                             </MultiDataTrigger.Conditions>
-                                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                                            <Setter Property="TextDecorations" Value="Underline" />
+                                            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
                                         </MultiDataTrigger>
+                                        <DataTrigger Binding="{Binding ShowDetailItems}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </StackPanel>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                            </ScrollViewer.Style>
+                            <TextBlock Text="{Binding DetailText}" Margin="6,4"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12" />
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DetailIsText}" Value="True">
+                                                <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding DetailIsText}" Value="True" />
+                                                    <Condition Binding="{Binding WrapPreview}" Value="False" />
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="TextWrapping" Value="NoWrap" />
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </ScrollViewer>
 
-        <Grid Grid.Row="2">
-            <ListBox x:Name="Results"
-                     ItemsSource="{Binding Items}"
-                     SelectedItem="{Binding Selected}"
-                     Focusable="False"
-                     Background="Transparent" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     VirtualizingPanel.IsVirtualizing="True"
-                     SelectionChanged="OnSelectionChanged"
-                     PreviewMouseLeftButtonDown="OnResultsMouseDown"
-                     PreviewMouseLeftButtonUp="OnResultsMouseUp"
-                     MouseDoubleClick="OnResultsDoubleClick">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="Focusable" Value="False" />
-                        <Setter Property="Padding" Value="6,3" />
+                        <!-- Umbruch an/aus, nur bei Texten. Unten rechts, frei von beiden Scrollbalken; was darunter liegt, deckt der Fensterhintergrund ab. -->
+                        <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,14,14" CornerRadius="4"
+                                Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+                                Visibility="{Binding DetailIsText, Converter={StaticResource BoolToVisibility}}">
+                            <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE751;"
+                                          IsChecked="{Binding WrapPreview}" ToolTip="{x:Static ui:Strings.WrapTooltip}" />
+                        </Border>
+                    </Grid>
+                </ui:FillDecorator>
+            </Grid>
+
+            <!-- Tastenkürzel, die Befehle lassen sich auch anklicken -->
+            <StackPanel x:Name="HintBar" Grid.Row="3" Orientation="Horizontal" Margin="4,8,4,0">
+                <StackPanel.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="FontSize" Value="11" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
                     </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type ui:SnippetItem}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="26" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Image Source="{Binding Icon}" Width="16" Height="16"
-                                   VerticalAlignment="Center" HorizontalAlignment="Left"
-                                   RenderOptions.BitmapScalingMode="HighQuality" />
-
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock TextTrimming="CharacterEllipsis" FontSize="12.5">
-                                    <Run Text="{Binding NameBefore, Mode=OneWay}" /><Run Text="{Binding NameMatch, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" /><Run Text="{Binding NameAfter, Mode=OneWay}" />
-                                </TextBlock>
-                                <TextBlock Text="{Binding Location}" FontSize="10.5" TextTrimming="CharacterEllipsis"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                           Visibility="{Binding ShowLocation, Converter={StaticResource BoolToVisibility}}" />
-                            </StackPanel>
-
-                            <TextBlock Grid.Column="2" Text="›" FontSize="14" Margin="6,0,2,0" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Visibility="{Binding IsFolder, Converter={StaticResource BoolToVisibility}}" />
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-
-            <TextBlock Text="{Binding EmptyText}" Margin="12" TextWrapping="Wrap"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                       Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
+                    <Style x:Key="HintLink" TargetType="TextBlock">
+                        <Setter Property="FontSize" Value="11" />
+                        <Setter Property="Margin" Value="12,0,0,0" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                <Setter Property="TextDecorations" Value="Underline" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Resources>
+                <TextBlock x:Name="PasteHintsText" Text="{Binding PasteHints}" />
+                <TextBlock Text="{x:Static ui:Strings.HintEdit}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnEditClick" />
+                <TextBlock Text="{x:Static ui:Strings.HintExplorer}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnExplorerClick" />
+                <TextBlock Text="{x:Static ui:Strings.HintSettings}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnSettingsClick" />
+            </StackPanel>
         </Grid>
 
-        <!-- Vorschau des gewählten Eintrags -->
-        <Border Grid.Row="3" Margin="0,8,0,0" Padding="10,8" CornerRadius="6" MaxHeight="130"
-                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
-                Visibility="{Binding HasPreview, Converter={StaticResource BoolToVisibility}}">
-            <TextBlock Text="{Binding Preview}" FontFamily="Cascadia Mono, Consolas" FontSize="12"
-                       TextTrimming="CharacterEllipsis"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        </Border>
-
-        <!-- Tastenkürzel, die Befehle lassen sich auch anklicken -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="4,8,4,0">
-            <StackPanel.Resources>
-                <Style TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="11" />
-                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                </Style>
-                <Style x:Key="HintLink" TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="11" />
-                    <Setter Property="Margin" Value="12,0,0,0" />
-                    <Setter Property="Cursor" Value="Hand" />
-                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                            <Setter Property="TextDecorations" Value="Underline" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </StackPanel.Resources>
-            <TextBlock Text="{Binding PasteHints}" />
-            <TextBlock Text="{x:Static ui:Strings.HintEdit}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnEditClick" />
-            <TextBlock Text="{x:Static ui:Strings.HintExplorer}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnExplorerClick" />
-            <TextBlock Text="{x:Static ui:Strings.HintSettings}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnSettingsClick" />
-        </StackPanel>
+        <Thumb x:Name="LeftEdge" Style="{StaticResource ResizeEdge}" HorizontalAlignment="Left"
+               DragStarted="OnResizeStarted" DragDelta="OnResizeDelta" DragCompleted="OnResizeCompleted" />
+        <Thumb x:Name="RightEdge" Style="{StaticResource ResizeEdge}" HorizontalAlignment="Right"
+               DragStarted="OnResizeStarted" DragDelta="OnResizeDelta" DragCompleted="OnResizeCompleted" />
     </Grid>
 </Window>

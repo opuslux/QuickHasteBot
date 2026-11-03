@@ -26,6 +26,7 @@ internal partial class SettingsWindow : Window
         PasteTyping.IsChecked = app.Settings.PasteMode == PasteMode.Typing;
         ClickSingle.IsChecked = app.Settings.SingleClick;
         ClickDouble.IsChecked = !app.Settings.SingleClick;
+        RememberFolderInput.IsChecked = app.Settings.RememberFolder;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
@@ -38,6 +39,9 @@ internal partial class SettingsWindow : Window
         UpdateStructureResolved();
         UpdateLegacyHint();
         StartClip();
+
+        // Die Stecknadel im Popup schaltet dieselbe Einstellung, auch während dieses Fenster offen ist
+        Activated += (_, _) => RememberFolderInput.IsChecked = _app.Settings.RememberFolder;
 
         // Solange der Hotkey aufgenommen wird, darf er nicht das Popup öffnen
         HotkeyInput.GotKeyboardFocus += (_, _) => app.SuspendHotkey();
@@ -126,6 +130,12 @@ internal partial class SettingsWindow : Window
     {
         if (_loading) return;
         _app.Settings.SingleClick = ClickSingle.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnRememberFolderChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.RememberFolder = RememberFolderInput.IsChecked == true;
         _app.SaveSettings();
     }
 

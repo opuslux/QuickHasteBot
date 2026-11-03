@@ -39,7 +39,7 @@ public class WindowSmokeTests
     {
         using var dir = new TempDirectory();
         dir.File(@"structure\1-Temp\00-Temp.txt", "temp");
-        dir.File(@"structure\4-Grüsse\01-MfG-DE.txt", "Freundliche Grüsse\r\nMax Muster");
+        dir.File(@"structure\4-Grüsse\01-MfG-DE.txt", "Freundliche Grüsse\r\nMax Muster\r\nEine sehr lange Zeile, die in der Vorschau nur mit Umbruch ganz zu sehen ist, ohne muss man scrollen");
         dir.File(@"structure\4-Grüsse\03-MfG-EN.txt", "Kind regards\r\nMax Muster");
         dir.File(@"structure\4-Grüsse\Intern\01-Gruss.txt", "Gruss");
         dir.File(@"structure\6-Weblinks\www.google.com.url", "[InternetShortcut]\r\nURL=https://www.google.com");
@@ -51,18 +51,48 @@ public class WindowSmokeTests
         var viewModel = (SearchPopupViewModel)popup.DataContext;
         viewModel.Reset();
         Assert.Equal(["1-Temp", "4-Grüsse", "6-Weblinks", "ascii-table"], viewModel.Items.Select(i => i.Snippet.Name));
+        Assert.Equal(["00-Temp"], viewModel.DetailItems.Select(i => i.Snippet.Name));
+
+        // Rechts steht der Inhalt des markierten Ordners
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse");
+        Assert.Equal(["Intern", "01-MfG-DE", "03-MfG-EN"], viewModel.DetailItems.Select(i => i.Snippet.Name));
+        Assert.True(viewModel.ShowDetailItems);
         Snapshot(popup, "popup-browse.png");
+
+        // Ein Ordner von rechts öffnet sich direkt
+        viewModel.EnterFolder(viewModel.DetailItems.Single(i => i.Snippet.Name == "Intern").Snippet);
+        Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["01-Gruss"], viewModel.Items.Select(i => i.Snippet.Name));
+        Assert.Equal("Gruss", viewModel.DetailText);
+        viewModel.GoTo("");
+
+        // Ein Buchstabe sucht noch nicht, der Ordner bleibt stehen
+        viewModel.Query = "m";
+        Assert.False(viewModel.IsSearching);
+        Assert.Equal(["1-Temp", "4-Grüsse", "6-Weblinks", "ascii-table"], viewModel.Items.Select(i => i.Snippet.Name));
+        Assert.Equal("Textbausteine", viewModel.Breadcrumbs[0].Name);
 
         viewModel.Query = "mfg";
         Assert.Equal(2, viewModel.Items.Count);
-        Assert.Contains("Freundliche Grüsse", viewModel.Preview);
+        Assert.False(viewModel.ShowDetailItems);
+        Assert.True(viewModel.DetailIsText);
+        Assert.StartsWith("Freundliche Grüsse" + Environment.NewLine + "Max Muster" + Environment.NewLine, viewModel.DetailText);
         Snapshot(popup, "popup-search.png");
+
+        // Aus der Suche heraus führt ein Ordner von rechts in den Blätter-Modus
+        viewModel.Query = "grüsse";
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse");
+        viewModel.EnterFolder(viewModel.DetailItems.Single(i => i.Snippet.Name == "Intern").Snippet);
+        Assert.Equal("", viewModel.Query);
+        Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        viewModel.GoTo("");
 
         viewModel.Query = "";
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
         Assert.Equal(["Textbausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));
         Assert.Equal(["", null], viewModel.Breadcrumbs.Select(c => c.Target));
-        Assert.Equal("Öffnet https://www.google.com", viewModel.Preview);
+        Assert.Equal("Öffnet https://www.google.com", viewModel.DetailText);
+        Assert.False(viewModel.DetailIsText);
         Assert.True(viewModel.GoUp());
         Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
 
@@ -73,6 +103,36 @@ public class WindowSmokeTests
         Snapshot(popup, "popup-breadcrumbs.png");
         viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+
+        // Mit der Stecknadel beginnt das nächste Öffnen im Ordner und beim Eintrag vom Schliessen
+        viewModel.RememberFolder = true;
+        viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "03-MfG-EN");
+        popup.Hide();
+        Assert.Contains(@"""LastFolder"": ""4-Grüsse""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        viewModel.Reset();
+        Assert.Equal(["Textbausteine", "4-Grüsse"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("03-MfG-EN", viewModel.Selected?.Snippet.Name);
+
+        // Ohne Stecknadel geht es wieder oben los, ein verschwundener Ordner ebenso
+        viewModel.RememberFolder = false;
+        viewModel.Reset();
+        Assert.Equal(["Textbausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        controller.Settings.RememberFolder = true;
+        controller.Settings.LastFolder = "Gibt-es-nicht";
+        viewModel.Reset();
+        Assert.Equal(["Textbausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.True(viewModel.RememberFolder);
+        controller.Settings.RememberFolder = false;
+
+        // Umbruch der Textvorschau wird sofort gespeichert
+        Assert.False(viewModel.WrapPreview);
+        viewModel.WrapPreview = true;
+        Assert.Contains(@"""WrapPreview"": true", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        viewModel.Query = "mfg";
+        Snapshot(popup, "popup-wrap.png");
+        viewModel.WrapPreview = false;
+        viewModel.Query = "";
 
         var settings = new SettingsWindow(controller);
         Snapshot(settings, "settings.png");
@@ -86,22 +146,43 @@ public class WindowSmokeTests
         using var dir = new TempDirectory();
         dir.File(@"structure\5-Links\Intranet.url", "[InternetShortcut]\r\nURL=https://intranet.example.com");
         dir.File(@"structure\Phone numbers.txt", "Reception 100");
-        dir.File("settings.json", """{ "Language": "en" }""");
+        Directory.CreateDirectory(Path.Combine(dir.Path, @"structure\Empty"));
+        dir.File("settings.json", """{ "Language": "en", "ListColumnShare": 0.5, "PopupWidth": 100 }""");
 
         using var controller = new AppController(new AppPaths(dir.Path));
 
         var popup = new SearchPopup(controller);
         var viewModel = (SearchPopupViewModel)popup.DataContext;
         viewModel.Reset();
-        Assert.Equal("1 item", viewModel.Preview);
+        Assert.Equal(["Intranet"], viewModel.DetailItems.Select(i => i.Snippet.Name));
+        // Die gespeicherte Aufteilung der Spalten gilt
+        Assert.Equal(popup.ListColumn.Width, popup.DetailColumn.Width);
+
+        // Zu schmal gespeichert: so breit wie die Zeile mit den Tastenkürzeln, sonst die gespeicherte Breite
+        popup.ApplyWidth();
+        Assert.Equal(popup.MinWidth, popup.Width);
+        Snapshot(popup, "popup-narrow.png");
+        Assert.InRange(popup.MinWidth, 300, 600);
+        // Die ganze Zeile hat Platz, auch "Ctrl+, Settings" am Ende
+        Assert.True(popup.HintBar.ActualWidth >= popup.HintBar.Children.OfType<FrameworkElement>().Sum(c => c.ActualWidth + c.Margin.Left + c.Margin.Right) - 0.5);
+        controller.Settings.PopupWidth = 900;
+        popup.ApplyWidth();
+        Assert.Equal(900, popup.Width);
         Snapshot(popup, "popup-en.png");
+
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "Empty");
+        Assert.False(viewModel.ShowDetailItems);
+        Assert.Equal("This folder is empty. Ctrl+E opens it in Explorer.", viewModel.DetailText);
 
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "5-Links").Snippet);
         Assert.Equal(["Snippets", "5-Links"], viewModel.Breadcrumbs.Select(c => c.Name));
-        Assert.Equal("Opens https://intranet.example.com", viewModel.Preview);
+        Assert.Equal("Opens https://intranet.example.com", viewModel.DetailText);
 
+        // Ohne Treffer bleibt rechts nichts vom letzten Eintrag stehen
         viewModel.Query = "xyz";
         Assert.Equal("0 matches", viewModel.Breadcrumbs.Single().Name);
+        Assert.Empty(viewModel.DetailItems);
+        Assert.Equal("", viewModel.DetailText);
 
         var settings = new SettingsWindow(controller);
         Assert.Equal("QuickHasteBot – Settings", settings.Title);

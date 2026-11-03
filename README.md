@@ -55,7 +55,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 
 | Key | Action |
 |---|---|
-| Typing | Searches all folders. With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Folder names and, optionally, the text inside the snippets are searched as well. |
+| Typing | From the second character on, searches all folders (a single character keeps the current folder). With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Folder names and, optionally, the text inside the snippets are searched as well. |
 | ↑ ↓ / Page Up, Page Down | Move the selection |
 | Ctrl+Home / Ctrl+End | First / last entry |
 | Enter | Paste (or open the folder) |
@@ -66,7 +66,11 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 | Ctrl+, | Settings |
 | Esc | Close |
 
-With the mouse, a click pastes the snippet or opens the folder; hold Shift for the other paste method. The settings can switch this to "Click selects, double-click pastes". The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
+The column on the right shows what is inside the selected entry: the contents of a folder, the text of a snippet (scrollable, lines are not wrapped), or the address a link opens. The ↵ button in the text preview switches line wrapping on and off. The divider between the columns can be dragged, and the left and right edges of the popup change its width (at least as wide as the shortcut row at the bottom). Wrapping, split and width are remembered in `settings.json` (`WrapPreview`, `ListColumnShare`, `PopupWidth`).
+
+The pin next to the folder path makes the popup open where it was closed last time, in the same folder with the same entry selected, even after a restart. The same option is in the settings under "When opening".
+
+With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
 
 ## Pasting: two methods
 

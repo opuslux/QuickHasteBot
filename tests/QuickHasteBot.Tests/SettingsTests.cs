@@ -10,10 +10,12 @@ public class SettingsTests
         using var dir = new TempDirectory();
         var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
 
-        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, SingleClick = false, StructurePath = @"D:\Bausteine" });
+        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, SingleClick = false, StructurePath = @"D:\Bausteine", ListColumnShare = 0.45, PopupWidth = 850 });
         var loaded = store.Load();
 
         Assert.Equal("Ctrl+Alt+Q", loaded.Hotkey);
+        Assert.Equal(0.45, loaded.ListColumnShare);
+        Assert.Equal(850, loaded.PopupWidth);
         Assert.Equal(PasteMode.Typing, loaded.PasteMode);
         Assert.False(loaded.ShowTrayIcon);
         Assert.False(loaded.SingleClick);
@@ -36,7 +38,16 @@ public class SettingsTests
         Assert.Equal(HotkeyGesture.Default.ToString(), loaded.Hotkey);
         Assert.Equal(PasteMode.Clipboard, loaded.PasteMode);
         Assert.True(loaded.SingleClick);
+        Assert.Equal(1.0 / 3, loaded.ListColumnShare);
     }
+
+    [Theory]
+    [InlineData(0.5, 0.5)]
+    [InlineData(0.0, 0.15)]
+    [InlineData(2.0, 0.85)]
+    [InlineData(double.NaN, 1.0 / 3)]
+    public void Column_share_keeps_both_columns_visible(double share, double expected) =>
+        Assert.Equal(expected, AppSettings.ClampColumnShare(share));
 
     [Fact]
     public void Structure_path_is_relative_to_exe_folder()

@@ -22,6 +22,9 @@
   <data name="ClickSingle" xml:space="preserve"><value>Einfacher Klick fügt ein</value></data>
   <data name="ClickDouble" xml:space="preserve"><value>Klick wählt aus, Doppelklick fügt ein</value></data>
   <data name="ClickHint" xml:space="preserve"><value>Mit gedrückter Shift-Taste wird die andere Methode genommen.</value></data>
+  <data name="OpenHeading" xml:space="preserve"><value>Beim Öffnen</value></data>
+  <data name="RememberFolder" xml:space="preserve"><value>Im zuletzt geöffneten Ordner beginnen</value></data>
+  <data name="RememberFolderHint" xml:space="preserve"><value>Lässt sich auch im Popup mit der Stecknadel neben dem Ordnerpfad umschalten.</value></data>
   <data name="StructureHeading" xml:space="preserve"><value>Textbausteine</value></data>
   <data name="StructureChange" xml:space="preserve"><value>Ändern…</value></data>
   <data name="StructureOpen" xml:space="preserve"><value>Öffnen</value></data>
@@ -43,14 +46,14 @@
   <data name="HintEdit" xml:space="preserve"><value>Strg+O Bearbeiten</value></data>
   <data name="HintExplorer" xml:space="preserve"><value>Strg+E Explorer</value></data>
   <data name="HintSettings" xml:space="preserve"><value>Strg+, Einstellungen</value></data>
+  <data name="RememberFolderTooltip" xml:space="preserve"><value>Beim nächsten Öffnen wieder in diesem Ordner beginnen</value></data>
+  <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Textbausteine</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 Treffer</value></data>
   <data name="MatchesFormat" xml:space="preserve"><value>{0} Treffer</value></data>
   <data name="NoMatches" xml:space="preserve"><value>Keine Treffer</value></data>
   <data name="FolderNotFoundFormat" xml:space="preserve"><value>Ordner nicht gefunden: {0}</value></data>
   <data name="FolderEmpty" xml:space="preserve"><value>Dieser Ordner ist leer. Strg+E öffnet ihn im Explorer.</value></data>
-  <data name="ItemsOne" xml:space="preserve"><value>1 Eintrag</value></data>
-  <data name="ItemsFormat" xml:space="preserve"><value>{0} Einträge</value></data>
   <data name="PreviewTooLarge" xml:space="preserve"><value>(Datei zu gross für die Vorschau)</value></data>
   <data name="OpensUrlFormat" xml:space="preserve"><value>Öffnet {0}</value></data>
   <data name="OpensWithApp" xml:space="preserve"><value>Öffnet mit der zugeordneten Anwendung</value></data>
