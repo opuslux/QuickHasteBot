@@ -15,7 +15,8 @@
     <Product>QuickHasteBot</Product>
     <Description>Textbausteine per Hotkey suchen und einfügen</Description>
     <Authors>opuslux</Authors>
-    <Version>2.0.0-dev</Version>
+    <!-- Nur falls git fehlt, sonst kommt die Version vom letzten Tag (siehe VersionFromGit unten) -->
+    <Version>0.0.0-dev</Version>
 
     <!-- WPF0001: ThemeMode (Fluent) ist in .NET 10 noch als experimentell markiert -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
@@ -41,5 +42,33 @@
     <!-- WPF lässt System.IO aus den ImplicitUsings weg (Konflikt mit Shapes.Path), wir brauchen es überall -->
     <Using Include="System.IO" />
   </ItemGroup>
+
+  <!--
+    Version aus dem letzten Tag vX.Y.Z, damit die Anzeige in den Einstellungen auch bei lokalen Builds stimmt:
+    genau auf dem Tag "2.1.0", drei Commits danach "2.1.0-dev.3", mit nicht committeten Änderungen zusätzlich ".dirty".
+    Ein -p:Version=… von aussen (Release-Workflow) hat immer Vorrang.
+  -->
+  <Target Name="VersionFromGit" BeforeTargets="GetAssemblyVersion" Condition="'$(Version)' == '0.0.0-dev'">
+    <Exec Command="git describe --tags --long --dirty --match v[0-9]*" WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitDescribe" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitExitCode" />
+    </Exec>
+
+    <!-- z.B. v2.1.0-2-gc8e4ae3-dirty -->
+    <PropertyGroup Condition="'$(_GitExitCode)' == '0'">
+      <_GitPattern>^v(\d+\.\d+\.\d+)-(\d+)-g[0-9a-f]+(-dirty)?$</_GitPattern>
+      <_GitTag>$([System.Text.RegularExpressions.Regex]::Replace('$(_GitDescribe)', '$(_GitPattern)', '$1'))</_GitTag>
+      <_GitCommits>$([System.Text.RegularExpressions.Regex]::Replace('$(_GitDescribe)', '$(_GitPattern)', '$2'))</_GitCommits>
+      <_GitDirty>$([System.Text.RegularExpressions.Regex]::Replace('$(_GitDescribe)', '$(_GitPattern)', '$3'))</_GitDirty>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(_GitExitCode)' == '0' And '$(_GitTag)' != '$(_GitDescribe)'">
+      <Version>$(_GitTag)</Version>
+      <Version Condition="'$(_GitCommits)' != '0'">$(Version)-dev.$(_GitCommits)</Version>
+      <Version Condition="'$(_GitDirty)' != '' And '$(_GitCommits)' != '0'">$(Version).dirty</Version>
+      <Version Condition="'$(_GitDirty)' != '' And '$(_GitCommits)' == '0'">$(Version)-dirty</Version>
+    </PropertyGroup>
+  </Target>
 
 </Project>

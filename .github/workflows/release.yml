@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-  # Notfall-Knopf zum Testen, baut dann "2.0.0-dev"
+  # Notfall-Knopf zum Testen, baut dann z.B. "2.1.0-dev.3" (3 Commits nach v2.1.0)
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v7
+      with:
+        fetch-depth: 0  # Tags für die Version ohne Tag-Push
 
     - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v6
@@ -27,7 +29,13 @@ jobs:
       shell: pwsh
       run: |
         $tag = "${{ github.ref_name }}"
-        if ($tag -notmatch '^v') { $tag = "v2.0.0-dev" }
+        if ($tag -notmatch '^v') {
+            # Wie VersionFromGit in der csproj: letzter Tag plus Anzahl Commits danach
+            $tag = "v0.0.0-dev"
+            if ((git describe --tags --long --match 'v[0-9]*') -match '^v(\d+\.\d+\.\d+)-(\d+)-g') {
+                $tag = if ($Matches[2] -eq '0') { "v$($Matches[1])" } else { "v$($Matches[1])-dev.$($Matches[2])" }
+            }
+        }
 
         $fullVersion = $tag -replace '^v\.?', ''
         $numericVersion = "2.0.0"
