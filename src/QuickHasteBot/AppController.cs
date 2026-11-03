@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
 using QuickHasteBot.Core;
 using QuickHasteBot.Interop;
@@ -116,6 +117,23 @@ internal sealed class AppController : IDisposable
             Log.Error($"Textbaustein konnte nicht gelesen werden: {snippet.FullPath}", ex);
             MessageBox.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
+        }
+
+        if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
+        {
+            // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
+            var clipboard = SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
+            try
+            {
+                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard));
+            }
+            catch (SnippetScriptException ex)
+            {
+                // Lieber gar nichts einfügen als eine Fehlermeldung mitten in eine Mail
+                Log.Error($"Skript in Block {ex.Block} fehlgeschlagen: {snippet.FullPath}", ex);
+                MessageBox.Show(string.Format(Strings.ScriptErrorFormat, ex.Block, snippet.Name, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
         }
 
         var mode = alternate ? AppSettings.Other(Settings.PasteMode) : Settings.PasteMode;

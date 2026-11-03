@@ -126,6 +126,24 @@ internal sealed class PasteService
         }
     }
 
+    /// <summary>Text aus der Zwischenablage für Skripte, leer wenn keiner da ist oder sie blockiert ist.</summary>
+    public static string TryGetClipboardText()
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                return Clipboard.ContainsText() ? Clipboard.GetText() : "";
+            }
+            catch (Exception ex) when (ex is COMException or ExternalException)
+            {
+                Thread.Sleep(50);
+            }
+        }
+        Log.Error("Clipboard ist blockiert, Skripte sehen eine leere Zwischenablage");
+        return "";
+    }
+
     static bool TrySetClipboard(IDataObject data)
     {
         for (var attempt = 0; attempt < 5; attempt++)
