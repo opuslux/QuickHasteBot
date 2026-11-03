@@ -116,6 +116,65 @@ public class WindowSmokeTests
         viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
 
+        // Klonen: Vorschlag wie im Explorer, ungültige oder vergebene Namen sperren den Knopf
+        var mfg = controller.Library.Find(@"4-Grüsse\01-MfG-DE.txt")!;
+        var dialog = NameDialog.ForClone(mfg, SnippetFiles.SuggestCopyName(mfg.FullPath, Strings.CopySuffix));
+        Assert.Equal("01-MfG-DE - Kopie.txt", dialog.FileName);
+        Assert.True(dialog.ConfirmButton.IsEnabled);
+        Snapshot(dialog, "clone.png");
+        dialog.NameInput.Text = "03-MfG-EN.txt";
+        Assert.Equal(Strings.NameExists, dialog.Problem.Text);
+        Assert.False(dialog.ConfirmButton.IsEnabled);
+        dialog.NameInput.Text = "MfG: neu.txt";
+        Assert.Equal(Strings.NameInvalid, dialog.Problem.Text);
+        dialog.NameInput.Text = "  02-MfG-CH.txt ";
+        Assert.Equal("", dialog.Problem.Text);
+        Assert.Equal("02-MfG-CH.txt", dialog.FileName);
+        dialog.Close();
+
+        // Umbenennen: unverändert gesperrt, nur Gross/Klein zu ändern erlaubt
+        var rename = NameDialog.ForRename(mfg);
+        Assert.Equal("Umbenennen", rename.Title);
+        Assert.Equal("01-MfG-DE.txt", rename.FileName);
+        Assert.False(rename.ConfirmButton.IsEnabled);
+        Assert.Equal("", rename.Problem.Text);
+        Snapshot(rename, "rename.png");
+        rename.NameInput.Text = "01-mfg-de.txt";
+        Assert.True(rename.ConfirmButton.IsEnabled);
+        rename.NameInput.Text = "03-MfG-EN.txt";
+        Assert.Equal(Strings.NameExists, rename.Problem.Text);
+        rename.Close();
+
+        // Danach ist die Kopie markiert, nach dem Löschen der nächste Eintrag bzw. am Ende der vorige
+        viewModel.EnterFolder(mfg.Parent!);
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "01-MfG-DE");
+        var copy = SnippetFiles.Clone(mfg.FullPath, "02-MfG-CH.txt");
+        controller.Library.Reload();
+        viewModel.RefreshSelecting(Path.GetRelativePath(controller.Library.RootPath, copy));
+        Assert.Equal(["Intern", "01-MfG-DE", "02-MfG-CH", "03-MfG-EN"], viewModel.Items.Select(i => i.Snippet.Name));
+        Assert.Equal("02-MfG-CH", viewModel.Selected?.Snippet.Name);
+
+        var next = viewModel.SelectionAfterRemoving(viewModel.Selected!.Snippet);
+        File.Delete(copy);
+        controller.Library.Reload();
+        viewModel.Refresh(next);
+        Assert.Equal("03-MfG-EN", viewModel.Selected?.Snippet.Name);
+        Assert.Equal(@"4-Grüsse\01-MfG-DE.txt", viewModel.SelectionAfterRemoving(viewModel.Selected!.Snippet));
+        // Ein umbenannter Ordner bleibt markiert
+        viewModel.GoTo("");
+        var renamed = SnippetFiles.Rename(controller.Library.Find("1-Temp")!.FullPath, "2-Temp");
+        controller.Library.Reload();
+        viewModel.RefreshSelecting(Path.GetRelativePath(controller.Library.RootPath, renamed));
+        Assert.Equal("2-Temp", viewModel.Selected?.Snippet.Name);
+        Assert.Equal(["00-Temp"], viewModel.DetailItems.Select(i => i.Snippet.Name));
+        SnippetFiles.Rename(renamed, "1-Temp");
+        controller.Library.Reload();
+
+        // Rechts gelöscht: die Auswahl links bleibt
+        viewModel.Refresh("4-Grüsse");
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        Assert.Equal("4-Grüsse", viewModel.SelectionAfterRemoving(mfg));
+
         // Mit der Stecknadel beginnt das nächste Öffnen im Ordner und beim Eintrag vom Schliessen
         viewModel.RememberFolder = true;
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);

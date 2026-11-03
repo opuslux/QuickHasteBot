@@ -185,4 +185,28 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool DestroyIcon(nint hIcon);
+
+    public const uint FO_DELETE = 3;
+    public const ushort FOF_SILENT = 0x0004;
+    public const ushort FOF_NOCONFIRMATION = 0x0010;
+    public const ushort FOF_ALLOWUNDO = 0x0040;
+    public const ushort FOF_NOERRORUI = 0x0400;
+    public const ushort FOF_WANTNUKEWARNING = 0x4000;
+
+    // Natürliches Layout wie unter x64. Unter 32 Bit wäre die Struktur gepackt, die App läuft aber nur als x64.
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct SHFILEOPSTRUCT
+    {
+        public nint hwnd;
+        public uint wFunc;
+        public string pFrom;
+        public string? pTo;
+        public ushort fFlags;
+        [MarshalAs(UnmanagedType.Bool)] public bool fAnyOperationsAborted;
+        public nint hNameMappings;
+        public string? lpszProgressTitle;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, EntryPoint = "SHFileOperationW")]
+    public static extern int SHFileOperation(ref SHFILEOPSTRUCT lpFileOp);
 }
