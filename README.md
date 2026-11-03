@@ -4,6 +4,13 @@ Textbausteine per Hotkey suchen und einfügen. Der Nachfolger von QuickPasteBot 
 
 **Ctrl+Shift+Y** öffnet am Mauszeiger ein Popup mit allen Textbausteinen. Tippen filtert, **Enter** fügt den Text in das Fenster ein, in dem du gerade warst.
 
+## Download
+
+Jedes Release hat zwei ZIPs mit derselben App:
+
+- `QuickHasteBot-x.y.z-win-x64.zip` (ca. 1,5 MB) braucht die [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+- `QuickHasteBot-x.y.z-win-x64-standalone.zip` (ca. 60 MB) bringt die Runtime mit und läuft auch auf Rechnern, auf denen nur ein älteres .NET installiert ist.
+
 ## Textbausteine
 
 Die Textbausteine sind normale Dateien im Ordner `structure` neben der exe. Unterordner werden zu Ordnern im Popup.
@@ -70,11 +77,15 @@ dotnet test
 dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish
 ```
 
-`publish\QuickHasteBot.exe` ist eine einzelne Datei (ca. 1,5 MB) und braucht die .NET 10 Desktop Runtime.
+`publish\QuickHasteBot.exe` ist eine einzelne Datei (ca. 1,5 MB) und braucht die .NET 10 Desktop Runtime. Die Standalone-Variante mit eingebauter Runtime entsteht mit:
+
+```
+dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish/standalone -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+```
 
 `QHB_SNAPSHOTS=<Ordner> dotnet test` speichert zusätzlich Bilder des Popups und der Einstellungen. Das ist praktisch, um UI-Änderungen ohne Starten anzuschauen.
 
-Ein Release entsteht, wenn ein Tag `vX.Y.Z` gepusht wird. Der Workflow testet, baut und hängt das ZIP an das GitHub-Release.
+Ein Release entsteht, wenn ein Tag `vX.Y.Z` gepusht wird. Der Workflow testet, baut beide Varianten und hängt die ZIPs an das GitHub-Release.
 
 ```
 src/QuickHasteBot/

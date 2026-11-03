@@ -47,17 +47,30 @@ jobs:
         dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish
         -p:Version=${{ env.FULL_VERSION }} -p:FileVersion=${{ env.NUMERIC_VERSION }} -p:AssemblyVersion=${{ env.NUMERIC_VERSION }}
 
-    - name: Create Zip Archive
+    # Für Rechner ohne .NET 10 Desktop Runtime (z.B. wo nur .NET 8 installiert ist): Runtime steckt in der exe
+    - name: Publish Standalone Exe
+      run: >
+        dotnet publish src/QuickHasteBot/QuickHasteBot.csproj -c Release -r win-x64 -o publish-standalone
+        -p:SelfContained=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+        -p:Version=${{ env.FULL_VERSION }} -p:FileVersion=${{ env.NUMERIC_VERSION }} -p:AssemblyVersion=${{ env.NUMERIC_VERSION }}
+
+    - name: Create Zip Archives
       shell: pwsh
       run: |
         Copy-Item README.md publish -ErrorAction SilentlyContinue
+        Copy-Item README.md publish-standalone -ErrorAction SilentlyContinue
         $zipName = "QuickHasteBot-${{ env.FULL_VERSION }}-win-x64.zip"
+        $standaloneZipName = "QuickHasteBot-${{ env.FULL_VERSION }}-win-x64-standalone.zip"
         Compress-Archive -Path "publish\*" -DestinationPath $zipName
+        Compress-Archive -Path "publish-standalone\*" -DestinationPath $standaloneZipName
         echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+        echo "STANDALONE_ZIP_NAME=$standaloneZipName" >> $env:GITHUB_ENV
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v3
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: ${{ env.ZIP_NAME }}
+        files: |
+          ${{ env.ZIP_NAME }}
+          ${{ env.STANDALONE_ZIP_NAME }}
         generate_release_notes: true
