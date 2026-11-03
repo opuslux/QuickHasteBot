@@ -34,6 +34,7 @@ internal partial class SettingsWindow : Window
         UpdateHotkeyStatus();
         UpdateStructureResolved();
         UpdateLegacyHint();
+        StartClip();
 
         // Solange der Hotkey aufgenommen wird, darf er nicht das Popup öffnen
         HotkeyInput.GotKeyboardFocus += (_, _) => app.SuspendHotkey();
@@ -64,6 +65,52 @@ internal partial class SettingsWindow : Window
             ShowMessage($"{_app.ConfiguredHotkey} ist bereits von einem anderen Programm belegt. Bitte eine andere Kombination wählen.");
         }
     }
+
+    void StartClip()
+    {
+        try
+        {
+            RoboClip.Source = new Uri(ExtractClip());
+            RoboClip.Play();
+            Closed += (_, _) => RoboClip.Close();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Video konnte nicht geladen werden", ex);
+            RoboClip.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>Nur neu schreiben, wenn die Datei fehlt oder von einer anderen Version stammt.</summary>
+    static string ExtractClip()
+    {
+        using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("RoboClip.mp4")
+            ?? throw new InvalidOperationException("Ressource RoboClip.mp4 fehlt");
+        var path = Path.Combine(Path.GetTempPath(), "QuickHasteBot", "RoboClip.mp4");
+        var existing = new FileInfo(path);
+        if (existing.Exists && existing.Length == resource.Length) return path;
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using var file = File.Create(path);
+        resource.CopyTo(file);
+        return path;
+    }
+
+    void OnClipEnded(object sender, RoutedEventArgs e)
+    {
+        RoboClip.Position = TimeSpan.Zero;
+        RoboClip.Play();
+    }
+
+    // z.B. Windows N ohne Media Feature Pack: dann eben ohne Video
+    void OnClipFailed(object? sender, ExceptionRoutedEventArgs e)
+    {
+        Log.Error("Video kann nicht abgespielt werden", e.ErrorException);
+        RoboClip.Visibility = Visibility.Collapsed;
+    }
+
+    void OnClipSizeChanged(object sender, SizeChangedEventArgs e) =>
+        RoboClip.Clip = new RectangleGeometry(new Rect(e.NewSize), 8, 8);
 
     void OnPasteModeChanged(object sender, RoutedEventArgs e)
     {

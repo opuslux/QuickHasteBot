@@ -32,6 +32,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\QuickHasteBot.ico" />
+    <!-- MediaElement spielt nur Dateien ab, das Video wird beim Öffnen der Einstellungen nach %TEMP% entpackt -->
+    <EmbeddedResource Include="Assets\RoboClip.mp4" LogicalName="RoboClip.mp4" />
   </ItemGroup>
 
   <ItemGroup>
