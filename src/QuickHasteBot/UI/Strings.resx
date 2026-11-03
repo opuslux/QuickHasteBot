@@ -48,6 +48,7 @@
   <data name="HintSettings" xml:space="preserve"><value>Ctrl+, Settings</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Start in this folder next time</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Wrap long lines</value></data>
+  <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – like clicking this entry</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Snippets</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 match</value></data>
   <data name="MatchesFormat" xml:space="preserve"><value>{0} matches</value></data>

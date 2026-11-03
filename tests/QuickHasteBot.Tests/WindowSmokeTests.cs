@@ -53,6 +53,16 @@ public class WindowSmokeTests
         Assert.Equal(["1-Temp", "4-Grüsse", "6-Weblinks", "ascii-table"], viewModel.Items.Select(i => i.Snippet.Name));
         Assert.Equal(["00-Temp"], viewModel.DetailItems.Select(i => i.Snippet.Name));
 
+        // Links nummeriert für Alt+1 bis Alt+9, rechts nicht
+        Assert.Equal(["1", "2", "3", "4"], viewModel.Items.Select(i => i.Shortcut));
+        Assert.Equal([null], viewModel.DetailItems.Select(i => i.Shortcut));
+        Assert.Equal("Alt+2 – wie ein Klick auf diesen Eintrag", viewModel.Items[1].ShortcutTooltip);
+        Assert.Null(viewModel.DetailItems[0].ShortcutTooltip);
+        Assert.True(viewModel.SelectNumber(3));
+        Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
+        Assert.False(viewModel.SelectNumber(5));
+        Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
+
         // Rechts steht der Inhalt des markierten Ordners
         viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse");
         Assert.Equal(["Intern", "01-MfG-DE", "03-MfG-EN"], viewModel.DetailItems.Select(i => i.Snippet.Name));

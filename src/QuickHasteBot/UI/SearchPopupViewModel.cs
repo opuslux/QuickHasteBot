@@ -176,8 +176,11 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         }
 
         Items.Clear();
-        foreach (var item in items)
-            Items.Add(item);
+        for (var i = 0; i < items.Count; i++)
+        {
+            items[i].Shortcut = i < ShortcutCount ? (i + 1).ToString() : "";
+            Items.Add(items[i]);
+        }
 
         // Ohne Treffer der alten Auswahl immer den ersten Eintrag wählen, damit Enter sofort etwas tut.
         // Die rechte Spalte immer neu aufbauen, auch wenn nichts mehr ausgewählt ist oder sich der Ordner geändert hat.
@@ -185,6 +188,17 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
                     ?? items.FirstOrDefault();
         OnPropertyChanged(nameof(Selected));
         UpdateDetail(_selected?.Snippet);
+    }
+
+    /// <summary>Alt+1 bis Alt+9 erreichen die ersten neun Zeilen links.</summary>
+    public const int ShortcutCount = 9;
+
+    /// <summary>Wählt die Zeile mit der Nummer aus, falls es so viele gibt.</summary>
+    public bool SelectNumber(int number)
+    {
+        if (number < 1 || number > Math.Min(ShortcutCount, Items.Count)) return false;
+        Selected = Items[number - 1];
+        return true;
     }
 
     public void MoveSelection(int delta)
