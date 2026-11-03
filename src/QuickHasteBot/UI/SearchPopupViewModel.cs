@@ -13,7 +13,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     string _query = "";
     string _folderPath = ""; // relativ zum structure-Ordner, überlebt ein Neuladen der Bibliothek
     SnippetItem? _selected;
-    string _header = "";
+    IReadOnlyList<Breadcrumb> _breadcrumbs = [];
     string _preview = "";
     string _emptyText = "";
 
@@ -44,10 +44,11 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         }
     }
 
-    public string Header
+    /// <summary>Kopfzeile: Ordnerpfad beim Blättern, Trefferzahl beim Suchen.</summary>
+    public IReadOnlyList<Breadcrumb> Breadcrumbs
     {
-        get => _header;
-        private set => Set(ref _header, value);
+        get => _breadcrumbs;
+        private set => Set(ref _breadcrumbs, value);
     }
 
     public string Preview
@@ -102,7 +103,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         {
             var contentProvider = app.Settings.SearchContent ? library.GetSearchableText : (Func<Snippet, string?>?)null;
             items = SnippetSearch.Search(library.All, _query, contentProvider).Select(SnippetItem.ForHit).ToList();
-            Header = items.Count == 1 ? "1 Treffer" : $"{items.Count} Treffer";
+            Breadcrumbs = [new(items.Count == 1 ? "1 Treffer" : $"{items.Count} Treffer", Target: null, ShowSeparator: false)];
             EmptyText = items.Count == 0 ? "Keine Treffer" : "";
         }
         else
@@ -115,8 +116,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
             }
 
             items = folder.Children.Select(SnippetItem.ForBrowsing).ToList();
-            Header = "Textbausteine" + string.Concat(
-                folder.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Select(part => " › " + part));
+            Breadcrumbs = BuildBreadcrumbs(folder.RelativePath);
             EmptyText = items.Count > 0 ? ""
                 : !Directory.Exists(library.RootPath) ? $"Ordner nicht gefunden: {library.RootPath}"
                 : "Dieser Ordner ist leer. Strg+E öffnet ihn im Explorer.";
@@ -159,11 +159,35 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     public bool GoUp()
     {
         if (_folderPath.Length == 0) return false;
-        var child = _folderPath;
-        _folderPath = Path.GetDirectoryName(_folderPath) ?? "";
-        Refresh(selectRelativePath: child);
+        GoTo(Path.GetDirectoryName(_folderPath) ?? "");
         return true;
     }
+
+    /// <summary>Zurück in einen übergeordneten Ordner, der Unterordner auf dem Weg dorthin bleibt ausgewählt.</summary>
+    public void GoTo(string ancestorPath)
+    {
+        var parts = SplitPath(_folderPath);
+        var depth = SplitPath(ancestorPath).Length;
+        if (depth >= parts.Length) return;
+
+        _folderPath = ancestorPath;
+        Refresh(selectRelativePath: Path.Combine(parts[..(depth + 1)]));
+    }
+
+    static IReadOnlyList<Breadcrumb> BuildBreadcrumbs(string folderPath)
+    {
+        var parts = SplitPath(folderPath);
+        var crumbs = new List<Breadcrumb> { new("Textbausteine", parts.Length > 0 ? "" : null, ShowSeparator: false) };
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var isCurrent = i == parts.Length - 1;
+            crumbs.Add(new(parts[i], isCurrent ? null : Path.Combine(parts[..(i + 1)]), ShowSeparator: true));
+        }
+        return crumbs;
+    }
+
+    static string[] SplitPath(string relativePath) =>
+        relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
     string BuildPreview(Snippet? snippet)
     {

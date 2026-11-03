@@ -1,7 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
 using QuickHasteBot.Core;
 using QuickHasteBot.Interop;
 
@@ -19,6 +21,9 @@ internal partial class SearchPopup : Window
     readonly SearchPopupViewModel _viewModel;
     nint _targetWindow;
     SnippetItem? _pressedItem;
+    PopupPlacement.Anchor? _anchor;
+    Point? _dragStart;
+    bool _moving;
 
     public SearchPopup(AppController app)
     {
@@ -26,6 +31,12 @@ internal partial class SearchPopup : Window
         _app = app;
         DataContext = _viewModel = new SearchPopupViewModel(app);
         SourceInitialized += (_, _) => PopupPlacement.UseRoundedCorners(this);
+        // Die Höhe folgt der Liste, dabei soll das Fenster am Mauszeiger bleiben
+        SizeChanged += (_, _) =>
+        {
+            if (_anchor is { } anchor)
+                PopupPlacement.KeepAnchored(this, anchor);
+        };
     }
 
     /// <param name="targetWindow">Fenster, das beim Drücken des Hotkeys vorne war, dorthin wird eingefügt.</param>
@@ -34,7 +45,8 @@ internal partial class SearchPopup : Window
         _targetWindow = targetWindow;
         _viewModel.Reset();
 
-        PopupPlacement.ShowAtCursor(this);
+        _anchor = null;
+        _anchor = PopupPlacement.ShowAtCursor(this);
         Activate();
         WindowFocus.Activate(new WindowInteropHelper(this).Handle);
         SearchBox.Focus();
@@ -49,6 +61,56 @@ internal partial class SearchPopup : Window
     }
 
     void OnDeactivated(object? sender, EventArgs e) => Hide();
+
+    // Überall im Fenster lässt es sich verschieben. Erst ab einer kleinen Mausbewegung, damit Klicks Klicks bleiben;
+    // Scrollbalken und Suchfeld behalten ihr eigenes Ziehen.
+    void OnWindowMouseDown(object sender, MouseButtonEventArgs e) =>
+        _dragStart = IsInside<ScrollBar>(e.OriginalSource) || IsInside<TextBox>(e.OriginalSource) ? null : e.GetPosition(this);
+
+    void OnWindowMouseMove(object sender, MouseEventArgs e)
+    {
+        if (_dragStart is not { } start) return;
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            _dragStart = null;
+            return;
+        }
+
+        var delta = e.GetPosition(this) - start;
+        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+
+        _dragStart = null;
+        _pressedItem = null;
+        Mouse.Capture(null);
+
+        // Während des Ziehens nicht zurückspringen, auch wenn ein Monitorwechsel die Größe ändert
+        var anchor = _anchor;
+        _anchor = null;
+        _moving = true;
+        try
+        {
+            DragMove();
+        }
+        finally
+        {
+            _moving = false;
+        }
+        if (anchor is not null)
+            _anchor = PopupPlacement.Moved(this, anchor.Value);
+        Keyboard.Focus(SearchBox);
+    }
+
+    static bool IsInside<T>(object source) where T : DependencyObject
+    {
+        // Runs im Text sind keine Visuals, dort führt der logische Baum weiter
+        for (var element = source as DependencyObject; element is not null;
+             element = element is Visual ? VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element))
+        {
+            if (element is T) return true;
+        }
+        return false;
+    }
 
     void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -83,6 +145,16 @@ internal partial class SearchPopup : Window
 
         ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
         Keyboard.Focus(SearchBox);
+    }
+
+    void OnBreadcrumbClick(object sender, MouseButtonEventArgs e)
+    {
+        // Das Loslassen am Ende des Verschiebens ist kein Klick
+        if (_moving || sender is not FrameworkElement { DataContext: Breadcrumb { Target: { } target } }) return;
+
+        _viewModel.GoTo(target);
+        Keyboard.Focus(SearchBox);
+        e.Handled = true;
     }
 
     SnippetItem? ItemAt(MouseButtonEventArgs e) =>

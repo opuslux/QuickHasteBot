@@ -20,6 +20,7 @@ public class WindowSmokeTests
         dir.File(@"structure\1-Temp\00-Temp.txt", "temp");
         dir.File(@"structure\4-Grüsse\01-MfG-DE.txt", "Freundliche Grüsse\r\nMax Muster");
         dir.File(@"structure\4-Grüsse\03-MfG-EN.txt", "Kind regards\r\nMax Muster");
+        dir.File(@"structure\4-Grüsse\Intern\01-Gruss.txt", "Gruss");
         dir.File(@"structure\6-Weblinks\www.google.com.url", "[InternetShortcut]\r\nURL=https://www.google.com");
         dir.File(@"structure\ascii-table.txt", "!\"#$%&'()*+,-./");
 
@@ -42,10 +43,19 @@ public class WindowSmokeTests
 
             viewModel.Query = "";
             viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
-            Assert.Equal("Textbausteine › 6-Weblinks", viewModel.Header);
+            Assert.Equal(["Textbausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));
+            Assert.Equal(["", null], viewModel.Breadcrumbs.Select(c => c.Target));
             Assert.Equal("Öffnet https://www.google.com", viewModel.Preview);
             Assert.True(viewModel.GoUp());
             Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
+
+            // Über die Kopfzeile zurück, der Ordner auf dem Weg bleibt ausgewählt
+            viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);
+            viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "Intern").Snippet);
+            Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+            Snapshot(popup, "popup-breadcrumbs.png");
+            viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
+            Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
 
             var settings = new SettingsWindow(controller);
             Snapshot(settings, "settings.png");
