@@ -42,6 +42,13 @@
                          Content="{x:Static ui:Strings.ClickDouble}" />
             <TextBlock Text="{x:Static ui:Strings.ClickHint}" FontSize="12" Margin="0,2,0,0"
                        TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+            <TextBlock Text="{x:Static ui:Strings.OpenHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <CheckBox x:Name="RememberFolderInput" Click="OnRememberFolderChanged">
+                <TextBlock Text="{x:Static ui:Strings.RememberFolder}" TextWrapping="Wrap" />
+            </CheckBox>
+            <TextBlock Text="{x:Static ui:Strings.RememberFolderHint}" FontSize="12" Margin="0,2,0,0"
+                       TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         </StackPanel>
 
         <StackPanel Grid.Column="2">

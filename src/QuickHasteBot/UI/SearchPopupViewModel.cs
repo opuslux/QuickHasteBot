@@ -8,16 +8,17 @@ namespace QuickHasteBot.UI;
 /// </summary>
 internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 {
-    const int PreviewLines = 8;
-
     string _query = "";
     string _folderPath = ""; // relativ zum structure-Ordner, überlebt ein Neuladen der Bibliothek
     SnippetItem? _selected;
     IReadOnlyList<Breadcrumb> _breadcrumbs = [];
-    string _preview = "";
+    string _detailText = "";
     string _emptyText = "";
 
     public ObservableCollection<SnippetItem> Items { get; } = [];
+
+    /// <summary>Rechte Spalte, wenn ein Ordner markiert ist: sein Inhalt, direkt anklickbar.</summary>
+    public ObservableCollection<SnippetItem> DetailItems { get; } = [];
 
     public string Query
     {
@@ -30,7 +31,10 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         }
     }
 
-    public bool IsSearching => !string.IsNullOrWhiteSpace(_query);
+    // Ein einzelner Buchstabe trifft fast alles, erst ab zwei wird gesucht. Bis dahin bleibt der Ordner stehen.
+    const int MinSearchLength = 2;
+
+    public bool IsSearching => _query.Trim().Length >= MinSearchLength;
 
     public bool ShowPlaceholder => _query.Length == 0;
 
@@ -40,7 +44,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         set
         {
             if (Set(ref _selected, value))
-                Preview = BuildPreview(value?.Snippet);
+                UpdateDetail(value?.Snippet);
         }
     }
 
@@ -51,17 +55,43 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         private set => Set(ref _breadcrumbs, value);
     }
 
-    public string Preview
+    /// <summary>Rechte Spalte für alles ausser Ordnern mit Inhalt: der Text, die Adresse oder ein Hinweis.</summary>
+    public string DetailText
     {
-        get => _preview;
-        private set
+        get => _detailText;
+        private set => Set(ref _detailText, value);
+    }
+
+    public bool ShowDetailItems => DetailItems.Count > 0;
+
+    /// <summary>Der Inhalt eines Textbausteins, nicht umbrochen in Monospace. Hinweise werden umbrochen.</summary>
+    public bool DetailIsText { get; private set; }
+
+    /// <summary>Umschalter in der Textvorschau, gilt sofort und bleibt gespeichert.</summary>
+    public bool WrapPreview
+    {
+        get => app.Settings.WrapPreview;
+        set
         {
-            if (Set(ref _preview, value))
-                OnPropertyChanged(nameof(HasPreview));
+            if (app.Settings.WrapPreview == value) return;
+            app.Settings.WrapPreview = value;
+            app.SaveSettings();
+            OnPropertyChanged();
         }
     }
 
-    public bool HasPreview => _preview.Length > 0;
+    /// <summary>Stecknadel neben dem Ordnerpfad, dieselbe Einstellung wie im Einstellungsfenster.</summary>
+    public bool RememberFolder
+    {
+        get => app.Settings.RememberFolder;
+        set
+        {
+            if (app.Settings.RememberFolder == value) return;
+            app.Settings.RememberFolder = value;
+            app.SaveSettings();
+            OnPropertyChanged();
+        }
+    }
 
     public string EmptyText
     {
@@ -83,15 +113,37 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     /// <summary>Der gerade angezeigte Ordner im Blätter-Modus.</summary>
     public Snippet CurrentFolder => app.Library.Find(_folderPath) ?? app.Library.Root;
 
-    /// <summary>Jedes Öffnen beginnt wie das alte Menü oben im Wurzelordner.</summary>
+    /// <summary>
+    /// Jedes Öffnen beginnt wie das alte Menü oben im Wurzelordner, oder auf Wunsch dort, wo man aufgehört hat.
+    /// Gibt es den Ordner nicht mehr, geht es oben los.
+    /// </summary>
     public void Reset()
     {
-        _folderPath = "";
+        var settings = app.Settings;
+        _folderPath = settings.RememberFolder ? settings.LastFolder : "";
         _query = "";
         OnPropertyChanged(nameof(Query));
         OnPropertyChanged(nameof(ShowPlaceholder));
+        // Kann sich inzwischen im Einstellungsfenster geändert haben
         OnPropertyChanged(nameof(PasteHints));
-        Refresh();
+        OnPropertyChanged(nameof(RememberFolder));
+        OnPropertyChanged(nameof(WrapPreview));
+        Refresh(selectRelativePath: settings.RememberFolder ? settings.LastSelected : null);
+    }
+
+    /// <summary>Beim Schliessen Ordner und markierten Eintrag für das nächste Öffnen speichern.</summary>
+    public void RememberPosition()
+    {
+        var settings = app.Settings;
+        if (!settings.RememberFolder) return;
+
+        // Ein Suchtreffer liegt meist nicht im Ordner, dann beginnt es dort beim ersten Eintrag
+        var selected = IsSearching ? "" : _selected?.Snippet.RelativePath ?? "";
+        if (settings.LastFolder == _folderPath && settings.LastSelected == selected) return;
+
+        settings.LastFolder = _folderPath;
+        settings.LastSelected = selected;
+        app.SaveSettings();
     }
 
     public void Refresh(string? selectRelativePath = null)
@@ -127,10 +179,12 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         foreach (var item in items)
             Items.Add(item);
 
-        // Ohne Treffer der alten Auswahl immer den ersten Eintrag wählen, damit Enter sofort etwas tut
-        _selected = null;
-        Selected = items.FirstOrDefault(i => string.Equals(i.Snippet.RelativePath, selectRelativePath, StringComparison.OrdinalIgnoreCase))
-                   ?? items.FirstOrDefault();
+        // Ohne Treffer der alten Auswahl immer den ersten Eintrag wählen, damit Enter sofort etwas tut.
+        // Die rechte Spalte immer neu aufbauen, auch wenn nichts mehr ausgewählt ist oder sich der Ordner geändert hat.
+        _selected = items.FirstOrDefault(i => string.Equals(i.Snippet.RelativePath, selectRelativePath, StringComparison.OrdinalIgnoreCase))
+                    ?? items.FirstOrDefault();
+        OnPropertyChanged(nameof(Selected));
+        UpdateDetail(_selected?.Snippet);
     }
 
     public void MoveSelection(int delta)
@@ -190,21 +244,33 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     static string[] SplitPath(string relativePath) =>
         relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
-    string BuildPreview(Snippet? snippet)
+    void UpdateDetail(Snippet? snippet)
+    {
+        DetailItems.Clear();
+        if (snippet is { IsFolder: true })
+        {
+            foreach (var child in snippet.Children)
+                DetailItems.Add(SnippetItem.ForBrowsing(child));
+        }
+        OnPropertyChanged(nameof(ShowDetailItems));
+
+        var text = snippet?.Kind == SnippetKind.Text ? app.Library.GetSearchableText(snippet) : null;
+        DetailIsText = text is not null;
+        OnPropertyChanged(nameof(DetailIsText));
+        DetailText = text?.ReplaceLineEndings() ?? BuildHint(snippet);
+    }
+
+    string BuildHint(Snippet? snippet)
     {
         if (snippet is null) return "";
 
         switch (snippet.Kind)
         {
             case SnippetKind.Folder:
-                return snippet.Children.Count == 1 ? Strings.ItemsOne : string.Format(Strings.ItemsFormat, snippet.Children.Count);
+                return snippet.Children.Count == 0 ? Strings.FolderEmpty : "";
 
             case SnippetKind.Text:
-                var text = app.Library.GetSearchableText(snippet);
-                if (text is null) return Strings.PreviewTooLarge;
-                var lines = text.ReplaceLineEndings("\n").Split('\n');
-                var preview = string.Join(Environment.NewLine, lines.Take(PreviewLines));
-                return lines.Length > PreviewLines ? preview + Environment.NewLine + "…" : preview;
+                return Strings.PreviewTooLarge;
 
             default:
                 if (Path.GetExtension(snippet.FullPath).Equals(".url", StringComparison.OrdinalIgnoreCase))
