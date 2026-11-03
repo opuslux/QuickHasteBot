@@ -75,9 +75,10 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     public bool IsEmpty => _emptyText.Length > 0;
 
-    public string Hints => app.Settings.PasteMode == PasteMode.Clipboard
-        ? "↵ Einfügen   ⇧↵ Tippen   Strg+O Bearbeiten   Strg+E Explorer   Strg+, Einstellungen"
-        : "↵ Tippen   ⇧↵ Einfügen   Strg+O Bearbeiten   Strg+E Explorer   Strg+, Einstellungen";
+    /// <summary>Bearbeiten, Explorer und Einstellungen stehen daneben als Links im Popup.</summary>
+    public string PasteHints => app.Settings.PasteMode == PasteMode.Clipboard
+        ? "↵ Einfügen   ⇧↵ Tippen"
+        : "↵ Tippen   ⇧↵ Einfügen";
 
     /// <summary>Der gerade angezeigte Ordner im Blätter-Modus.</summary>
     public Snippet CurrentFolder => app.Library.Find(_folderPath) ?? app.Library.Root;
@@ -89,7 +90,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         _query = "";
         OnPropertyChanged(nameof(Query));
         OnPropertyChanged(nameof(ShowPlaceholder));
-        OnPropertyChanged(nameof(Hints));
+        OnPropertyChanged(nameof(PasteHints));
         Refresh();
     }
 

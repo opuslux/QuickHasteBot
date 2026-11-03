@@ -157,6 +157,38 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
+    void OnEditClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, EditSelected);
+
+    void OnExplorerClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, RevealSelected);
+
+    void OnSettingsClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, OpenSettings);
+
+    void OnHintClick(MouseButtonEventArgs e, Action command)
+    {
+        if (_moving) return;
+        command();
+        e.Handled = true;
+    }
+
+    // Ohne Auswahl gilt der angezeigte Ordner
+    void EditSelected()
+    {
+        Hide();
+        _app.Edit(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
+    }
+
+    void RevealSelected()
+    {
+        Hide();
+        _app.RevealInExplorer(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
+    }
+
+    void OpenSettings()
+    {
+        Hide();
+        _app.ShowSettings();
+    }
+
     SnippetItem? ItemAt(MouseButtonEventArgs e) =>
         Results.ContainerFromElement((DependencyObject)e.OriginalSource) is ListBoxItem { DataContext: SnippetItem item } ? item : null;
 
@@ -202,16 +234,13 @@ internal partial class SearchPopup : Window
                 _viewModel.GoUp();
                 break;
             case Key.O when ctrl:
-                Hide();
-                _app.Edit(selected ?? _viewModel.CurrentFolder);
+                EditSelected();
                 break;
             case Key.E when ctrl:
-                Hide();
-                _app.RevealInExplorer(selected ?? _viewModel.CurrentFolder);
+                RevealSelected();
                 break;
             case Key.OemComma when ctrl:
-                Hide();
-                _app.ShowSettings();
+                OpenSettings();
                 break;
             default:
                 e.Handled = false;
