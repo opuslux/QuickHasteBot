@@ -23,17 +23,22 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Suchfeld mit Platzhalter -->
-        <Grid Grid.Row="0">
-            <TextBox x:Name="SearchBox"
-                     Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
-                     FontSize="16" Padding="10,7" />
-            <TextBlock Text="Textbaustein suchen…"
-                       FontSize="16" Margin="13,0,0,0" VerticalAlignment="Center"
-                       IsHitTestVisible="False"
-                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Visibility="{Binding ShowPlaceholder, Converter={StaticResource BoolToVisibility}}" />
-        </Grid>
+        <!-- Suchfeld mit Platzhalter, links das App-Icon -->
+        <DockPanel Grid.Row="0">
+            <Image DockPanel.Dock="Left" Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
+                   Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality" />
+            <Grid>
+                <TextBox x:Name="SearchBox"
+                         Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+                         FontSize="16" Padding="10,7" />
+                <TextBlock Text="Textbaustein suchen…"
+                           FontSize="16" Margin="13,0,0,0" VerticalAlignment="Center"
+                           IsHitTestVisible="False"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                           Visibility="{Binding ShowPlaceholder, Converter={StaticResource BoolToVisibility}}" />
+            </Grid>
+        </DockPanel>
 
         <!-- Ordnerpfad, übergeordnete Ordner sind anklickbar -->
         <ItemsControl Grid.Row="1" ItemsSource="{Binding Breadcrumbs}" Margin="4,10,4,4" Focusable="False">
