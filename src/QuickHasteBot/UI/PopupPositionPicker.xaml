@@ -38,8 +38,9 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- Rechts und unten Platz für den Mauszeiger, er ragt an den Rändern über das Mini-Popup hinaus -->
-    <Grid Margin="0,0,14,20">
+    <!-- Der Mauszeiger ragt an den Rändern über das Mini-Popup hinaus, den Platz dafür lässt der Aufrufer per Margin.
+         So liegt der Fokusrahmen eng um das Raster. -->
+    <Grid>
         <!-- Das Popup im Kleinen, Querformat wie das echte -->
         <Border x:Name="Frame" Width="168" Height="104" CornerRadius="6" BorderThickness="1"
                 Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"

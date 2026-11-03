@@ -45,6 +45,8 @@
   <data name="StructureDialogTitle" xml:space="preserve"><value>Choose the folder with your snippets</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Also search the text inside the snippets</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>General</value></data>
+  <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
+  <data name="StartupHeading" xml:space="preserve"><value>Startup and display</value></data>
   <data name="Autostart" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="ShowTray" xml:space="preserve"><value>Show tray icon</value></data>
   <data name="LanguageLabel" xml:space="preserve"><value>Language</value></data>

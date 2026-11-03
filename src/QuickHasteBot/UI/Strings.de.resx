@@ -45,6 +45,8 @@
   <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Textbausteinen wählen</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Auch im Inhalt der Textbausteine suchen</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>Allgemein</value></data>
+  <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
+  <data name="StartupHeading" xml:space="preserve"><value>Start und Anzeige</value></data>
   <data name="Autostart" xml:space="preserve"><value>Mit Windows starten</value></data>
   <data name="ShowTray" xml:space="preserve"><value>Tray-Icon anzeigen</value></data>
   <data name="LanguageLabel" xml:space="preserve"><value>Sprache</value></data>

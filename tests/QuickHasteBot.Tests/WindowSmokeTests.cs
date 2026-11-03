@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using QuickHasteBot.Core;
 using QuickHasteBot.UI;
 
@@ -148,11 +149,24 @@ public class WindowSmokeTests
         var settings = new SettingsWindow(controller);
         Assert.Equal(PopupPosition.TopRight, settings.PositionInput.Position);
         Snapshot(settings, "settings.png");
+        settings.SettingsTabs.SelectedIndex = 1;
+        Snapshot(settings, "settings-popup.png");
         // Eine Auswahl im Raster gilt sofort und wird gespeichert
         settings.PositionInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(settings)!, 0, Key.NumPad1) { RoutedEvent = Keyboard.KeyDownEvent });
         Assert.Equal(PopupPosition.BottomLeft, controller.Settings.PopupPosition);
         Assert.Contains(@"""PopupPosition"": ""BottomLeft""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
-        Snapshot(settings, "settings-bottom-left.png");
+
+        // Zurück zum ersten Tab: Der Hotkey darf dabei nicht den Fokus bekommen, sonst wartet er auf eine neue Kombination
+        settings.Activate();
+        var general = (System.Windows.Controls.TabItem)settings.SettingsTabs.Items[0];
+        var click = new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.PreviewMouseDownEvent };
+        general.RaiseEvent(click);
+        if (!click.Handled)
+            general.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = Mouse.MouseDownEvent });
+        settings.Dispatcher.Invoke(DispatcherPriority.ApplicationIdle, () => { });
+        Assert.Equal(0, settings.SettingsTabs.SelectedIndex);
+        Assert.False(settings.HotkeyInput.IsKeyboardFocused);
+
         settings.Close();
         popup.Close();
     }
