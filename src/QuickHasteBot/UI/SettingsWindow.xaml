@@ -17,39 +17,14 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Links Video und Verhalten im Popup, rechts der Rest -->
-        <StackPanel Grid.Column="0">
-            <!-- 16:9, feste Grösse damit das Fenster nicht springt, sobald das Video geladen ist -->
-            <MediaElement x:Name="RoboClip" Width="360" Height="203" Margin="0,0,0,16" Stretch="UniformToFill"
-                          LoadedBehavior="Manual" IsMuted="True"
-                          MediaEnded="OnClipEnded" MediaFailed="OnClipFailed" SizeChanged="OnClipSizeChanged" />
-
-            <TextBlock Text="{x:Static ui:Strings.PasteHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
-            <RadioButton x:Name="PasteClipboard" GroupName="Paste" Checked="OnPasteModeChanged">
-                <TextBlock Text="{x:Static ui:Strings.PasteClipboard}" TextWrapping="Wrap" />
-            </RadioButton>
-            <RadioButton x:Name="PasteTyping" GroupName="Paste" Checked="OnPasteModeChanged"
-                         Content="{x:Static ui:Strings.PasteTyping}" />
-            <TextBlock Text="{x:Static ui:Strings.PasteHint}" FontSize="12" Margin="0,2,0,0"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-
-            <TextBlock Text="{x:Static ui:Strings.ClickHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <RadioButton x:Name="ClickSingle" GroupName="Click" Checked="OnClickModeChanged"
-                         Content="{x:Static ui:Strings.ClickSingle}" />
-            <RadioButton x:Name="ClickDouble" GroupName="Click" Checked="OnClickModeChanged"
-                         Content="{x:Static ui:Strings.ClickDouble}" />
-            <TextBlock Text="{x:Static ui:Strings.ClickHint}" FontSize="12" Margin="0,2,0,0"
-                       TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-
-            <TextBlock Text="{x:Static ui:Strings.OpenHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <CheckBox x:Name="RememberFolderInput" Click="OnRememberFolderChanged">
-                <TextBlock Text="{x:Static ui:Strings.RememberFolder}" TextWrapping="Wrap" />
-            </CheckBox>
-            <TextBlock Text="{x:Static ui:Strings.RememberFolderHint}" FontSize="12" Margin="0,2,0,0"
-                       TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-        </StackPanel>
+        <!-- Oben Video und Kopfzeile, beide ausserhalb der Tabs: Das Video läuft beim Umschalten weiter -->
+        <!-- 16:9, feste Grösse damit das Fenster nicht springt, sobald das Video geladen ist -->
+        <MediaElement x:Name="RoboClip" Grid.Column="0" Width="360" Height="203" Stretch="UniformToFill"
+                      LoadedBehavior="Manual" IsMuted="True"
+                      MediaEnded="OnClipEnded" MediaFailed="OnClipFailed" SizeChanged="OnClipSizeChanged" />
 
         <StackPanel Grid.Column="2">
             <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
@@ -61,7 +36,7 @@
             </StackPanel>
 
             <!-- Hinweis, solange die alte Version noch mit Windows startet -->
-            <Border x:Name="LegacyHint" Visibility="Collapsed" Margin="0,0,0,16" Padding="12" CornerRadius="6"
+            <Border x:Name="LegacyHint" Visibility="Collapsed" Padding="12" CornerRadius="6"
                     Background="{DynamicResource SystemFillColorCautionBackgroundBrush}">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.LegacyRemove}" Click="OnRemoveLegacyAutostart" VerticalAlignment="Center" />
@@ -69,35 +44,100 @@
                                TextWrapping="Wrap" Margin="0,0,12,0" VerticalAlignment="Center" />
                 </DockPanel>
             </Border>
-
-            <TextBlock Text="{x:Static ui:Strings.HotkeyHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
-            <ui:HotkeyBox x:Name="HotkeyInput" GestureCaptured="OnHotkeyCaptured" />
-            <TextBlock x:Name="HotkeyStatus" Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap" />
-
-            <TextBlock Text="{x:Static ui:Strings.StructureHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <DockPanel>
-                <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.StructureOpen}" Click="OnOpenStructure" Margin="6,0,0,0" />
-                <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.StructureChange}" Click="OnBrowseStructure" Margin="6,0,0,0" />
-                <TextBox x:Name="StructureInput" LostKeyboardFocus="OnStructureInputCommitted" KeyDown="OnStructureInputKeyDown"
-                         ToolTip="{x:Static ui:Strings.StructureToolTip}" />
-            </DockPanel>
-            <TextBlock x:Name="StructureResolved" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <CheckBox x:Name="SearchContentInput" Content="{x:Static ui:Strings.SearchContent}" Margin="0,8,0,0"
-                      Click="OnSearchContentChanged" />
-
-            <TextBlock Text="{x:Static ui:Strings.GeneralHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <CheckBox x:Name="AutostartInput" Content="{x:Static ui:Strings.Autostart}" Click="OnAutostartChanged" />
-            <CheckBox x:Name="TrayInput" Content="{x:Static ui:Strings.ShowTray}" Click="OnTrayChanged" Margin="0,4,0,0" />
-
-            <DockPanel Margin="0,10,0,0">
-                <TextBlock Text="{x:Static ui:Strings.LanguageLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
-                <ComboBox x:Name="LanguageInput" Width="220" HorizontalAlignment="Left"
-                          SelectionChanged="OnLanguageChanged" />
-            </DockPanel>
         </StackPanel>
 
-        <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,24,0,0" LastChildFill="False">
+        <!-- Darunter die Einstellungen in zwei Tabs, jeweils zweispaltig wie oben -->
+        <TabControl x:Name="SettingsTabs" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,16,0,0"
+                    PreviewMouseLeftButtonDown="OnTabsMouseDown">
+            <TabItem Header="{x:Static ui:Strings.GeneralHeading}">
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{x:Static ui:Strings.HotkeyHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <ui:HotkeyBox x:Name="HotkeyInput" GestureCaptured="OnHotkeyCaptured" />
+                        <TextBlock x:Name="HotkeyStatus" Margin="0,4,0,0" FontSize="12" TextWrapping="Wrap" />
+
+                        <TextBlock Text="{x:Static ui:Strings.StartupHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
+                        <CheckBox x:Name="AutostartInput" Content="{x:Static ui:Strings.Autostart}" Click="OnAutostartChanged" />
+                        <CheckBox x:Name="TrayInput" Content="{x:Static ui:Strings.ShowTray}" Click="OnTrayChanged" Margin="0,4,0,0" />
+
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Text="{x:Static ui:Strings.LanguageLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <ComboBox x:Name="LanguageInput" Width="220" HorizontalAlignment="Left"
+                                      SelectionChanged="OnLanguageChanged" />
+                        </DockPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{x:Static ui:Strings.StructureHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.StructureOpen}" Click="OnOpenStructure" Margin="6,0,0,0" />
+                            <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.StructureChange}" Click="OnBrowseStructure" Margin="6,0,0,0" />
+                            <TextBox x:Name="StructureInput" LostKeyboardFocus="OnStructureInputCommitted" KeyDown="OnStructureInputKeyDown"
+                                     ToolTip="{x:Static ui:Strings.StructureToolTip}" />
+                        </DockPanel>
+                        <TextBlock x:Name="StructureResolved" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <CheckBox x:Name="SearchContentInput" Content="{x:Static ui:Strings.SearchContent}" Margin="0,8,0,0"
+                                  Click="OnSearchContentChanged" />
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="{x:Static ui:Strings.PopupTab}">
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="24" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{x:Static ui:Strings.PasteHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <RadioButton x:Name="PasteClipboard" GroupName="Paste" Checked="OnPasteModeChanged">
+                            <TextBlock Text="{x:Static ui:Strings.PasteClipboard}" TextWrapping="Wrap" />
+                        </RadioButton>
+                        <RadioButton x:Name="PasteTyping" GroupName="Paste" Checked="OnPasteModeChanged"
+                                     Content="{x:Static ui:Strings.PasteTyping}" />
+                        <TextBlock Text="{x:Static ui:Strings.PasteHint}" FontSize="12" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <TextBlock Text="{x:Static ui:Strings.ClickHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
+                        <RadioButton x:Name="ClickSingle" GroupName="Click" Checked="OnClickModeChanged"
+                                     Content="{x:Static ui:Strings.ClickSingle}" />
+                        <RadioButton x:Name="ClickDouble" GroupName="Click" Checked="OnClickModeChanged"
+                                     Content="{x:Static ui:Strings.ClickDouble}" />
+                        <TextBlock Text="{x:Static ui:Strings.ClickHint}" FontSize="12" Margin="0,2,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="{x:Static ui:Strings.OpenHeading}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                        <CheckBox x:Name="RememberFolderInput" Click="OnRememberFolderChanged">
+                            <TextBlock Text="{x:Static ui:Strings.RememberFolder}" TextWrapping="Wrap" />
+                        </CheckBox>
+                        <TextBlock Text="{x:Static ui:Strings.RememberFolderHint}" FontSize="12" Margin="0,2,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <TextBlock Text="{x:Static ui:Strings.PositionLabel}" Margin="0,12,0,8" />
+                        <DockPanel>
+                            <!-- Rechts und unten Platz für den Mauszeiger, er ragt über den Rand des Rasters hinaus -->
+                            <ui:PopupPositionPicker x:Name="PositionInput" DockPanel.Dock="Left" Margin="0,0,18,20"
+                                                    PositionChanged="OnPositionChanged" />
+                            <TextBlock Text="{x:Static ui:Strings.PositionHint}" FontSize="12" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </DockPanel>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <DockPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="0,24,0,0" LastChildFill="False">
             <Button DockPanel.Dock="Left" Content="{x:Static ui:Strings.ExitApp}" Click="OnExit" />
             <Button DockPanel.Dock="Right" Content="{x:Static ui:Strings.Close}" Click="OnClose" IsDefault="True" IsCancel="True" />
         </DockPanel>

@@ -27,6 +27,7 @@ internal partial class SettingsWindow : Window
         ClickSingle.IsChecked = app.Settings.SingleClick;
         ClickDouble.IsChecked = !app.Settings.SingleClick;
         RememberFolderInput.IsChecked = app.Settings.RememberFolder;
+        PositionInput.Position = app.Settings.PopupPosition;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
@@ -56,6 +57,15 @@ internal partial class SettingsWindow : Window
     {
         HotkeyStatus.Text = message;
         HotkeyStatus.Foreground = (Brush)FindResource("SystemFillColorCriticalBrush");
+    }
+
+    // Ein Klick auf einen Tab schiebt in WPF die Tastatur ins erste Feld des Tabs. Im ersten Tab ist das der Hotkey,
+    // der dann auf eine Tastenkombination wartet und ausgesetzt ist. Darum nur umschalten.
+    void OnTabsMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (ItemsControl.ContainerFromElement(SettingsTabs, (DependencyObject)e.OriginalSource) is not TabItem tab) return;
+        tab.IsSelected = true;
+        e.Handled = true;
     }
 
     void OnHotkeyCaptured(object? sender, HotkeyGesture gesture) => _app.ChangeHotkey(gesture);
@@ -136,6 +146,12 @@ internal partial class SettingsWindow : Window
     void OnRememberFolderChanged(object sender, RoutedEventArgs e)
     {
         _app.Settings.RememberFolder = RememberFolderInput.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnPositionChanged(object? sender, PopupPosition position)
+    {
+        _app.Settings.PopupPosition = position;
         _app.SaveSettings();
     }
 

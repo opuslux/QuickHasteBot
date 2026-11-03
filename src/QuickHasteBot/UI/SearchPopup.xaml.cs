@@ -80,7 +80,8 @@ internal partial class SearchPopup : Window
         ApplyWidth();
 
         _anchor = null;
-        _anchor = PopupPlacement.ShowAtCursor(this);
+        var (fractionX, fractionY) = AppSettings.PopupFractions(_app.Settings.PopupPosition);
+        _anchor = PopupPlacement.ShowAtCursor(this, fractionX, fractionY);
         // Das Fenster erscheint unter der ruhenden Maus, das ist noch keine Bewegung
         _lastMouse = PointToScreen(Mouse.GetPosition(this));
         _recentMoves.Clear();
@@ -132,7 +133,7 @@ internal partial class SearchPopup : Window
     }
 
     // Breite an den Rändern ziehen. Solange gezogen wird, hält das Fenster nicht am Mauszeiger fest,
-    // danach gilt die neue obere rechte Ecke als Anker, wie nach dem Verschieben.
+    // danach wandert der Anker mit, wie nach dem Verschieben.
     void OnResizeStarted(object sender, DragStartedEventArgs e)
     {
         _resizeAnchor = _anchor;
@@ -157,8 +158,8 @@ internal partial class SearchPopup : Window
 
     void OnResizeCompleted(object sender, DragCompletedEventArgs e)
     {
-        if (_resizeAnchor is not null)
-            _anchor = PopupPlacement.Moved(this);
+        if (_resizeAnchor is { } previous)
+            _anchor = PopupPlacement.Moved(this, previous);
         _resizeAnchor = null;
 
         _app.Settings.PopupWidth = Math.Round(Width);
@@ -215,8 +216,8 @@ internal partial class SearchPopup : Window
         {
             _moving = false;
         }
-        if (anchor is not null)
-            _anchor = PopupPlacement.Moved(this);
+        if (anchor is { } previous)
+            _anchor = PopupPlacement.Moved(this, previous);
         Keyboard.Focus(SearchBox);
     }
 

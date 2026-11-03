@@ -49,6 +49,30 @@ public class SettingsTests
     public void Column_share_keeps_both_columns_visible(double share, double expected) =>
         Assert.Equal(expected, AppSettings.ClampColumnShare(share));
 
+    [Theory]
+    [InlineData(PopupPosition.TopRight, 1.0, 0.0)]
+    [InlineData(PopupPosition.TopLeft, 0.0, 0.0)]
+    [InlineData(PopupPosition.Center, 0.5, 0.5)]
+    [InlineData(PopupPosition.Right, 1.0, 0.5)]
+    [InlineData(PopupPosition.Bottom, 0.5, 1.0)]
+    [InlineData(PopupPosition.BottomLeft, 0.0, 1.0)]
+    [InlineData((PopupPosition)12, 1.0, 0.0)]
+    public void Popup_position_is_laid_out_like_the_numpad(PopupPosition position, double x, double y) =>
+        Assert.Equal((x, y), AppSettings.PopupFractions(position));
+
+    [Fact]
+    public void Popup_position_defaults_to_top_right_and_roundtrips_as_text()
+    {
+        using var dir = new TempDirectory();
+        var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
+        Assert.Equal(PopupPosition.TopRight, store.Load().PopupPosition);
+
+        store.Save(new AppSettings { PopupPosition = PopupPosition.BottomLeft });
+
+        Assert.Equal(PopupPosition.BottomLeft, store.Load().PopupPosition);
+        Assert.Contains(@"""PopupPosition"": ""BottomLeft""", File.ReadAllText(store.FilePath));
+    }
+
     [Fact]
     public void Structure_path_is_relative_to_exe_folder()
     {
