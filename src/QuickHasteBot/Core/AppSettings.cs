@@ -9,6 +9,20 @@ public enum PasteMode
     Typing,
 }
 
+/// <summary>Wo der Mauszeiger beim Öffnen im Popup sitzt, angeordnet wie der Ziffernblock.</summary>
+public enum PopupPosition
+{
+    BottomLeft = 1,
+    Bottom,
+    BottomRight,
+    Left,
+    Center,
+    Right,
+    TopLeft,
+    Top,
+    TopRight,
+}
+
 public sealed class AppSettings
 {
     public const string DefaultStructurePath = "structure";
@@ -43,6 +57,9 @@ public sealed class AppSettings
 
     public const double DefaultListColumnShare = 1.0 / 3;
 
+    /// <summary>Standard oben rechts: Das Popup geht links unterhalb der Maus auf.</summary>
+    public PopupPosition PopupPosition { get; set; } = PopupPosition.TopRight;
+
     /// <summary>Lange Zeilen in der Textvorschau umbrechen statt horizontal scrollen.</summary>
     public bool WrapPreview { get; set; }
 
@@ -58,6 +75,16 @@ public sealed class AppSettings
     /// <summary>Auch von Hand eingetragene Werte lassen beide Spalten sichtbar, Unsinn ergibt den Standard.</summary>
     public static double ClampColumnShare(double share) =>
         double.IsFinite(share) ? Math.Clamp(share, 0.15, 0.85) : DefaultListColumnShare;
+
+    /// <summary>
+    /// Stelle der Maus als Anteil von Breite und Höhe des Popups: 0 links/oben, 0.5 Mitte, 1 rechts/unten.
+    /// Eine von Hand eingetragene Zahl ausserhalb von 1 bis 9 gilt als Standard.
+    /// </summary>
+    public static (double X, double Y) PopupFractions(PopupPosition position)
+    {
+        var n = Enum.IsDefined(position) ? (int)position : (int)PopupPosition.TopRight;
+        return ((n - 1) % 3 / 2.0, (2 - (n - 1) / 3) / 2.0);
+    }
 
     public static PasteMode Other(PasteMode mode) => mode == PasteMode.Clipboard ? PasteMode.Typing : PasteMode.Clipboard;
 }

@@ -25,6 +25,17 @@
   <data name="OpenHeading" xml:space="preserve"><value>When opening</value></data>
   <data name="RememberFolder" xml:space="preserve"><value>Start in the last opened folder</value></data>
   <data name="RememberFolderHint" xml:space="preserve"><value>Can also be switched in the popup with the pin next to the folder path.</value></data>
+  <data name="PositionLabel" xml:space="preserve"><value>Mouse pointer in the popup</value></data>
+  <data name="PositionHint" xml:space="preserve"><value>Click where the pointer should sit when the popup opens, or press 1–9 like on the numpad. If there is no room on one side, the popup opens to the other.</value></data>
+  <data name="PositionTopLeft" xml:space="preserve"><value>Top left</value></data>
+  <data name="PositionTop" xml:space="preserve"><value>Top</value></data>
+  <data name="PositionTopRight" xml:space="preserve"><value>Top right</value></data>
+  <data name="PositionLeft" xml:space="preserve"><value>Left</value></data>
+  <data name="PositionCenter" xml:space="preserve"><value>Center</value></data>
+  <data name="PositionRight" xml:space="preserve"><value>Right</value></data>
+  <data name="PositionBottomLeft" xml:space="preserve"><value>Bottom left</value></data>
+  <data name="PositionBottom" xml:space="preserve"><value>Bottom</value></data>
+  <data name="PositionBottomRight" xml:space="preserve"><value>Bottom right</value></data>
   <data name="StructureHeading" xml:space="preserve"><value>Snippets</value></data>
   <data name="StructureChange" xml:space="preserve"><value>Change…</value></data>
   <data name="StructureOpen" xml:space="preserve"><value>Open</value></data>

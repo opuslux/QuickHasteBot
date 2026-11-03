@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using QuickHasteBot.Core;
@@ -145,7 +146,13 @@ public class WindowSmokeTests
         viewModel.Query = "";
 
         var settings = new SettingsWindow(controller);
+        Assert.Equal(PopupPosition.TopRight, settings.PositionInput.Position);
         Snapshot(settings, "settings.png");
+        // Eine Auswahl im Raster gilt sofort und wird gespeichert
+        settings.PositionInput.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(settings)!, 0, Key.NumPad1) { RoutedEvent = Keyboard.KeyDownEvent });
+        Assert.Equal(PopupPosition.BottomLeft, controller.Settings.PopupPosition);
+        Assert.Contains(@"""PopupPosition"": ""BottomLeft""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        Snapshot(settings, "settings-bottom-left.png");
         settings.Close();
         popup.Close();
     }

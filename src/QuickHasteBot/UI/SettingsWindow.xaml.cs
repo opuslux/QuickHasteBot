@@ -27,6 +27,7 @@ internal partial class SettingsWindow : Window
         ClickSingle.IsChecked = app.Settings.SingleClick;
         ClickDouble.IsChecked = !app.Settings.SingleClick;
         RememberFolderInput.IsChecked = app.Settings.RememberFolder;
+        PositionInput.Position = app.Settings.PopupPosition;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
@@ -136,6 +137,12 @@ internal partial class SettingsWindow : Window
     void OnRememberFolderChanged(object sender, RoutedEventArgs e)
     {
         _app.Settings.RememberFolder = RememberFolderInput.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnPositionChanged(object? sender, PopupPosition position)
+    {
+        _app.Settings.PopupPosition = position;
         _app.SaveSettings();
     }
 

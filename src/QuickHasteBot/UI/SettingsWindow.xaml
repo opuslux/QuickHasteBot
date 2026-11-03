@@ -49,6 +49,14 @@
             </CheckBox>
             <TextBlock Text="{x:Static ui:Strings.RememberFolderHint}" FontSize="12" Margin="0,2,0,0"
                        TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+            <TextBlock Text="{x:Static ui:Strings.PositionLabel}" Margin="0,12,0,8" />
+            <DockPanel>
+                <ui:PopupPositionPicker x:Name="PositionInput" DockPanel.Dock="Left" Margin="0,0,4,0"
+                                        PositionChanged="OnPositionChanged" />
+                <TextBlock Text="{x:Static ui:Strings.PositionHint}" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </DockPanel>
         </StackPanel>
 
         <StackPanel Grid.Column="2">

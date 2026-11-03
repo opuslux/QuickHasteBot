@@ -25,6 +25,17 @@
   <data name="OpenHeading" xml:space="preserve"><value>Beim Öffnen</value></data>
   <data name="RememberFolder" xml:space="preserve"><value>Im zuletzt geöffneten Ordner beginnen</value></data>
   <data name="RememberFolderHint" xml:space="preserve"><value>Lässt sich auch im Popup mit der Stecknadel neben dem Ordnerpfad umschalten.</value></data>
+  <data name="PositionLabel" xml:space="preserve"><value>Mauszeiger im Popup</value></data>
+  <data name="PositionHint" xml:space="preserve"><value>Klicke, wo der Mauszeiger beim Öffnen sitzen soll, oder drücke 1–9 wie auf dem Ziffernblock. Ist auf einer Seite kein Platz, geht das Popup zur anderen auf.</value></data>
+  <data name="PositionTopLeft" xml:space="preserve"><value>Oben links</value></data>
+  <data name="PositionTop" xml:space="preserve"><value>Oben</value></data>
+  <data name="PositionTopRight" xml:space="preserve"><value>Oben rechts</value></data>
+  <data name="PositionLeft" xml:space="preserve"><value>Links</value></data>
+  <data name="PositionCenter" xml:space="preserve"><value>Mitte</value></data>
+  <data name="PositionRight" xml:space="preserve"><value>Rechts</value></data>
+  <data name="PositionBottomLeft" xml:space="preserve"><value>Unten links</value></data>
+  <data name="PositionBottom" xml:space="preserve"><value>Unten</value></data>
+  <data name="PositionBottomRight" xml:space="preserve"><value>Unten rechts</value></data>
   <data name="StructureHeading" xml:space="preserve"><value>Textbausteine</value></data>
   <data name="StructureChange" xml:space="preserve"><value>Ändern…</value></data>
   <data name="StructureOpen" xml:space="preserve"><value>Öffnen</value></data>
