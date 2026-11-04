@@ -7,7 +7,10 @@ internal static partial class NativeMethods
     public const int WM_HOTKEY = 0x0312;
     public const uint MOD_NOREPEAT = 0x4000;
 
+    public const uint INPUT_MOUSE = 0;
     public const uint INPUT_KEYBOARD = 1;
+    public const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    public const uint MOUSEEVENTF_LEFTUP = 0x0004;
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint KEYEVENTF_UNICODE = 0x0004;
     public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
@@ -27,6 +30,13 @@ internal static partial class NativeMethods
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOZORDER = 0x0004;
     public const uint SWP_NOACTIVATE = 0x0010;
+    public const uint SWP_SHOWWINDOW = 0x0040;
+    public static readonly nint HWND_TOPMOST = -1;
+
+    public const int GWL_EXSTYLE = -20;
+    public const long WS_EX_TRANSPARENT = 0x00000020;
+    public const long WS_EX_TOOLWINDOW = 0x00000080;
+    public const long WS_EX_NOACTIVATE = 0x08000000;
 
     public const int DWMWA_CLOAK = 13;
     public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
@@ -156,6 +166,16 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial nint GetAncestor(nint hwnd, uint gaFlags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetCursorPos(int x, int y);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    public static partial nint GetWindowLongPtr(nint hWnd, int nIndex);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    public static partial nint SetWindowLongPtr(nint hWnd, int nIndex, nint dwNewLong);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

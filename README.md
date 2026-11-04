@@ -107,6 +107,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `guid()` | A new GUID, e.g. for reference numbers. |
 | `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
 | `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
+| `focus(el)`, `click(el)`, `set(el, value)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`. |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
@@ -150,6 +151,35 @@ Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdo
 - **Stopping:** holding Esc stops a snippet between two steps.
 - **Window guard:** if another window comes to the front while the snippet runs (e.g. you click elsewhere during a `{wait}`), it stops, so keys don't end up in the wrong program. Dialogs of the target window don't count. After a key that switches windows on purpose (`{win}` and `win+…`, `{alt}`, `alt+tab`, `alt+esc`, `alt+f4`, `alt+space`, `{apps}`, `shift+f10`), the guard is off for the rest of the snippet. `{guard,off}` turns it off explicitly, e.g. for `{guard,off}{win}{wait,500}Notepad{wait,300}{enter}`; `{guard,on}` turns it back on for the window that is in front at that moment. The setting "Stop when another window comes to the front" (`KeyTagsWindowGuard`) turns it off for all snippets.
 - Turning off "Press key tags like {tab} and {enter}" in the settings (`EvaluateKeyTags` in `settings.json`) pastes the tags as is.
+
+### Elements: focus, click, set
+
+Instead of counting `{tab}`s, a snippet can address a field directly, in the window that is in front:
+
+```
+{focus,#firstname}Max{set,#lastname,"Müller"}{set,#country,"Austria"}{set,#terms,on}{click,name=Send;type=button}
+```
+
+| Tag | Does |
+|---|---|
+| `{focus,element}` | Puts the cursor into the field, typing continues there |
+| `{click,element}` | Clicks a button, link, tab or checkbox; without anything to click, a real mouse click on it |
+| `{set,element,"value"}` | Fills a field directly, picks a dropdown option by its text, sets a checkbox to `on`/`off`. Where that isn't possible (e.g. dropdowns in Firefox, autocomplete fields), it focuses the element and types the value instead |
+
+The element is described like this, parts combined with `;`:
+
+| Selector | Finds | In a browser |
+|---|---|---|
+| `#email` or `id=email` | the id | `id="email"` |
+| `name=E-Mail` or just `E-Mail` | the label or text, not case sensitive | `<label>`, `aria-label`, a button's text |
+| `.btn.primary` | all these classes | `class="btn primary large"` |
+| `class=btn primary` | exactly this class attribute (in Windows programs: the window class) | |
+| `type=edit` | the kind: `edit`, `button`, `checkbox`, `radio`, `combobox`/`dropdown`, `link`, `listitem`, `menuitem`, `tab`, … | |
+| `index=2` | the second match | |
+
+QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome, Edge and Firefox fill with the page's form, and Windows programs with their controls (in WinForms, `#name` is the control's name). Each element tag waits up to 5 seconds for the element to appear, e.g. while a page loads, so `{wait}` is rarely needed; on large pages the very first search takes a moment longer. If nothing turns up, the snippet stops with a message. Holding Esc stops the wait.
+
+**Element picker:** the crosshair icon in the popup (next to the sparkle) or "Pick element…" in the tray menu opens a small window that stays on top. Hold the mouse button on its crosshair, drag it onto a field, button or link (a red frame shows what is under the pointer, with its type, id, name, class and value) and let go. The picker then checks which selectors find exactly that element, the most stable first (a real id before the label, ids that web apps generate anew on every load, like `:r3:` or `mui-12345`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`. Another selector or action can be picked, and the tag edited and copied again.
 
 ## Portable
 

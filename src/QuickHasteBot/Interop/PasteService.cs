@@ -10,7 +10,11 @@ namespace QuickHasteBot.Interop;
 /// Ersetzt SendKeys der alten Version (Probleme mit Umlauten, Tastaturlayout und Sonderzeichen wie {}+^%~()).
 /// Muss auf dem UI-Thread laufen (Clipboard braucht STA).
 /// </summary>
-internal enum FormOutcome { Completed, EscapePressed, WindowChanged }
+internal enum FormOutcome { Completed, EscapePressed, WindowChanged, ElementNotFound, ElementFailed }
+
+/// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
+/// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/>: warum.</param>
+internal sealed record FormResult(FormOutcome Outcome, string? Step = null, string? Error = null);
 
 internal sealed class PasteService
 {
@@ -100,7 +104,7 @@ internal sealed class PasteService
     /// und Tasten in derselben Eingabe-Warteschlange und damit in der richtigen Reihenfolge ankommen.
     /// Bricht ab, wenn die echte Esc-Taste gedrückt ist oder (mit Fensterschutz) ein anderes Fenster in den Vordergrund kommt.
     /// </summary>
-    public async Task<FormOutcome> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard)
+    public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard)
     {
         if (!await WindowFocus.ActivateAndWaitAsync(targetWindow))
         {
@@ -167,6 +171,30 @@ internal sealed class PasteService
                     keyDelay = charDelay = delay.Milliseconds;
                     break;
 
+                case ElementStep element:
+                {
+                    // UI Automation blockiert, darum nicht auf dem UI-Thread. Gesucht wird im Fenster, das jetzt vorne ist.
+                    var window = GetForegroundWindow();
+                    var result = await Task.Run(() => ElementAutomation.Run(element, window, EscapeDown));
+                    switch (result.Outcome)
+                    {
+                        case ElementOutcome.Cancelled:
+                            return Aborted(FormOutcome.EscapePressed, i);
+                        case ElementOutcome.NotFound:
+                            return Aborted(FormOutcome.ElementNotFound, i);
+                        case ElementOutcome.Failed:
+                            return Aborted(FormOutcome.ElementFailed, i, result.Error);
+                        case ElementOutcome.TypeInstead:
+                            Send(KeyPress(ElementAutomation.SelectAll));
+                            await Task.Delay(Math.Max(keyDelay, PollInterval));
+                            await TypeAsync(result.Text ?? "", shiftEnter: true);
+                            break;
+                    }
+                    if (keyDelay > 0)
+                        await Task.Delay(keyDelay);
+                    break;
+                }
+
                 case GuardStep guard:
                     guarded = guard.On;
                     if (guard.On)
@@ -174,12 +202,12 @@ internal sealed class PasteService
                     break;
             }
         }
-        return FormOutcome.Completed;
+        return new FormResult(FormOutcome.Completed);
 
-        FormOutcome Aborted(FormOutcome outcome, int step)
+        FormResult Aborted(FormOutcome outcome, int step, string? error = null)
         {
-            Log.Info($"Formular-Baustein abgebrochen ({outcome}) vor Schritt {step + 1} von {steps.Count}");
-            return outcome;
+            Log.Info($"Formular-Baustein abgebrochen ({outcome}) bei Schritt {step + 1} von {steps.Count}");
+            return new FormResult(outcome, step < steps.Count ? KeyTags.Describe(steps[step]) : null, error);
         }
     }
 

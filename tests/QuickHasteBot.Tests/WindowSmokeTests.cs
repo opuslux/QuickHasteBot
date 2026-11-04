@@ -244,6 +244,17 @@ public class WindowSmokeTests
         Assert.EndsWith("spider }}", ai.Block);
         Snapshot(ai, "ai-prompt.png");
 
+        // Element-Picker: vor dem ersten Erfassen nur Fadenkreuz und leere Felder
+        var picker = new ElementPickerWindow();
+        Assert.Equal("QuickHasteBot – Element erfassen", picker.Title);
+        Assert.Equal(Visibility.Collapsed, picker.ResultPanel.Visibility);
+        Assert.Equal("–", picker.IdText.Text);
+        Assert.Equal(ElementAction.Click, ElementPickerWindow.DefaultAction("Button"));
+        Assert.Equal(ElementAction.Set, ElementPickerWindow.DefaultAction("ComboBox"));
+        Assert.Equal(ElementAction.Focus, ElementPickerWindow.DefaultAction("Edit"));
+        Snapshot(picker, "element-picker.png");
+        picker.Close();
+
         // Fehler: rot, nichts zu kopieren
         ai.AnswerInput.Text = "{{ 1 + }}";
         ai.TestAnswer();

@@ -47,8 +47,11 @@ public static partial class SnippetScript
         ("clipboard", "clipboard text"),
         ("user", "Windows user name"),
         ("guid()", "new GUID"),
-        ("key(name, count?)", "presses a key instead of typing text, e.g. key(\"tab\"), key(\"shift+tab\"), key(\"down\", 3), key(\"ctrl+a\"); put the result into the output"),
-        ("wait(ms)", "pause before the next key or text, e.g. until a dropdown opens; put the result into the output"),
+        ("key(name, count?)", "presses a key, e.g. key('tab'), key('down', 3); put it and the next ones in the output"),
+        ("wait(ms)", "pause"),
+        ("focus(el)", "focus a field: '#id', 'name=Label', '.class'"),
+        ("click(el)", "click a button or link"),
+        ("set(el, value)", "fill a field or dropdown, checkbox 'on'/'off'"),
     ];
 
     [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
@@ -124,6 +127,11 @@ public static partial class SnippetScript
         // wait(500): Pause in Millisekunden
         Function("wait", 1, args => FormMarker(context, "wait", (int)Number(args, 0)));
 
+        // focus("#email"), click("name=Senden"), set("#land", "Österreich"): Elemente per UI Automation
+        Function("focus", 1, args => ElementMarker(context, "focus", [Format(args, 0) ?? ""]));
+        Function("click", 1, args => ElementMarker(context, "click", [Format(args, 0) ?? ""]));
+        Function("set", 2, args => ElementMarker(context, "set", [Format(args, 0) ?? "", Format(args, 1) ?? ""]));
+
         void Function(string name, int length, Func<JsValue[], string> body) =>
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
     }
@@ -133,6 +141,15 @@ public static partial class SnippetScript
         if (context.Form is null)
             throw new InvalidOperationException("key tags are disabled in the settings");
         if (!KeyTags.TryParse(spec, count, out var steps, out var error))
+            throw new ArgumentException(error);
+        return context.Form.Markers(steps);
+    }
+
+    static string ElementMarker(ScriptContext context, string spec, List<string> args)
+    {
+        if (context.Form is null)
+            throw new InvalidOperationException("key tags are disabled in the settings");
+        if (!KeyTags.TryParseElement(spec, args, out var steps, out var error))
             throw new ArgumentException(error);
         return context.Form.Markers(steps);
     }

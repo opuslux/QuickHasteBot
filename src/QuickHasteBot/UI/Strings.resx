@@ -53,6 +53,32 @@
   <data name="FormWindowChangedFormat" xml:space="preserve"><value>"{0}" was stopped because another window came to the front.
 
 If the snippet switches windows on purpose, start it with {{guard,off}}.</value></data>
+  <data name="FormElementNotFoundFormat" xml:space="preserve"><value>"{0}" was stopped: {1} found nothing in the front window within {2} seconds.
+
+The element picker (crosshair in the popup or tray menu) shows how the element can be found.</value></data>
+  <data name="FormElementFailedFormat" xml:space="preserve"><value>"{0}" was stopped: {1} didn't work.
+{2}</value></data>
+  <data name="TrayElementPicker" xml:space="preserve"><value>Pick element…</value></data>
+  <data name="PickerTooltip" xml:space="preserve"><value>Pick a form field for key tags (crosshair)</value></data>
+  <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Pick element</value></data>
+  <data name="PickerHint" xml:space="preserve"><value>Hold the mouse button on the crosshair, drag it onto a field, button or link and let go. The tag for it is then copied, e.g. {focus,#email}.</value></data>
+  <data name="PickerTargetToolTip" xml:space="preserve"><value>Drag onto an element</value></data>
+  <data name="PickerProgram" xml:space="preserve"><value>Program</value></data>
+  <data name="PickerType" xml:space="preserve"><value>Type</value></data>
+  <data name="PickerName" xml:space="preserve"><value>Name</value></data>
+  <data name="PickerClass" xml:space="preserve"><value>Class</value></data>
+  <data name="PickerValue" xml:space="preserve"><value>Value</value></data>
+  <data name="PickerActionFocus" xml:space="preserve"><value>Focus</value></data>
+  <data name="PickerActionClick" xml:space="preserve"><value>Click</value></data>
+  <data name="PickerActionSet" xml:space="preserve"><value>Set</value></data>
+  <data name="PickerSelectors" xml:space="preserve"><value>Found by (most stable first)</value></data>
+  <data name="PickerCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="PickerReady" xml:space="preserve"><value>Esc closes the window.</value></data>
+  <data name="PickerDragging" xml:space="preserve"><value>Let go over the element. Esc cancels.</value></data>
+  <data name="PickerChecking" xml:space="preserve"><value>Checking which selectors find exactly this element…</value></data>
+  <data name="PickerCopied" xml:space="preserve"><value>Copied to the clipboard, ready to paste into a snippet.</value></data>
+  <data name="PickerUnverified" xml:space="preserve"><value>None of these finds exactly this element, they are unchecked. Copied anyway.</value></data>
+  <data name="PickerNothing" xml:space="preserve"><value>The element has no id, name or class to find it by. Click a field next to it and use {tab} instead.</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>General</value></data>
   <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
   <data name="StartupHeading" xml:space="preserve"><value>Startup and display</value></data>

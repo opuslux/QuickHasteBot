@@ -22,6 +22,7 @@ internal sealed class AppController : IDisposable
     TrayIcon? _tray;
     SettingsWindow? _settingsWindow;
     AiPromptWindow? _aiPromptWindow;
+    ElementPickerWindow? _elementPicker;
 
     public AppController(AppPaths paths)
     {
@@ -103,6 +104,26 @@ internal sealed class AppController : IDisposable
         _aiPromptWindow.Activate();
     }
 
+    /// <summary>Den Element-Picker gibt es nur einmal, ein weiterer Aufruf holt ihn nach vorne.</summary>
+    public void ShowElementPicker()
+    {
+        if (_elementPicker is null)
+        {
+            var window = new ElementPickerWindow();
+            window.Closed += (_, _) =>
+            {
+                if (_elementPicker == window)
+                    _elementPicker = null;
+            };
+            _elementPicker = window;
+            window.Show();
+        }
+
+        if (_elementPicker.WindowState == WindowState.Minimized)
+            _elementPicker.WindowState = WindowState.Normal;
+        _elementPicker.Activate();
+    }
+
     internal void ShowSettings(Point? position)
     {
         if (_settingsWindow is null)
@@ -173,9 +194,16 @@ internal sealed class AppController : IDisposable
 
         if (form is not null && KeyTags.HasMarkers(text))
         {
-            var outcome = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
-            if (outcome == FormOutcome.WindowChanged)
-                MessageBox.Show(string.Format(Strings.FormWindowChangedFormat, snippet.Name), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
+            var result = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
+            var message = result.Outcome switch
+            {
+                FormOutcome.WindowChanged => string.Format(Strings.FormWindowChangedFormat, snippet.Name),
+                FormOutcome.ElementNotFound => string.Format(Strings.FormElementNotFoundFormat, snippet.Name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
+                FormOutcome.ElementFailed => string.Format(Strings.FormElementFailedFormat, snippet.Name, result.Step, result.Error),
+                _ => null,
+            };
+            if (message is not null)
+                MessageBox.Show(message, "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

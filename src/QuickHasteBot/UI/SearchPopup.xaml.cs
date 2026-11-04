@@ -374,6 +374,12 @@ internal partial class SearchPopup : Window
         _app.ShowAiPrompt();
     }
 
+    void OnElementPickerClick(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        _app.ShowElementPicker();
+    }
+
     void OnEditClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, EditSelected);
 
     void OnExplorerClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, RevealSelected);

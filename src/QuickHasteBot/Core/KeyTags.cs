@@ -23,6 +23,11 @@ public sealed record DelayStep(int Milliseconds) : FormStep;
 /// <summary>{guard,on|off}: Fensterschutz ab hier ein- oder ausschalten.</summary>
 public sealed record GuardStep(bool On) : FormStep;
 
+public enum ElementAction { Focus, Click, Set }
+
+/// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
+public sealed record ElementStep(ElementAction Action, ElementSelector Selector, string? Value) : FormStep;
+
 /// <summary>
 /// Sammelt die Schritte eines Formular-Bausteins. Im Text stehen statt der Schritte unsichtbare Marker
 /// (Zeichen aus der Private Use Area), damit Tags und key() aus Skripten in einer geordneten Liste landen,
@@ -126,6 +131,10 @@ public static partial class KeyTags
         var spec = name.Groups[1].Value.ToLowerInvariant();
         var args = SplitArgs(content[name.Length..]);
         if (args is null) return false;
+
+        if (spec is "focus" or "click" or "set")
+            return TryParseElement(spec, args, out steps, out error);
+
         if (args.Count > 1)
         {
             error = $"too many arguments in \"{content}\"";
@@ -186,6 +195,41 @@ public static partial class KeyTags
 
         steps = [Key(spec, vk, modifiers, repeat)];
         return true;
+    }
+
+    /// <summary>{focus,#email}, {click,Absenden}, {set,#land,"Österreich"}.</summary>
+    internal static bool TryParseElement(string spec, List<string> args, out IReadOnlyList<FormStep> steps, out string error)
+    {
+        steps = [];
+        var action = spec switch { "focus" => ElementAction.Focus, "click" => ElementAction.Click, _ => ElementAction.Set };
+        var expected = action == ElementAction.Set ? 2 : 1;
+        if (args.Count != expected)
+        {
+            error = action == ElementAction.Set
+                ? "\"set\" needs an element and a value, e.g. {set,#email,\"max@example.com\"}"
+                : $"\"{spec}\" needs an element, e.g. {{{spec},#email}} or {{{spec},name=Send}}";
+            return false;
+        }
+        if (!ElementSelector.TryParse(args[0], out var selector, out error))
+            return false;
+
+        steps = [new ElementStep(action, selector, action == ElementAction.Set ? args[1] : null)];
+        return true;
+    }
+
+    /// <summary>Ein Element-Tag, wie es der Picker in die Zwischenablage legt. Setzt Argumente nur in "…", wenn nötig.</summary>
+    public static string ElementTag(ElementAction action, ElementSelector selector, string? value = null)
+    {
+        var tag = "{" + action.ToString().ToLowerInvariant() + "," + Quote(selector.ToString());
+        if (action == ElementAction.Set)
+            tag += "," + Quote(value ?? "", always: true);
+        return tag + "}";
+
+        static string Quote(string arg, bool always = false)
+        {
+            var clean = arg.Replace("\"", "").ReplaceLineEndings(" ");
+            return always || clean.IndexOfAny([',', '{', '}']) >= 0 || clean != clean.Trim() ? "\"" + clean + "\"" : clean;
+        }
     }
 
     static KeyStep Key(string name, ushort vk, IReadOnlyList<ushort> modifiers, int repeat) =>
@@ -290,6 +334,7 @@ public static partial class KeyTags
         WaitStep w => $"{{wait,{w.Milliseconds}}}",
         DelayStep d => $"{{delay,{d.Milliseconds}}}",
         GuardStep g => g.On ? "{guard,on}" : "{guard,off}",
+        ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
         _ => "",
     };
 

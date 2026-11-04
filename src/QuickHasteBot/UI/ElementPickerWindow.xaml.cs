@@ -1,0 +1,212 @@
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using QuickHasteBot.Core;
+using QuickHasteBot.Interop;
+using static QuickHasteBot.Interop.NativeMethods;
+
+namespace QuickHasteBot.UI;
+
+/// <summary>
+/// Element-Picker: Fadenkreuz auf ein Feld, einen Button oder Link ziehen, loslassen, und der passende Tag wie
+/// {focus,#email} landet in der Zwischenablage. Zeigt live, was unter dem Fadenkreuz liegt, und rahmt es rot ein.
+/// Nach dem Loslassen prüft er, welche Selektoren genau dieses Element finden, der stabilste zuerst.
+/// Bleibt im Vordergrund, damit man ihn neben dem Browser bedienen kann. Esc bricht ab bzw. schliesst.
+/// </summary>
+internal partial class ElementPickerWindow : Window
+{
+    readonly ElementHighlight _highlight = new();
+    bool _picking;
+    bool _probing;
+    POINT? _pending;
+    ElementInfo? _hovered;
+    ElementInfo? _picked;
+    bool _updating;
+
+    public ElementPickerWindow()
+    {
+        InitializeComponent();
+        StatusText.Text = Strings.PickerReady;
+        Closed += (_, _) => _highlight.Close();
+    }
+
+    void OnTargetDown(object sender, MouseButtonEventArgs e)
+    {
+        _picking = true;
+        _hovered = null;
+        Target.CaptureMouse();
+        Mouse.OverrideCursor = Cursors.Cross;
+        Crosshair.Visibility = Visibility.Hidden; // wie Spy++: das Fadenkreuz "hängt" jetzt an der Maus
+        StatusText.Text = Strings.PickerDragging;
+        e.Handled = true;
+    }
+
+    void OnTargetMove(object sender, MouseEventArgs e)
+    {
+        if (_picking && GetCursorPos(out var point))
+            Probe(point);
+    }
+
+    /// <summary>UI Automation braucht pro Abfrage einige ms: immer nur eine gleichzeitig, danach die neueste Position.</summary>
+    async void Probe(POINT point)
+    {
+        if (_probing)
+        {
+            _pending = point;
+            return;
+        }
+        _probing = true;
+        var info = await Task.Run(() => ElementAutomation.Probe(point.X, point.Y));
+        _probing = false;
+
+        if (_picking)
+        {
+            _hovered = info;
+            ShowDetails(info);
+            if (info is null) _highlight.Hide();
+            else _highlight.ShowAt(info.Bounds);
+        }
+
+        if (_pending is { } next && (next.X != point.X || next.Y != point.Y) && _picking)
+        {
+            _pending = null;
+            Probe(next);
+        }
+    }
+
+    void ShowDetails(ElementInfo? info)
+    {
+        ProgramText.Text = Show(info?.Process);
+        TypeText.Text = Show(info?.Type);
+        IdText.Text = Show(info?.Id);
+        NameText.Text = Show(info?.Name);
+        ClassText.Text = Show(info?.ClassName);
+        ValueText.Text = Show(info?.Value);
+
+        static string Show(string? value) => string.IsNullOrEmpty(value) ? "–" : value;
+    }
+
+    async void OnTargetUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_picking) return;
+        EndPicking();
+        if (_hovered is { } info)
+            await Pick(info);
+        else
+            StatusText.Text = Strings.PickerReady;
+    }
+
+    void OnTargetLostCapture(object sender, MouseEventArgs e)
+    {
+        if (_picking) EndPicking();
+    }
+
+    void EndPicking()
+    {
+        _picking = false;
+        _pending = null;
+        Mouse.OverrideCursor = null;
+        Crosshair.Visibility = Visibility.Visible;
+        _highlight.Hide();
+        if (Target.IsMouseCaptured) Target.ReleaseMouseCapture();
+    }
+
+    async Task Pick(ElementInfo info)
+    {
+        _picked = info;
+        ShowDetails(info);
+        StatusText.Text = Strings.PickerChecking;
+        var selectors = await Task.Run(() => ElementAutomation.VerifiedSelectors(info));
+        if (_picked != info) return; // inzwischen ein anderes Element erfasst
+
+        var verified = selectors.Count > 0;
+        if (!verified)
+            selectors = ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null);
+
+        _updating = true;
+        SelectorList.ItemsSource = selectors;
+        SelectorList.SelectedIndex = selectors.Count > 0 ? 0 : -1;
+        (DefaultAction(info.Type) switch
+        {
+            ElementAction.Click => ActionClick,
+            ElementAction.Set => ActionSet,
+            _ => ActionFocus,
+        }).IsChecked = true;
+        _updating = false;
+
+        ResultPanel.Visibility = Visibility.Visible;
+        UpdateTag();
+        if (selectors.Count == 0)
+        {
+            StatusText.Text = Strings.PickerNothing;
+            return;
+        }
+        var copied = Copy();
+        StatusText.Text = !verified ? Strings.PickerUnverified : copied ? Strings.PickerCopied : "";
+    }
+
+    /// <summary>Buttons und Links klickt man, Checkboxen und Dropdowns setzt man, alles andere fokussiert man.</summary>
+    internal static ElementAction DefaultAction(string type) => type switch
+    {
+        "Button" or "Hyperlink" or "MenuItem" or "TabItem" or "ListItem" or "TreeItem" or "RadioButton" or "SplitButton" or "DataItem" => ElementAction.Click,
+        "CheckBox" or "ComboBox" => ElementAction.Set,
+        _ => ElementAction.Focus,
+    };
+
+    void OnActionChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_updating) UpdateTag();
+    }
+
+    void OnSelectorChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_updating) UpdateTag();
+    }
+
+    void UpdateTag()
+    {
+        if (SelectorList.SelectedItem is not ElementSelector selector || _picked is not { } info)
+        {
+            TagOutput.Text = "";
+            return;
+        }
+        var action = ActionClick.IsChecked == true ? ElementAction.Click : ActionSet.IsChecked == true ? ElementAction.Set : ElementAction.Focus;
+        var value = info.Type == "CheckBox" ? "on" : info.Value ?? "";
+        TagOutput.Text = KeyTags.ElementTag(action, selector, value);
+    }
+
+    void OnCopy(object sender, RoutedEventArgs e)
+    {
+        if (Copy()) StatusText.Text = Strings.PickerCopied;
+    }
+
+    bool Copy()
+    {
+        if (TagOutput.Text.Length == 0) return false;
+        try
+        {
+            Clipboard.SetText(TagOutput.Text);
+            return true;
+        }
+        catch (ExternalException ex)
+        {
+            Log.Error("Tag konnte nicht in die Zwischenablage gelegt werden", ex);
+            return false;
+        }
+    }
+
+    void OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        if (_picking)
+        {
+            _hovered = null;
+            EndPicking();
+            StatusText.Text = Strings.PickerReady;
+        }
+        else
+            Close();
+        e.Handled = true;
+    }
+}
