@@ -10,12 +10,18 @@ namespace QuickHasteBot.Interop;
 /// Ersetzt SendKeys der alten Version (Probleme mit Umlauten, Tastaturlayout und Sonderzeichen wie {}+^%~()).
 /// Muss auf dem UI-Thread laufen (Clipboard braucht STA).
 /// </summary>
+internal enum FormOutcome { Completed, EscapePressed, WindowChanged }
+
 internal sealed class PasteService
 {
     /// <summary>So lange bekommt das Zielprogramm Zeit, das Clipboard zu lesen, bevor wir es zurücksetzen.</summary>
     const int ClipboardRestoreDelay = 600;
     const int ModifierReleaseTimeout = 1500;
     const int TypingChunkSize = 200;
+
+    /// <summary>Pause nach jeder Taste in Formularen, damit JavaScript (Autocomplete, Validierung) mitkommt. {delay,ms} ändert sie.</summary>
+    const int DefaultKeyDelay = 30;
+    const int PollInterval = 15;
 
     // Clipboard-Verlauf (Win+V) und Sync-Tools sollen unsere temporären Inhalte ignorieren
     const string ExcludeFromHistoryFormat = "ExcludeClipboardContentFromMonitorProcessing";
@@ -63,23 +69,9 @@ internal sealed class PasteService
             TrySetClipboard(backup);
     }
 
-    static async Task TypeAsync(string text)
+    static async Task TypeAsync(string text, bool shiftEnter = false)
     {
-        var inputs = new List<INPUT>();
-        foreach (var c in NormalizeLineEndings(text))
-        {
-            if (c == '\n') continue; // \r\n → ein Enter
-            if (c == '\r')
-            {
-                inputs.Add(Key(VK_RETURN, down: true));
-                inputs.Add(Key(VK_RETURN, down: false));
-            }
-            else
-            {
-                inputs.Add(Unicode(c, down: true));
-                inputs.Add(Unicode(c, down: false));
-            }
-        }
+        var inputs = CharInputs(text, shiftEnter).SelectMany(c => c).ToList();
 
         // In Häppchen senden, manche Programme verschlucken sonst Zeichen
         for (var i = 0; i < inputs.Count; i += TypingChunkSize)
@@ -87,6 +79,145 @@ internal sealed class PasteService
             Send(inputs.Skip(i).Take(TypingChunkSize).ToArray());
             await Task.Delay(10);
         }
+    }
+
+    /// <summary>Die Eingaben pro Zeichen. Ein Umbruch wird zu Enter, in Formularen zu Shift+Enter (neue Zeile statt Absenden).</summary>
+    static IEnumerable<INPUT[]> CharInputs(string text, bool shiftEnter)
+    {
+        foreach (var c in text.ReplaceLineEndings("\n"))
+        {
+            if (c != '\n')
+                yield return [Unicode(c, down: true), Unicode(c, down: false)];
+            else if (shiftEnter)
+                yield return [Key(VK_SHIFT, down: true), Key(VK_RETURN, down: true), Key(VK_RETURN, down: false), Key(VK_SHIFT, down: false)];
+            else
+                yield return [Key(VK_RETURN, down: true), Key(VK_RETURN, down: false)];
+        }
+    }
+
+    /// <summary>
+    /// Führt einen Formular-Baustein aus (Text und Tasten-Tags, siehe <see cref="KeyTags"/>). Immer getippt, damit Text
+    /// und Tasten in derselben Eingabe-Warteschlange und damit in der richtigen Reihenfolge ankommen.
+    /// Bricht ab, wenn die echte Esc-Taste gedrückt ist oder (mit Fensterschutz) ein anderes Fenster in den Vordergrund kommt.
+    /// </summary>
+    public async Task<FormOutcome> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard)
+    {
+        if (!await WindowFocus.ActivateAndWaitAsync(targetWindow))
+        {
+            // Anders als beim Einfügen nicht einfach ans aktuelle Fenster senden, {enter} & Co. könnten dort Schaden anrichten
+            if (windowGuard)
+                return Aborted(FormOutcome.WindowChanged, 0);
+            Log.Info("Zielfenster konnte nicht aktiviert werden, sende trotzdem an das aktuelle Vordergrundfenster (Fensterschutz aus)");
+        }
+        await WaitForModifiersReleasedAsync();
+
+        var guarded = windowGuard;
+        var guardWindow = RootOwner(GetForegroundWindow());
+        var keyDelay = DefaultKeyDelay;
+        var charDelay = 0;
+
+        for (var i = 0; i < steps.Count; i++)
+        {
+            if (EscapeDown())
+                return Aborted(FormOutcome.EscapePressed, i);
+            if (guarded && WindowChanged(ref guardWindow))
+                return Aborted(FormOutcome.WindowChanged, i);
+
+            switch (steps[i])
+            {
+                case TextStep text when charDelay == 0:
+                    await TypeAsync(text.Text, shiftEnter: true);
+                    break;
+
+                case TextStep text:
+                    foreach (var c in CharInputs(text.Text, shiftEnter: true))
+                    {
+                        if (EscapeDown())
+                            return Aborted(FormOutcome.EscapePressed, i);
+                        Send(c);
+                        await Task.Delay(charDelay);
+                    }
+                    break;
+
+                case KeyStep key:
+                    for (var r = 0; r < key.Repeat; r++)
+                    {
+                        Send(KeyPress(key));
+                        if (keyDelay > 0)
+                            await Task.Delay(keyDelay);
+                    }
+                    // Unser eigenes Esc soll nicht als Notbremse zählen: abwarten, bis es sicher losgelassen ist
+                    if (key.Vk == VK_ESCAPE)
+                        await Task.Delay(PollInterval * 2);
+                    if (key.SwitchesWindow)
+                        guarded = false;
+                    break;
+
+                case WaitStep wait:
+                    var until = Environment.TickCount64 + wait.Milliseconds;
+                    while (Environment.TickCount64 < until)
+                    {
+                        if (EscapeDown())
+                            return Aborted(FormOutcome.EscapePressed, i);
+                        await Task.Delay((int)Math.Clamp(until - Environment.TickCount64, 1, PollInterval));
+                    }
+                    break;
+
+                case DelayStep delay:
+                    keyDelay = charDelay = delay.Milliseconds;
+                    break;
+
+                case GuardStep guard:
+                    guarded = guard.On;
+                    if (guard.On)
+                        guardWindow = RootOwner(GetForegroundWindow());
+                    break;
+            }
+        }
+        return FormOutcome.Completed;
+
+        FormOutcome Aborted(FormOutcome outcome, int step)
+        {
+            Log.Info($"Formular-Baustein abgebrochen ({outcome}) vor Schritt {step + 1} von {steps.Count}");
+            return outcome;
+        }
+    }
+
+    static INPUT[] KeyPress(KeyStep key)
+    {
+        var inputs = new List<INPUT>();
+        foreach (var modifier in key.Modifiers)
+            inputs.Add(Key(modifier, down: true));
+        inputs.Add(Key(key.Vk, down: true));
+        inputs.Add(Key(key.Vk, down: false));
+        for (var m = key.Modifiers.Count - 1; m >= 0; m--)
+            inputs.Add(Key(key.Modifiers[m], down: false));
+        return inputs.ToArray();
+    }
+
+    static bool EscapeDown() => (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
+
+    /// <summary>
+    /// Ein anderes Programm ist vorne. Dialoge des Zielfensters zählen nicht als Wechsel (gleicher Besitzer),
+    /// ein kurzzeitig leeres Vordergrundfenster während eines Wechsels auch nicht.
+    /// </summary>
+    static bool WindowChanged(ref nint guardWindow)
+    {
+        var current = RootOwner(GetForegroundWindow());
+        if (current == 0) return false;
+        if (guardWindow == 0)
+        {
+            guardWindow = current;
+            return false;
+        }
+        return current != guardWindow;
+    }
+
+    static nint RootOwner(nint hwnd)
+    {
+        if (hwnd == 0) return 0;
+        var root = GetAncestor(hwnd, GA_ROOTOWNER);
+        return root != 0 ? root : hwnd;
     }
 
     static async Task WaitForModifiersReleasedAsync()
@@ -174,7 +305,10 @@ internal sealed class PasteService
     static INPUT Key(ushort vk, bool down) => new()
     {
         type = INPUT_KEYBOARD,
-        u = new InputUnion { ki = new KEYBDINPUT { wVk = vk, dwFlags = down ? 0 : KEYEVENTF_KEYUP } },
+        u = new InputUnion
+        {
+            ki = new KEYBDINPUT { wVk = vk, dwFlags = (down ? 0 : KEYEVENTF_KEYUP) | (KeyTags.IsExtended(vk) ? KEYEVENTF_EXTENDEDKEY : 0) },
+        },
     };
 
     static INPUT Unicode(char c, bool down) => new()

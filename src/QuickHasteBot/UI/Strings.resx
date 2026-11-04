@@ -46,6 +46,13 @@
   <data name="SearchContent" xml:space="preserve"><value>Also search the text inside the snippets</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>Run {{ … }} in snippets as JavaScript</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>When pasting, e.g. {{ date() }} becomes today's date. Off: {{ … }} is pasted as is.</value></data>
+  <data name="EvaluateKeyTags" xml:space="preserve"><value>Press key tags like {tab} and {enter} (fill in forms)</value></data>
+  <data name="EvaluateKeyTagsToolTip" xml:space="preserve"><value>Snippets with key tags are typed: Max{tab}Müller{tab}{enter} fills in two fields and submits. Off: tags are pasted as is.</value></data>
+  <data name="KeyTagsWindowGuard" xml:space="preserve"><value>Stop when another window comes to the front</value></data>
+  <data name="KeyTagsWindowGuardToolTip" xml:space="preserve"><value>Protects against keys landing in the wrong program. Per snippet: {guard,off} turns it off, e.g. to automate the Start menu. Holding Esc always stops a snippet.</value></data>
+  <data name="FormWindowChangedFormat" xml:space="preserve"><value>"{0}" was stopped because another window came to the front.
+
+If the snippet switches windows on purpose, start it with {{guard,off}}.</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>General</value></data>
   <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
   <data name="StartupHeading" xml:space="preserve"><value>Startup and display</value></data>

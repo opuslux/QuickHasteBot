@@ -81,6 +81,8 @@ With the mouse, the selection follows the pointer as soon as it rests on an entr
 - **Clipboard** (default): the text is placed on the clipboard briefly, then Ctrl+V is sent. Afterwards the previous clipboard content is restored, and the clipboard history (Win+V) is not cluttered.
 - **Typing**: the text is sent character by character as Unicode input. This also works where pasting is blocked, but is slower for long texts.
 
+Snippets with key tags (see [Forms](#forms-key-tags)) are always typed, whatever the setting, so text and keys arrive in the right order.
+
 ## Scripts
 
 Everything between `{{` and `}}` is evaluated as JavaScript when pasting and replaced by its result. If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts` in `settings.json`).
@@ -103,6 +105,8 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `clipboard` | The text that was on the clipboard before pasting. |
 | `user` | The Windows user name. |
 | `guid()` | A new GUID, e.g. for reference numbers. |
+| `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
+| `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
@@ -114,6 +118,38 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 "Edit template" creates `ai-prompt.txt` next to the exe with the built-in prompt and opens it in the editor. `{task}` stands for what you typed; changes apply the next time you send. "Reset template" (shown once the file exists) moves it to the Recycle Bin, and the built-in prompt applies again.
 
 The service is chosen at the bottom left of the prompt editor or in the settings under "AI for scripts", and is remembered: ChatGPT (default, free without an account), Google AI Mode or Perplexity. Google AI Mode tends to show search results instead of code. Any other service can be entered by hand as `AiPromptUrl` in `settings.json`, with `{prompt}` for the prompt and `{lang}` for the interface language, e.g. `https://claude.ai/new?q={prompt}`; the settings then show it as "Custom address".
+
+## Forms: key tags
+
+Key tags turn a snippet into a sequence of text and key presses, to fill in web forms or dialogs in Windows programs:
+
+```
+Max{tab}Müller{tab}max.mueller@example.com{tab}{space}{tab}{enter}
+```
+
+types the first name, jumps to the next field with Tab, ticks a checkbox with Space and submits. Tags are not case sensitive; an argument follows a comma (`{tab,3}`) or a space (`{tab 3}`). Only the names below count: anything else in braces, such as `{name}` or JSON, is pasted as is.
+
+| Tags | Keys |
+|---|---|
+| `{tab}` `{enter}` `{esc}` `{space}` | Next field, submit, cancel, tick a checkbox |
+| `{up}` `{down}` `{left}` `{right}` `{home}` `{end}` `{pgup}` `{pgdn}` | Arrows and navigation, e.g. `{down,3}` in a dropdown |
+| `{backspace}`/`{bs}` `{delete}`/`{del}` `{insert}`/`{ins}` | Editing |
+| `{f1}` … `{f12}` | Function keys, e.g. `{f5}` reloads a page |
+| `{win}` `{alt}` `{ctrl}` `{shift}` `{apps}`/`{menu}` | Modifiers alone: `{win}` opens the Start menu, `{alt}` the menu bar, `{apps}` the context menu |
+| `{ctrl+a}` `{shift+tab}` `{ctrl+shift+end}` | Combinations with `ctrl`, `alt`, `shift`, `win`, plus any key above or a single letter or digit |
+| `{tab,3}` | Repeats a key |
+| `{wait,500}` | Pauses 500 ms, e.g. until a dropdown opens or a page has loaded (at most 10 s) |
+| `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms that lose characters (default: 30 ms after keys, none between characters) |
+| `{clear}` | `{ctrl+a}{del}`: empties a prefilled field before typing |
+| `{guard,off}` `{guard,on}` | Turns the window guard (below) off or on from here |
+
+Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and `{win+r}{wait,300}notepad{enter}` starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them), and Caps Lock and Num Lock are left out on purpose, since they would stay switched.
+
+- **Line breaks** in the text are sent as Shift+Enter: a new line in a multi-line field or chat box that doesn't submit the form. Only `{enter}` submits. A single line break at the very end of the file is ignored.
+- **With scripts:** tags and `{{ … }}` blocks can be mixed freely, e.g. `{{ user }}{tab}{{ date() }}{enter}`, and variables carry over as usual. Inside a script, `key()` and `wait()` press keys, e.g. `{{ ['Max', 'Müller'].join(key('tab')) + key('enter') }}`. What a script returns or what comes from the clipboard is never read as a tag, so a copied `{enter}` can't submit anything. A literal tag is written as `{{ '{tab}' }}`.
+- **Stopping:** holding Esc stops a snippet between two steps.
+- **Window guard:** if another window comes to the front while the snippet runs (e.g. you click elsewhere during a `{wait}`), it stops, so keys don't end up in the wrong program. Dialogs of the target window don't count. After a key that switches windows on purpose (`{win}` and `win+…`, `{alt}`, `alt+tab`, `alt+esc`, `alt+f4`, `alt+space`, `{apps}`, `shift+f10`), the guard is off for the rest of the snippet. `{guard,off}` turns it off explicitly, e.g. for `{guard,off}{win}{wait,500}Notepad{wait,300}{enter}`; `{guard,on}` turns it back on for the window that is in front at that moment. The setting "Stop when another window comes to the front" (`KeyTagsWindowGuard`) turns it off for all snippets.
+- Turning off "Press key tags like {tab} and {enter}" in the settings (`EvaluateKeyTags` in `settings.json`) pastes the tags as is.
 
 ## Portable
 

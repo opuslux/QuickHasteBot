@@ -147,13 +147,20 @@ internal sealed class AppController : IDisposable
             return;
         }
 
+        // Tasten-Tags werden zu Markern, bevor Skripte laufen: was ein Skript ausgibt oder aus der Zwischenablage kommt,
+        // wird so nie als Tag gelesen, nur key() im Skript erzeugt bewusst Tasten
+        text = KeyTags.StripMarkers(text);
+        var form = Settings.EvaluateKeyTags ? new FormBuilder() : null;
+        if (form is not null)
+            text = KeyTags.MarkTags(text, form);
+
         if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
         {
             // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
             var clipboard = SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
             try
             {
-                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard));
+                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form));
             }
             catch (SnippetScriptException ex)
             {
@@ -162,6 +169,14 @@ internal sealed class AppController : IDisposable
                 MessageBox.Show(string.Format(Strings.ScriptErrorFormat, ex.Block, snippet.Name, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+        }
+
+        if (form is not null && KeyTags.HasMarkers(text))
+        {
+            var outcome = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
+            if (outcome == FormOutcome.WindowChanged)
+                MessageBox.Show(string.Format(Strings.FormWindowChangedFormat, snippet.Name), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
         }
 
         var mode = alternate ? AppSettings.Other(Settings.PasteMode) : Settings.PasteMode;

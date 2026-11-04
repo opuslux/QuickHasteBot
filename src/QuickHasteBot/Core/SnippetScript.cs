@@ -12,7 +12,8 @@ namespace QuickHasteBot.Core;
 /// <paramref name="Now"/> ist, was new Date() und Date.now() liefern.
 /// </summary>
 /// <param name="TimeZone">Zeitzone für die Datumsmethoden, ohne Angabe die von Windows.</param>
-public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null);
+/// <param name="Form">Nimmt die Tasten aus key() und wait() auf. Ohne: Tasten-Tags sind ausgeschaltet, key() meldet einen Fehler.</param>
+public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null, FormBuilder? Form = null);
 
 /// <param name="block">Nummer des fehlerhaften {{ … }}-Blocks, ab 1 gezählt.</param>
 public sealed class SnippetScriptException(int block, string message, Exception inner) : Exception(message, inner)
@@ -46,6 +47,8 @@ public static partial class SnippetScript
         ("clipboard", "clipboard text"),
         ("user", "Windows user name"),
         ("guid()", "new GUID"),
+        ("key(name, count?)", "presses a key instead of typing text, e.g. key(\"tab\"), key(\"shift+tab\"), key(\"down\", 3), key(\"ctrl+a\"); put the result into the output"),
+        ("wait(ms)", "pause before the next key or text, e.g. until a dropdown opens; put the result into the output"),
     ];
 
     [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
@@ -99,7 +102,8 @@ public static partial class SnippetScript
         // Dieselbe Ortszeit wie new Date(), damit date() und Date nicht auseinanderlaufen
         var now = TimeZoneInfo.ConvertTime(context.Now, context.TimeZone ?? TimeZoneInfo.Local);
 
-        engine.SetValue("clipboard", context.Clipboard);
+        // Marker aus der Zwischenablage weg, sonst könnte kopierter Text Tasten auslösen
+        engine.SetValue("clipboard", KeyTags.StripMarkers(context.Clipboard));
         engine.SetValue("user", Environment.UserName);
 
         // date(format, tage): .NET-Datumsformat in der Kultur von Windows, ohne Format das kurze Datum ("03.11.2026")
@@ -113,8 +117,24 @@ public static partial class SnippetScript
 
         Function("guid", 0, _ => Guid.NewGuid().ToString());
 
+        // key("tab"), key("shift+tab"), key("down", 3), key("wait,500"): dieselbe Syntax wie die Tags im Text.
+        // Liefert einen unsichtbaren Marker, der im Ergebnis stehen muss, damit die Taste gedrückt wird.
+        Function("key", 2, args => FormMarker(context, Format(args, 0) ?? "", Arguments.At(args, 1) is { } n && !n.IsUndefined() ? (int)TypeConverter.ToNumber(n) : null));
+
+        // wait(500): Pause in Millisekunden
+        Function("wait", 1, args => FormMarker(context, "wait", (int)Number(args, 0)));
+
         void Function(string name, int length, Func<JsValue[], string> body) =>
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
+    }
+
+    static string FormMarker(ScriptContext context, string spec, int? count)
+    {
+        if (context.Form is null)
+            throw new InvalidOperationException("key tags are disabled in the settings");
+        if (!KeyTags.TryParse(spec, count, out var steps, out var error))
+            throw new ArgumentException(error);
+        return context.Form.Markers(steps);
     }
 
     static string? Format(JsValue[] args, int index) =>

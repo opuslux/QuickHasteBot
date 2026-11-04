@@ -132,7 +132,9 @@ internal partial class AiPromptWindow : Window
         var clipboard = SnippetScript.UsesClipboard(Block) ? PasteService.TryGetClipboardText() : "";
         try
         {
-            var result = SnippetScript.Render(Block, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard));
+            // key() und wait() erzeugen unsichtbare Marker, in der Vorschau als lesbare Tags wie {tab}
+            var form = new FormBuilder();
+            var result = KeyTags.Preview(SnippetScript.Render(Block, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form)), form);
             if (result.Length == 0)
                 ShowTestResult(Strings.AiPromptTestEmpty, "TextFillColorSecondaryBrush", monospace: false);
             else
