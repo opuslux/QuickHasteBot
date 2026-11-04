@@ -34,6 +34,7 @@ internal partial class SearchPopup : Window
     Point _lastMouse;
     readonly Queue<Point> _recentMoves = new();
     bool _hoverSelecting;
+    bool _dialogOpen;
     PopupPlacement.Anchor? _anchor;
     Point? _dragStart;
     bool _moving;
@@ -101,7 +102,8 @@ internal partial class SearchPopup : Window
     void OnDeactivated(object? sender, EventArgs e)
     {
         _hoverTimer.Stop();
-        Hide();
+        if (!_dialogOpen)
+            Hide();
     }
 
     // Überall im Fenster lässt es sich verschieben. Erst ab einer kleinen Mausbewegung, damit Klicks Klicks bleiben;
@@ -397,6 +399,118 @@ internal partial class SearchPopup : Window
         _app.ShowSettings();
     }
 
+    // Rechtsklick auf einen Eintrag, links wie rechts. Links wird er dabei markiert, rechts bleibt der Ordner markiert.
+    void OnListRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        var list = (ListBox)sender;
+        if (ItemAt(list, e.OriginalSource) is not { } item) return;
+
+        _hoverTimer.Stop();
+        if (list == Results)
+            _viewModel.Selected = item;
+        ShowItemMenu(item.Snippet, list);
+        e.Handled = true;
+    }
+
+    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: nur Umbenennen.</summary>
+    void ShowItemMenu(Snippet snippet, UIElement target)
+    {
+        var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
+        // Alles andere öffnet schon per Klick die zugeordnete Anwendung
+        if (snippet.Kind == SnippetKind.Text)
+            menu.Items.Add(MenuEntry(Strings.MenuEdit, () =>
+            {
+                Hide();
+                _app.Edit(snippet);
+            }));
+        menu.Items.Add(MenuEntry(Strings.MenuRename, () => Rename(snippet)));
+        if (!snippet.IsFolder)
+        {
+            menu.Items.Add(MenuEntry(Strings.MenuClone, () => Clone(snippet)));
+            menu.Items.Add(MenuEntry(Strings.MenuDelete, () => Delete(snippet)));
+        }
+        menu.IsOpen = true;
+    }
+
+    // Erst ausführen, wenn das Menü zu ist, sonst steht es hinter dem Dialog noch offen
+    MenuItem MenuEntry(string header, Action action)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += (_, _) => Dispatcher.BeginInvoke(action, DispatcherPriority.Input);
+        return item;
+    }
+
+    void Clone(Snippet snippet)
+    {
+        var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix));
+        dialog.Owner = this;
+        if (WithDialog(dialog.ShowDialog) == true)
+            ChangeFile(snippet, Strings.CloneErrorFormat, () => SnippetFiles.Clone(snippet.FullPath, dialog.FileName));
+    }
+
+    void Rename(Snippet snippet)
+    {
+        var dialog = NameDialog.ForRename(snippet);
+        dialog.Owner = this;
+        if (WithDialog(dialog.ShowDialog) == true)
+            ChangeFile(snippet, Strings.RenameErrorFormat, () => SnippetFiles.Rename(snippet.FullPath, dialog.FileName));
+    }
+
+    /// <summary>Kopie anlegen oder umbenennen, danach ist das Ergebnis markiert, sofern es in der Liste steht.</summary>
+    void ChangeFile(Snippet snippet, string errorFormat, Func<string> change)
+    {
+        try
+        {
+            var path = change();
+            _app.Library.Reload();
+            _viewModel.RefreshSelecting(Path.GetRelativePath(_app.Library.RootPath, path));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"Konnte nicht geändert werden: {snippet.FullPath}", ex);
+            WithDialog(() => MessageBox.Show(this, string.Format(errorFormat, ex.Message), "QuickHasteBot",
+                MessageBoxButton.OK, MessageBoxImage.Warning));
+        }
+    }
+
+    void Delete(Snippet snippet)
+    {
+        var name = Path.GetFileName(snippet.FullPath);
+        var answer = WithDialog(() => MessageBox.Show(this, string.Format(Strings.DeleteConfirmFormat, name), "QuickHasteBot",
+            MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No));
+        if (answer != MessageBoxResult.Yes) return;
+
+        var nextSelection = _viewModel.SelectionAfterRemoving(snippet);
+        try
+        {
+            if (!WithDialog(() => RecycleBin.Delete(snippet.FullPath, new WindowInteropHelper(this).Handle))) return;
+            _app.Library.Reload();
+            _viewModel.Refresh(nextSelection);
+        }
+        catch (IOException ex)
+        {
+            Log.Error($"Löschen von {snippet.FullPath} fehlgeschlagen", ex);
+            WithDialog(() => MessageBox.Show(this, string.Format(Strings.DeleteErrorFormat, name, ex.Message), "QuickHasteBot",
+                MessageBoxButton.OK, MessageBoxImage.Warning));
+        }
+    }
+
+    /// <summary>Das Popup verliert den Fokus an den Dialog, soll dabei aber nicht zugehen.</summary>
+    T WithDialog<T>(Func<T> show)
+    {
+        _dialogOpen = true;
+        try
+        {
+            return show();
+        }
+        finally
+        {
+            _dialogOpen = false;
+            Activate();
+            Keyboard.Focus(SearchBox);
+        }
+    }
+
     static SnippetItem? ItemAt(ListBox list, object source) =>
         list.ContainerFromElement((DependencyObject)source) is ListBoxItem { DataContext: SnippetItem item } ? item : null;
 
@@ -457,6 +571,10 @@ internal partial class SearchPopup : Window
                 break;
             case Key.OemComma when ctrl:
                 OpenSettings();
+                break;
+            // Wie im Explorer
+            case Key.F2 when selected is not null:
+                Rename(selected);
                 break;
             default:
                 e.Handled = false;

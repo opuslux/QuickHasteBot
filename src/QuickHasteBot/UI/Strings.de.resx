@@ -78,6 +78,27 @@
   <data name="TrayExit" xml:space="preserve"><value>Beenden</value></data>
   <data name="ScriptErrorFormat" xml:space="preserve"><value>Das Skript in Block {0} von «{1}» ist fehlgeschlagen, nichts wurde eingefügt:
 {2}</value></data>
+  <data name="MenuEdit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="MenuRename" xml:space="preserve"><value>Umbenennen…</value></data>
+  <data name="RenameTitle" xml:space="preserve"><value>Umbenennen</value></data>
+  <data name="RenamePromptFormat" xml:space="preserve"><value>Neuer Name für «{0}»:</value></data>
+  <data name="RenameConfirm" xml:space="preserve"><value>Umbenennen</value></data>
+  <data name="RenameErrorFormat" xml:space="preserve"><value>Konnte nicht umbenannt werden:
+{0}</value></data>
+  <data name="MenuClone" xml:space="preserve"><value>Klonen…</value></data>
+  <data name="MenuDelete" xml:space="preserve"><value>Löschen…</value></data>
+  <data name="CloneTitle" xml:space="preserve"><value>Klonen</value></data>
+  <data name="ClonePromptFormat" xml:space="preserve"><value>Name der Kopie von «{0}»:</value></data>
+  <data name="CloneConfirm" xml:space="preserve"><value>Klonen</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="CopySuffix" xml:space="preserve"><value> - Kopie</value></data>
+  <data name="NameInvalid" xml:space="preserve"><value>Ein Name darf kein \ / : * ? " &lt; &gt; | enthalten und nicht mit einem Punkt enden.</value></data>
+  <data name="NameExists" xml:space="preserve"><value>Eine Datei oder ein Ordner mit diesem Namen existiert schon.</value></data>
+  <data name="CloneErrorFormat" xml:space="preserve"><value>Die Kopie konnte nicht erstellt werden:
+{0}</value></data>
+  <data name="DeleteConfirmFormat" xml:space="preserve"><value>«{0}» in den Papierkorb verschieben?</value></data>
+  <data name="DeleteErrorFormat" xml:space="preserve"><value>«{0}» konnte nicht gelöscht werden:
+{1}</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>Der Textbaustein konnte nicht gelesen werden:
 {0}</value></data>
   <data name="UnexpectedErrorFormat" xml:space="preserve"><value>Unerwarteter Fehler:

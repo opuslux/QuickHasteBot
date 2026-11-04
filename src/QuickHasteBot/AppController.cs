@@ -140,10 +140,14 @@ internal sealed class AppController : IDisposable
         await _paste.PasteAsync(text, mode, targetWindow);
     }
 
-    /// <summary>Text-Dateien im Editor öffnen, alles andere mit der zugeordneten Anwendung.</summary>
+    /// <summary>
+    /// Textbausteine mit dem Programm, das in Windows für die Endung eingestellt ist (z.B. Notepad++). Das Verb "edit"
+    /// führt bei .txt fest zum Windows-Editor. Ausführbare Endungen wie .bat würden mit "open" aber laufen, dort und bei
+    /// sonstigen Dateien darum "edit", ohne ein solches Verb die zugeordnete Anwendung.
+    /// </summary>
     public void Edit(Snippet snippet)
     {
-        if (snippet.IsFolder)
+        if (snippet.IsFolder || snippet.Kind == SnippetKind.Text && !IsExecutable(snippet.FullPath))
         {
             ShellOpen(snippet.FullPath);
             return;
@@ -151,6 +155,14 @@ internal sealed class AppController : IDisposable
 
         if (!TryStart(new ProcessStartInfo(snippet.FullPath) { UseShellExecute = true, Verb = "edit" }))
             ShellOpen(snippet.FullPath);
+    }
+
+    /// <summary>Endungen, die Windows ausführt statt öffnet (PATHEXT: .exe, .bat, .cmd, .vbs …).</summary>
+    internal static bool IsExecutable(string path)
+    {
+        var extensions = Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD;.VBS;.JS;.WSF";
+        return extensions.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
     }
 
     public void RevealInExplorer(Snippet snippet)

@@ -204,7 +204,8 @@
                          PreviewMouseLeftButtonUp="OnResultsMouseUp"
                          PreviewMouseMove="OnResultsMouseMove"
                          MouseLeave="OnResultsMouseLeave"
-                         MouseDoubleClick="OnResultsDoubleClick" />
+                         MouseDoubleClick="OnResultsDoubleClick"
+                         PreviewMouseRightButtonUp="OnListRightButtonUp" />
 
                 <TextBlock Text="{Binding EmptyText}" Margin="12" TextWrapping="Wrap"
                            HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -249,7 +250,8 @@
                                  Visibility="{Binding ShowDetailItems, Converter={StaticResource BoolToVisibility}}"
                                  PreviewMouseLeftButtonDown="OnDetailMouseDown"
                                  PreviewMouseLeftButtonUp="OnDetailMouseUp"
-                                 MouseDoubleClick="OnDetailDoubleClick" />
+                                 MouseDoubleClick="OnDetailDoubleClick"
+                                 PreviewMouseRightButtonUp="OnListRightButtonUp" />
 
                         <!-- Text, Adresse oder Hinweis. Lange Zeilen eines Textes nur auf Wunsch umbrochen, sonst wird horizontal gescrollt. -->
                         <ScrollViewer x:Name="DetailScroll" Focusable="False" VerticalScrollBarVisibility="Auto">

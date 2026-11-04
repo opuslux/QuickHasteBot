@@ -64,6 +64,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 | → / ← / Backspace | With an empty search box: open folder / go up one level |
 | Ctrl+O | Open the snippet in its editor |
 | Ctrl+E | Show it in Explorer |
+| F2 | Rename the selected file or folder |
 | Ctrl+, | Settings |
 | Esc | Close |
 
@@ -73,7 +74,7 @@ By default the popup opens to the bottom left of the mouse pointer, with the poi
 
 The pin next to the folder path makes the popup open where it was closed last time, in the same folder with the same entry selected, even after a restart. The same option is in the settings under "When opening".
 
-With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
+With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". Right-clicking an entry, in either column, offers **Edit** (snippets only; like Ctrl+O, opens the program Windows uses for the file type, e.g. Notepad++), **Rename…** (also for folders, or F2 on the selected entry), **Clone…** (a copy in the same folder, with an editable name suggested like Explorer does: `Name - Copy.txt`) and **Delete…** (asks first, then moves the file to the Recycle Bin; where there is none, e.g. on a network drive, Windows asks whether to delete it permanently). The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
 
 ## Pasting: two methods
 

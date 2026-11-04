@@ -146,9 +146,28 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         app.SaveSettings();
     }
 
-    public void Refresh(string? selectRelativePath = null)
+    public void Refresh(string? selectRelativePath = null) => Refresh([selectRelativePath ?? _selected?.Snippet.RelativePath]);
+
+    /// <summary>Nach dem Klonen: die Kopie markieren, falls sie in der Liste steht, sonst bleibt die Auswahl.</summary>
+    public void RefreshSelecting(string relativePath) => Refresh([relativePath, _selected?.Snippet.RelativePath]);
+
+    /// <summary>
+    /// Was nach dem Löschen markiert sein soll: War es die Auswahl links, der nächste Eintrag (am Ende der vorige),
+    /// damit die Liste nicht nach oben springt. Sonst, z.B. beim Löschen rechts, bleibt die Auswahl.
+    /// </summary>
+    public string? SelectionAfterRemoving(Snippet snippet)
     {
-        selectRelativePath ??= _selected?.Snippet.RelativePath;
+        if (_selected is null || !SamePath(_selected.Snippet.RelativePath, snippet.RelativePath))
+            return _selected?.Snippet.RelativePath;
+
+        var index = Items.IndexOf(_selected);
+        var neighbor = index + 1 < Items.Count ? Items[index + 1] : index > 0 ? Items[index - 1] : null;
+        return neighbor?.Snippet.RelativePath;
+    }
+
+    /// <summary>Der erste Pfad, der in der neuen Liste vorkommt, wird markiert, ohne Treffer der erste Eintrag.</summary>
+    void Refresh(string?[] preferredSelection)
+    {
         var library = app.Library;
 
         List<SnippetItem> items;
@@ -184,7 +203,9 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
         // Ohne Treffer der alten Auswahl immer den ersten Eintrag wählen, damit Enter sofort etwas tut.
         // Die rechte Spalte immer neu aufbauen, auch wenn nichts mehr ausgewählt ist oder sich der Ordner geändert hat.
-        _selected = items.FirstOrDefault(i => string.Equals(i.Snippet.RelativePath, selectRelativePath, StringComparison.OrdinalIgnoreCase))
+        _selected = preferredSelection
+                        .Select(path => items.FirstOrDefault(i => SamePath(i.Snippet.RelativePath, path)))
+                        .FirstOrDefault(i => i is not null)
                     ?? items.FirstOrDefault();
         OnPropertyChanged(nameof(Selected));
         UpdateDetail(_selected?.Snippet);
@@ -254,6 +275,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         }
         return crumbs;
     }
+
+    static bool SamePath(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
     static string[] SplitPath(string relativePath) =>
         relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
