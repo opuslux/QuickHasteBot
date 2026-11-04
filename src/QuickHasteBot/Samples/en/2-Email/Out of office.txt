@@ -1,0 +1,1 @@
+Thank you for your message. I am out of the office until {{ date('dddd, MMMM d', 7) }} and will only check my email occasionally. For urgent matters, please contact First name Last name.

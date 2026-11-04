@@ -82,6 +82,18 @@
   <data name="AiPromptTitle" xml:space="preserve"><value>Skriptblock mit KI</value></data>
   <data name="AiPromptLabel" xml:space="preserve"><value>Was soll das Skript einfügen?</value></data>
   <data name="AiPromptPlaceholder" xml:space="preserve"><value>z.B. das Datum in 14 Tagen mit Wochentag, oder die Zwischenablage in Grossbuchstaben</value></data>
+  <!-- Eins davon steht im leeren Feld, solange kein eigener Text gespeichert ist. Eine Zeile pro Beispiel. -->
+  <data name="AiPromptExamples" xml:space="preserve"><value>Das Datum in 14 Tagen mit Wochentag
+Die aktuelle Kalenderwoche als «KW 45»
+Guten Morgen, Guten Tag oder Guten Abend je nach Uhrzeit
+Die Zwischenablage in Grossbuchstaben
+Der letzte Tag des aktuellen Monats
+Ein zufälliges Passwort mit 16 Zeichen
+Die Anzahl Tage bis Weihnachten
+Ein Zeitstempel für Dateinamen, z.B. 2026-11-04_1530
+Jede Zeile der Zwischenablage als Aufzählung mit «- » davor
+Das Datum vom nächsten Montag</value></data>
+  <data name="AiPromptNextExample" xml:space="preserve"><value>Nächstes Beispiel</value></data>
   <data name="AiPromptPreview" xml:space="preserve"><value>Vollständiger Prompt</value></data>
   <data name="AiPromptHint" xml:space="preserve"><value>Der Browser öffnet sich mit dem Prompt. Die Antwort kommt als Codeblock: mit dessen Kopieren-Knopf kopieren und unten testen.</value></data>
   <data name="AiPromptOpen" xml:space="preserve"><value>Im Browser öffnen</value></data>
@@ -101,6 +113,10 @@
   <data name="AiPromptCopyBlock" xml:space="preserve"><value>Block kopieren</value></data>
   <data name="AiPromptWrapped" xml:space="preserve"><value>Die Antwort hatte kein {{ … }}, «Block kopieren» ergänzt es.</value></data>
   <data name="AiPromptTestEmpty" xml:space="preserve"><value>Das Ergebnis ist leer.</value></data>
+  <data name="AiPromptTestRerun" xml:space="preserve"><value>Erneut ausführen (F5), z. B. für Uhrzeit oder Zwischenablage</value></data>
+  <data name="AiPromptTestExampleLabel" xml:space="preserve"><value>Beispiel, ↻ übernimmt es: ein Entscheidungswürfel</value></data>
+  <data name="AiPromptTestExample" xml:space="preserve"><value>{{ ['Ja', 'Nein', 'Vielleicht', 'Morgen'][Math.random() * 4 | 0] }}</value></data>
+  <data name="AiPromptTestUseExample" xml:space="preserve"><value>Beispiel übernehmen (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Bearbeiten</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Umbenennen…</value></data>
@@ -129,6 +145,6 @@
 {0}
 
 Details stehen in QuickHasteBot.log.</value></data>
-  <data name="WelcomeFileName" xml:space="preserve"><value>Willkommen.txt</value></data>
-  <data name="WelcomeText" xml:space="preserve"><value>Hallo von QuickHasteBot! Lege .txt-Dateien und Unterordner im Ordner structure an, sie erscheinen sofort im Popup.</value></data>
+  <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
+  <data name="SampleLanguage" xml:space="preserve"><value>de</value></data>
 </root>

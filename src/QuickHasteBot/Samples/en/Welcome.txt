@@ -1,0 +1,5 @@
+Hello from QuickHasteBot!
+
+Create .txt files and subfolders in the structure folder next to the exe, they show up in the popup right away. The folders here are examples and can be deleted.
+
+Script-Samples shows what script blocks can do: dates, the clipboard, random values and more. The AI writes your own script blocks, via the sparkle icon in the popup.
