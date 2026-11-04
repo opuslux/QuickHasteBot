@@ -3,7 +3,8 @@ using System.Collections.Concurrent;
 namespace QuickHasteBot.Core;
 
 /// <summary>
-/// Liest den structure-Ordner als Baum ein und hält ihn per FileSystemWatcher aktuell.
+/// Liest den structure-Ordner als Baum ein und hält ihn per FileSystemWatcher aktuell. Was der Watcher verpasst,
+/// holt <see cref="VerifyAsync"/> beim Öffnen des Popups nach.
 /// <see cref="Changed"/> kommt auf einem Threadpool-Thread.
 /// </summary>
 public sealed class SnippetLibrary : IDisposable
@@ -18,8 +19,13 @@ public sealed class SnippetLibrary : IDisposable
     readonly HashSet<string> _textExtensions;
     readonly ConcurrentDictionary<string, (DateTime Stamp, string? Text)> _contentCache = new(StringComparer.OrdinalIgnoreCase);
     readonly Lock _reloadGate = new();
+    readonly Lock _watchGate = new();
     FileSystemWatcher? _watcher;
     Timer? _debounce;
+    bool _watchRequested;
+    bool _disposed;
+    // Der Watcher hängt am Ordner, nicht am Pfad: so lässt sich erkennen, ob structure inzwischen ein anderer ist
+    DateTime _watchedCreationUtc;
 
     public SnippetLibrary(string rootPath, IEnumerable<string> textExtensions)
     {
@@ -38,12 +44,17 @@ public sealed class SnippetLibrary : IDisposable
     /// <summary>Alle Einträge ohne den Wurzelordner, in Baum-Reihenfolge.</summary>
     public IReadOnlyList<Snippet> All { get; private set; }
 
-    public void Reload()
+    /// <summary>Neu einlesen und immer melden, z.B. weil sich der Inhalt einer Datei geändert hat (Vorschau).</summary>
+    public void Reload() => Reload(onlyIfChanged: false);
+
+    /// <returns>Ob <see cref="Changed"/> ausgelöst wurde.</returns>
+    bool Reload(bool onlyIfChanged)
     {
         lock (_reloadGate)
         {
             var root = Scan();
             var all = Flatten(root);
+            if (onlyIfChanged && SameTree(All, all)) return false;
 
             // Baum und Liste zusammen tauschen, Leser sehen immer einen konsistenten Stand
             (Root, All) = (root, all);
@@ -54,7 +65,48 @@ public sealed class SnippetLibrary : IDisposable
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
+        return true;
     }
+
+    /// <summary>
+    /// Beim Hotkey: den Ordner neu einlesen, gemeldet wird nur ein geänderter Baum (sonst flackert das Popup).
+    /// Fängt ab, was der Watcher nicht mitbekommt: structure im Explorer gelöscht, umbenannt oder durch einen
+    /// anderen Ordner ersetzt (der Watcher beobachtet dann ins Leere), ein Netzlaufwerk ist wieder da, verlorene Events.
+    /// </summary>
+    public Task VerifyAsync() => Task.Run(Verify);
+
+    /// <returns>Ob sich der Baum geändert hat.</returns>
+    internal bool Verify()
+    {
+        lock (_watchGate)
+        {
+            if (_disposed) return false;
+            if (_watchRequested && !WatcherFits())
+            {
+                Log.Info($"structure-Ordner wurde ersetzt oder war weg, beobachte neu: {RootPath}");
+                StopWatcher();
+                StartWatcher();
+            }
+        }
+
+        return Reload(onlyIfChanged: true);
+    }
+
+    bool WatcherFits()
+    {
+        try
+        {
+            return _watcher is not null && Directory.Exists(RootPath) && Directory.GetCreationTimeUtc(RootPath) == _watchedCreationUtc;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    static bool SameTree(IReadOnlyList<Snippet> before, List<Snippet> after) =>
+        before.Count == after.Count &&
+        before.Zip(after).All(p => p.First.Kind == p.Second.Kind && string.Equals(p.First.FullPath, p.Second.FullPath, StringComparison.Ordinal));
 
     public Snippet? Find(string relativePath) =>
         relativePath.Length == 0 ? Root : All.FirstOrDefault(s => string.Equals(s.RelativePath, relativePath, StringComparison.OrdinalIgnoreCase));
@@ -93,39 +145,79 @@ public sealed class SnippetLibrary : IDisposable
             GetSearchableText(snippet);
     });
 
+    /// <summary>Gibt es den Ordner (noch) nicht, beginnt das Beobachten bei der nächsten <see cref="Verify"/>, sobald er da ist.</summary>
     public void StartWatching()
+    {
+        lock (_watchGate)
+        {
+            if (_disposed) return;
+            _watchRequested = true;
+            StartWatcher();
+        }
+    }
+
+    void StartWatcher()
     {
         if (_watcher is not null || !Directory.Exists(RootPath)) return;
 
-        _debounce = new Timer(_ => Reload());
-        _watcher = new FileSystemWatcher(RootPath)
+        try
         {
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
-        };
-        _watcher.Created += OnFileSystemChanged;
-        _watcher.Deleted += OnFileSystemChanged;
-        _watcher.Renamed += OnFileSystemChanged;
-        _watcher.Changed += OnFileSystemChanged;
-        _watcher.Error += (_, e) =>
+            _debounce ??= new Timer(_ => Reload());
+            _watchedCreationUtc = Directory.GetCreationTimeUtc(RootPath);
+            var watcher = new FileSystemWatcher(RootPath)
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
+            };
+            watcher.Created += OnFileSystemChanged;
+            watcher.Deleted += OnFileSystemChanged;
+            watcher.Renamed += OnFileSystemChanged;
+            watcher.Changed += OnFileSystemChanged;
+            watcher.Error += (_, e) =>
+            {
+                Log.Error("FileSystemWatcher-Fehler, lade neu", e.GetException());
+                ScheduleReload();
+            };
+            watcher.EnableRaisingEvents = true;
+            _watcher = watcher;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            Log.Error("FileSystemWatcher-Fehler, lade neu", e.GetException());
-            ScheduleReload();
-        };
-        _watcher.EnableRaisingEvents = true;
+            // Z.B. gerade wieder gelöscht: beim nächsten Hotkey noch einmal
+            Log.Error($"structure-Ordner kann nicht beobachtet werden: {RootPath}", ex);
+        }
+    }
+
+    void StopWatcher()
+    {
+        _watcher?.Dispose();
+        _watcher = null;
     }
 
     void OnFileSystemChanged(object sender, FileSystemEventArgs e) => ScheduleReload();
 
     // Ein Speichern im Editor löst mehrere Events aus, darum gesammelt neu laden
-    void ScheduleReload() => _debounce?.Change(DebounceMilliseconds, Timeout.Infinite);
+    void ScheduleReload()
+    {
+        try
+        {
+            _debounce?.Change(DebounceMilliseconds, Timeout.Infinite);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Event kam noch während Dispose
+        }
+    }
 
     public void Dispose()
     {
-        _watcher?.Dispose();
-        _debounce?.Dispose();
-        _watcher = null;
-        _debounce = null;
+        lock (_watchGate)
+        {
+            _disposed = true;
+            StopWatcher();
+            _debounce?.Dispose();
+            _debounce = null;
+        }
     }
 
     Snippet Scan()
@@ -158,7 +250,7 @@ public sealed class SnippetLibrary : IDisposable
             {
                 Name = sub.Name,
                 FullPath = sub.FullName,
-                RelativePath = Path.GetRelativePath(RootPath, sub.FullName),
+                RelativePath = Relative(parent, sub.Name),
                 Kind = SnippetKind.Folder,
                 Parent = parent,
             };
@@ -172,12 +264,17 @@ public sealed class SnippetLibrary : IDisposable
             {
                 Name = Path.GetFileNameWithoutExtension(file.Name),
                 FullPath = file.FullName,
-                RelativePath = Path.GetRelativePath(RootPath, file.FullName),
+                RelativePath = Relative(parent, file.Name),
                 Kind = _textExtensions.Contains(file.Extension) ? SnippetKind.Text : SnippetKind.File,
                 Parent = parent,
             });
         }
     }
+
+    // Aus dem Elternpfad statt mit Path.GetRelativePath: das fragt bei Kurzpfaden ("C:\Users\MAXMUS~1\…")
+    // für jeden Eintrag das Dateisystem nach dem langen Namen, bei 1000 Einträgen 30-mal langsamer
+    static string Relative(Snippet parent, string name) =>
+        parent.RelativePath.Length == 0 ? name : parent.RelativePath + Path.DirectorySeparatorChar + name;
 
     static bool IsVisible(FileSystemInfo info) => (info.Attributes & (FileAttributes.Hidden | FileAttributes.System)) == 0;
 

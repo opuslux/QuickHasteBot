@@ -15,7 +15,7 @@ Every release comes with two ZIPs containing the same app:
 
 ## Snippets
 
-Snippets are plain files in the `structure` folder next to the exe. Subfolders become folders in the popup.
+Snippets are plain files in the `structure` folder next to the exe. Subfolders become folders in the popup. The folder can be rearranged in Explorer while QuickHasteBot is running: changes show up right away, and each hotkey checks the folder again, so even replacing or renaming the whole `structure` folder is picked up.
 
 ```
 structure\
