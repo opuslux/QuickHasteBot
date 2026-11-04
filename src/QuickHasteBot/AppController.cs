@@ -71,6 +71,9 @@ internal sealed class AppController : IDisposable
     {
         // Merken, wohin eingefügt werden soll, bevor das Popup den Fokus übernimmt
         var target = NativeMethods.GetForegroundWindow();
+        // structure lässt sich jederzeit im Explorer umbauen: im Hintergrund prüfen, ein geänderter Baum
+        // aktualisiert das offene Popup (Library.Changed)
+        _ = Library.VerifyAsync();
         _popup?.ShowFor(target);
     }
 
