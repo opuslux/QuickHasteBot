@@ -416,7 +416,10 @@ internal sealed class AppController : IDisposable
         return library;
     }
 
-    /// <summary>Nur der Standardordner wird angelegt, ein konfigurierter Pfad (z.B. Netzlaufwerk) nicht.</summary>
+    /// <summary>
+    /// Nur der Standardordner wird angelegt, ein konfigurierter Pfad (z.B. Netzlaufwerk) nicht.
+    /// Neu angelegt kommen die Beispiele hinein, in der Sprache der Oberfläche.
+    /// </summary>
     void EnsureStructureFolder(string root)
     {
         if (Directory.Exists(root) || Settings.StructurePath != AppSettings.DefaultStructurePath) return;
@@ -424,7 +427,7 @@ internal sealed class AppController : IDisposable
         try
         {
             Directory.CreateDirectory(root);
-            File.WriteAllText(Path.Combine(root, Strings.WelcomeFileName), Strings.WelcomeText);
+            SampleStructure.Extract(root, Strings.SampleLanguage);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

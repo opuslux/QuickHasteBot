@@ -17,6 +17,8 @@ Every release comes with two ZIPs containing the same app:
 
 Snippets are plain files in the `structure` folder next to the exe. Subfolders become folders in the popup.
 
+On first start, QuickHasteBot creates the folder with a few examples in the language of the interface (English or German): a welcome note, greetings, two emails with a date that moves along, two SQL snippets, and `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more). They are only examples and can be deleted. The examples are built into the exe, so unpacking an update over an existing installation never overwrites your snippets.
+
 ```
 structure\
   1-Addresses\

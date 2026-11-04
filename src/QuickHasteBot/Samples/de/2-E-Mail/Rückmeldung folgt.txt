@@ -1,0 +1,1 @@
+Vielen Dank für Ihre Nachricht. Ich kläre das und melde mich bis {{ date('dddd, d. MMMM', 2) }} bei Ihnen.

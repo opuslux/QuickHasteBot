@@ -1,0 +1,5 @@
+Hallo von QuickHasteBot!
+
+Lege .txt-Dateien und Unterordner im Ordner structure neben der exe an, sie erscheinen sofort im Popup. Die Ordner hier sind Beispiele und dürfen gelöscht werden.
+
+Script-Samples zeigt, was Skriptblöcke können: Datum, Zwischenablage, Zufall und mehr. Eigene Skriptblöcke schreibt die KI, über das Funkel-Symbol im Popup.

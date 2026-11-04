@@ -145,6 +145,6 @@ The date of next Monday</value></data>
 {0}
 
 Details are in QuickHasteBot.log.</value></data>
-  <data name="WelcomeFileName" xml:space="preserve"><value>Welcome.txt</value></data>
-  <data name="WelcomeText" xml:space="preserve"><value>Hello from QuickHasteBot! Create .txt files and subfolders in the structure folder, they show up in the popup right away.</value></data>
+  <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
+  <data name="SampleLanguage" xml:space="preserve"><value>en</value></data>
 </root>

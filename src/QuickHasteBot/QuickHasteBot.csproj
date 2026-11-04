@@ -36,6 +36,8 @@
     <Resource Include="Assets\QuickHasteBot.ico" />
     <!-- MediaElement spielt nur Dateien ab, das Video wird beim Öffnen der Einstellungen nach %TEMP% entpackt -->
     <EmbeddedResource Include="Assets\RoboClip.mp4" LogicalName="RoboClip.mp4" />
+    <!-- Beispielordner, wird beim ersten Start in der Sprache der Oberfläche als structure angelegt (SampleStructure) -->
+    <EmbeddedResource Include="Samples\**\*" LogicalName="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Oberflächentexte: Strings.resx Englisch (Standard), Strings.de.resx Deutsch. Die Klasse Strings entsteht beim Build. -->

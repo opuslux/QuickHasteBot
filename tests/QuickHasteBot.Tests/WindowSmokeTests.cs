@@ -404,6 +404,11 @@ public class WindowSmokeTests
         using var controller = new AppController(new AppPaths(dir.Path));
         SettingsWindow Current() => Application.Current.Windows.OfType<SettingsWindow>().Single();
 
+        // Erster Start: structure mit den Beispielen in der Sprache der Oberfläche
+        Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Willkommen.txt")));
+        Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Script-Samples.txt")));
+        Assert.True(Directory.Exists(Path.Combine(dir.Path, "structure", "1-Grüsse")));
+
         controller.ShowSettings(new Point(-20000, -20000));
         Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);
 
