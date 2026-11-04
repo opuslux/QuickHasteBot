@@ -50,7 +50,12 @@
     </Window.Resources>
 
     <StackPanel Margin="20,16,20,20">
-        <TextBlock Text="{x:Static ui:Strings.AiPromptLabel}" Margin="0,0,0,8" />
+        <!-- Rechts: nächstes vorgefertigtes Beispiel, reihum -->
+        <DockPanel Margin="0,0,0,8">
+            <Button x:Name="NextExampleButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE82F;"
+                    ToolTip="{x:Static ui:Strings.AiPromptNextExample}" Click="OnNextExample" />
+            <TextBlock Text="{x:Static ui:Strings.AiPromptLabel}" VerticalAlignment="Center" />
+        </DockPanel>
         <Grid>
             <TextBox x:Name="RequirementInput" AcceptsReturn="True" TextWrapping="Wrap" MinLines="3" MaxLines="8"
                      VerticalScrollBarVisibility="Auto" TextChanged="OnRequirementChanged" />

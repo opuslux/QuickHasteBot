@@ -205,11 +205,29 @@ public class WindowSmokeTests
         viewModel.WrapPreview = false;
         viewModel.Query = "";
 
-        // KI-Prompt: ohne Text gesperrt, die Vorschau zeigt den ganzen Prompt mit der Eingabe am Anfang
+        // KI-Prompt: ohne eigenen Text steht ein zufälliges Beispiel da, gespeichert wird es dabei nicht
+        Assert.Equal(10, AiPromptWindow.Examples.Count);
+        Assert.Contains("Das Datum in 14 Tagen mit Wochentag", AiPromptWindow.Examples);
         var ai = new AiPromptWindow(controller);
+        Assert.Contains(ai.RequirementInput.Text, AiPromptWindow.Examples);
+        Assert.Equal("", controller.Settings.AiPromptText);
+        Assert.True(ai.OpenButton.IsEnabled);
+        Assert.Equal(Visibility.Collapsed, ai.Placeholder.Visibility);
         Assert.Equal("In ChatGPT öffnen", ai.OpenButton.Content);
         Assert.Equal("ChatGPT", ai.ServiceInput.SelectedItem?.ToString());
         Assert.Equal(Visibility.Collapsed, ai.ResetTemplateLink.Visibility);
+        // Die Glühbirne geht reihum zum nächsten Beispiel, auch das wird nicht gespeichert
+        var index = AiPromptWindow.Examples.ToList().IndexOf(ai.RequirementInput.Text);
+        ai.NextExample();
+        Assert.Equal(AiPromptWindow.Examples[(index + 1) % 10], ai.RequirementInput.Text);
+        Assert.Equal("", controller.Settings.AiPromptText);
+        // Ein eigener Text bleibt gespeichert, auch wenn danach ein Beispiel im Feld steht
+        ai.RequirementInput.Text = "Mein eigener Text";
+        ai.NextExample();
+        Assert.Contains(ai.RequirementInput.Text, AiPromptWindow.Examples);
+        Assert.Equal("Mein eigener Text", controller.Settings.AiPromptText);
+        // Leer gelöscht: gesperrt, mit Platzhalter, die Vorschau zeigt den ganzen Prompt mit der Eingabe am Anfang
+        ai.RequirementInput.Text = "";
         Assert.False(ai.OpenButton.IsEnabled);
         Assert.Equal(Visibility.Visible, ai.Placeholder.Visibility);
         ai.RequirementInput.Text = "Datum in 14 Tagen mit Wochentag";

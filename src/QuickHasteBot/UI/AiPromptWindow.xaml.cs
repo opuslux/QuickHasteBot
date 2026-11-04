@@ -29,6 +29,7 @@ internal partial class AiPromptWindow : Window
     readonly DispatcherTimer _testTimer;
     readonly bool _loading;
     string? _template;
+    int _example;
 
     public AiPromptWindow(AppController app)
     {
@@ -38,7 +39,12 @@ internal partial class AiPromptWindow : Window
         _testTimer = new DispatcherTimer(TestDelay, DispatcherPriority.Background, (_, _) => TestAnswer(), Dispatcher) { IsEnabled = false };
         (ServiceInput.ItemsSource, ServiceInput.SelectedItem) = app.AiServiceChoices();
         UpdateOpenButton();
-        RequirementInput.Text = app.Settings.AiPromptText;
+        // Noch nichts Eigenes gespeichert: ein zufälliges Beispiel, markiert, also mit dem ersten Zeichen ersetzt.
+        // Gespeichert wird es erst beim Ändern oder Senden, sonst kommt nächstes Mal ein anderes.
+        _example = Random.Shared.Next(Examples.Count);
+        RequirementInput.Text = string.IsNullOrWhiteSpace(app.Settings.AiPromptText)
+            ? Examples[_example]
+            : app.Settings.AiPromptText;
         OnRequirementChanged(this, null);
         RefreshTemplate();
         _loading = false;
@@ -60,14 +66,30 @@ internal partial class AiPromptWindow : Window
 
     public string Requirement => RequirementInput.Text.Trim();
 
+    /// <summary>Vorgefertigte Aufgaben für das leere Feld, in der Sprache der Oberfläche.</summary>
+    internal static IReadOnlyList<string> Examples =>
+        Strings.AiPromptExamples.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
     void OnRequirementChanged(object sender, TextChangedEventArgs? e)
     {
-        if (!_loading)
+        // Ein unverändertes Beispiel überschreibt den eigenen Text nicht, der kommt beim nächsten Öffnen wieder
+        if (!_loading && !Examples.Contains(RequirementInput.Text))
             _app.Settings.AiPromptText = RequirementInput.Text;
         Placeholder.Visibility = RequirementInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         UpdatePreview();
         OpenButton.IsEnabled = Requirement.Length > 0;
     }
+
+    /// <summary>Das nächste Beispiel aus der Liste, reihum, markiert zum Überschreiben.</summary>
+    internal void NextExample()
+    {
+        _example = (_example + 1) % Examples.Count;
+        RequirementInput.Text = Examples[_example];
+        RequirementInput.Focus();
+        RequirementInput.SelectAll();
+    }
+
+    void OnNextExample(object sender, RoutedEventArgs e) => NextExample();
 
     void UpdatePreview() => PromptPreview.Text = ScriptPrompt.Build(Requirement, _template);
 
@@ -210,6 +232,8 @@ internal partial class AiPromptWindow : Window
 
     void OnOpen(object sender, RoutedEventArgs e)
     {
+        // Auch ein unverändert geschicktes Beispiel ist jetzt das eigene
+        _app.Settings.AiPromptText = RequirementInput.Text;
         _app.SaveSettings();
         _app.OpenAiPrompt(Requirement);
     }

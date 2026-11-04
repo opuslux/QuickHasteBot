@@ -82,6 +82,18 @@
   <data name="AiPromptTitle" xml:space="preserve"><value>Script block with AI</value></data>
   <data name="AiPromptLabel" xml:space="preserve"><value>What should the script insert?</value></data>
   <data name="AiPromptPlaceholder" xml:space="preserve"><value>e.g. the date in 14 days with the weekday, or the clipboard in capital letters</value></data>
+  <!-- Eins davon steht im leeren Feld, solange kein eigener Text gespeichert ist. Eine Zeile pro Beispiel. -->
+  <data name="AiPromptExamples" xml:space="preserve"><value>The date in 14 days with the weekday
+The current calendar week as "CW 45"
+Good morning, Good afternoon or Good evening depending on the time of day
+The clipboard in capital letters
+The last day of the current month
+A random password with 16 characters
+The number of days until Christmas
+A timestamp for file names, like 2026-11-04_1530
+Every line of the clipboard as a bullet point with "- " in front
+The date of next Monday</value></data>
+  <data name="AiPromptNextExample" xml:space="preserve"><value>Next example</value></data>
   <data name="AiPromptPreview" xml:space="preserve"><value>Full prompt</value></data>
   <data name="AiPromptHint" xml:space="preserve"><value>The browser opens with the prompt. The answer comes as a code block: copy it with its copy button and test it below.</value></data>
   <data name="AiPromptOpen" xml:space="preserve"><value>Open in browser</value></data>
