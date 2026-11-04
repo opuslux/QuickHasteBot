@@ -199,6 +199,26 @@ internal partial class ElementPickerWindow : Window
         if (Copy()) StatusText.Text = Strings.PickerCopied;
     }
 
+    /// <summary>
+    /// Führt den Tag aus dem Textfeld aus wie einen Baustein: holt das Programm nach vorne, sucht das Element und
+    /// klickt, setzt oder fokussiert es wirklich. Der Picker bleibt oben, damit man das Ergebnis sieht.
+    /// </summary>
+    async void OnTest(object sender, RoutedEventArgs e)
+    {
+        if (_picked is not { } info || TagOutput.Text.Trim().Length == 0) return;
+        TestButton.IsEnabled = false;
+        StatusText.Text = Strings.PickerTestRunning;
+        try
+        {
+            var error = await _app.TestTagAsync(TagOutput.Text, info.Window);
+            StatusText.Text = error ?? Strings.PickerTestDone;
+        }
+        finally
+        {
+            TestButton.IsEnabled = true;
+        }
+    }
+
     void OnCopy(object sender, RoutedEventArgs e)
     {
         if (Copy()) StatusText.Text = Strings.PickerCopied;

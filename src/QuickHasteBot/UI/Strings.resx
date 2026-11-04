@@ -66,6 +66,16 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerElevatedFormat" xml:space="preserve"><value>{0} runs as administrator: Windows doesn't let QuickHasteBot see or fill its fields. Start it without administrator rights.</value></data>
   <data name="PickerIncludeWindow" xml:space="preserve"><value>Include the window</value></data>
   <data name="PickerIncludeWindowToolTip" xml:space="preserve"><value>Puts {window,…} in front, so the snippet first brings this program to the front, wherever you start it from.</value></data>
+  <data name="PickerActionFocusToolTip" xml:space="preserve"><value>{focus,…}: puts the cursor into the field. Text after the tag is typed there, e.g. {focus,#email}max@example.com</value></data>
+  <data name="PickerActionClickToolTip" xml:space="preserve"><value>{click,…}: clicks a button, link, tab or checkbox, like a mouse click.</value></data>
+  <data name="PickerActionSetToolTip" xml:space="preserve"><value>{set,…,"value"}: fills a field directly, picks a dropdown option by its text or sets a checkbox to on/off. Edit the value in the tag below.</value></data>
+  <data name="PickerTest" xml:space="preserve"><value>Test</value></data>
+  <data name="PickerTestToolTip" xml:space="preserve"><value>Runs the tag now in the program the element was picked in, like a snippet would. A click really clicks.</value></data>
+  <data name="PickerTestName" xml:space="preserve"><value>Test</value></data>
+  <data name="PickerTestRunning" xml:space="preserve"><value>Testing… (hold Esc to stop)</value></data>
+  <data name="PickerTestDone" xml:space="preserve"><value>Test passed: the element was found and the tag ran.</value></data>
+  <data name="PickerTestStopped" xml:space="preserve"><value>Test stopped with Esc.</value></data>
+  <data name="PickerTestNoTag" xml:space="preserve"><value>That isn't a valid tag, e.g. {focus,#email}.</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Pick element…</value></data>
   <data name="PickerTooltip" xml:space="preserve"><value>Pick a form field for key tags (crosshair)</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Pick element</value></data>

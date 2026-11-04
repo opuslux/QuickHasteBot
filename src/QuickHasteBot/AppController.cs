@@ -195,16 +195,7 @@ internal sealed class AppController : IDisposable
         if (form is not null && KeyTags.HasMarkers(text))
         {
             var result = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
-            var message = result.Outcome switch
-            {
-                FormOutcome.WindowChanged => string.Format(Strings.FormWindowChangedFormat, snippet.Name),
-                FormOutcome.ElementNotFound => string.Format(Strings.FormElementNotFoundFormat, snippet.Name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
-                FormOutcome.ElementFailed => string.Format(Strings.FormElementFailedFormat, snippet.Name, result.Step, result.Error),
-                FormOutcome.WindowNotFound => string.Format(Strings.FormWindowNotFoundFormat, snippet.Name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
-                FormOutcome.WindowNotActivated => string.Format(Strings.FormWindowNotActivatedFormat, snippet.Name, result.Step),
-                FormOutcome.Elevated => string.Format(Strings.TargetElevatedFormat, snippet.Name, result.Error),
-                _ => null,
-            };
+            var message = FormMessage(result, snippet.Name);
             if (message is not null)
                 MessageBox.Show(message, "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
@@ -214,6 +205,47 @@ internal sealed class AppController : IDisposable
         if (!await _paste.PasteAsync(text, mode, targetWindow))
             MessageBox.Show(string.Format(Strings.TargetElevatedFormat, snippet.Name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
                 "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    /// <summary>Warum ein Formular-Baustein abgebrochen hat, null wenn er durchgelaufen ist oder mit Esc gestoppt wurde.</summary>
+    static string? FormMessage(FormResult result, string name) => result.Outcome switch
+    {
+        FormOutcome.WindowChanged => string.Format(Strings.FormWindowChangedFormat, name),
+        FormOutcome.ElementNotFound => string.Format(Strings.FormElementNotFoundFormat, name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
+        FormOutcome.ElementFailed => string.Format(Strings.FormElementFailedFormat, name, result.Step, result.Error),
+        FormOutcome.WindowNotFound => string.Format(Strings.FormWindowNotFoundFormat, name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
+        FormOutcome.WindowNotActivated => string.Format(Strings.FormWindowNotActivatedFormat, name, result.Step),
+        FormOutcome.Elevated => string.Format(Strings.TargetElevatedFormat, name, result.Error),
+        _ => null,
+    };
+
+    /// <summary>
+    /// Für "Testen" im Element-Picker: führt einen Tag aus wie einen Baustein, im Fenster, in dem das Element erfasst
+    /// wurde. Null heisst geklappt, sonst die Meldung, warum nicht.
+    /// </summary>
+    internal async Task<string?> TestTagAsync(string tag, nint targetWindow)
+    {
+        var form = new FormBuilder();
+        var text = KeyTags.MarkTags(KeyTags.StripMarkers(tag), form);
+        try
+        {
+            if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
+                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, "", Form: form));
+        }
+        catch (SnippetScriptException ex)
+        {
+            return string.Format(Strings.ScriptErrorFormat, ex.Block, Strings.PickerTestName, ex.Message);
+        }
+        if (!KeyTags.HasMarkers(text))
+            return Strings.PickerTestNoTag;
+
+        var result = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
+        return result.Outcome switch
+        {
+            FormOutcome.Completed => null,
+            FormOutcome.EscapePressed => Strings.PickerTestStopped,
+            _ => FormMessage(result, Strings.PickerTestName),
+        };
     }
 
     /// <summary>

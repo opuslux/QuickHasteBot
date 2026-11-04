@@ -66,6 +66,16 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="PickerElevatedFormat" xml:space="preserve"><value>{0} läuft mit Administratorrechten: Windows lässt QuickHasteBot die Felder weder sehen noch ausfüllen. Ohne Administratorrechte starten.</value></data>
   <data name="PickerIncludeWindow" xml:space="preserve"><value>Fenster mitnehmen</value></data>
   <data name="PickerIncludeWindowToolTip" xml:space="preserve"><value>Setzt {window,…} davor: Der Baustein holt dann zuerst dieses Programm nach vorne, egal von wo aus du ihn startest.</value></data>
+  <data name="PickerActionFocusToolTip" xml:space="preserve"><value>{focus,…}: Setzt den Cursor ins Feld. Text nach dem Tag wird dort getippt, z.B. {focus,#email}max@example.com</value></data>
+  <data name="PickerActionClickToolTip" xml:space="preserve"><value>{click,…}: Klickt einen Button, Link, Reiter oder eine Checkbox an, wie mit der Maus.</value></data>
+  <data name="PickerActionSetToolTip" xml:space="preserve"><value>{set,…,"Wert"}: Füllt ein Feld direkt, wählt eine Dropdown-Option nach ihrem Text oder stellt eine Checkbox auf on/off. Den Wert unten im Tag anpassen.</value></data>
+  <data name="PickerTest" xml:space="preserve"><value>Testen</value></data>
+  <data name="PickerTestToolTip" xml:space="preserve"><value>Führt den Tag jetzt im Programm aus, in dem das Element erfasst wurde, wie ein Baustein. Ein Klick klickt also wirklich.</value></data>
+  <data name="PickerTestName" xml:space="preserve"><value>Test</value></data>
+  <data name="PickerTestRunning" xml:space="preserve"><value>Teste… (Esc gedrückt halten bricht ab)</value></data>
+  <data name="PickerTestDone" xml:space="preserve"><value>Test geklappt: Das Element wurde gefunden und der Tag ausgeführt.</value></data>
+  <data name="PickerTestStopped" xml:space="preserve"><value>Test mit Esc abgebrochen.</value></data>
+  <data name="PickerTestNoTag" xml:space="preserve"><value>Das ist kein gültiger Tag, z.B. {focus,#email}.</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Element erfassen…</value></data>
   <data name="PickerTooltip" xml:space="preserve"><value>Formularfeld für Tasten-Tags erfassen (Fadenkreuz)</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Element erfassen</value></data>
