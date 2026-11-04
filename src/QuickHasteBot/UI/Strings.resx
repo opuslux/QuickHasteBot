@@ -78,6 +78,30 @@
   <data name="TrayExit" xml:space="preserve"><value>Quit</value></data>
   <data name="ScriptErrorFormat" xml:space="preserve"><value>The script in block {0} of "{1}" failed, nothing was pasted:
 {2}</value></data>
+  <data name="AiPromptTooltip" xml:space="preserve"><value>Have AI write a script block</value></data>
+  <data name="AiPromptTitle" xml:space="preserve"><value>Script block with AI</value></data>
+  <data name="AiPromptLabel" xml:space="preserve"><value>What should the script insert?</value></data>
+  <data name="AiPromptPlaceholder" xml:space="preserve"><value>e.g. the date in 14 days with the weekday, or the clipboard in capital letters</value></data>
+  <data name="AiPromptPreview" xml:space="preserve"><value>Full prompt</value></data>
+  <data name="AiPromptHint" xml:space="preserve"><value>The browser opens with the prompt. The answer comes as a code block: copy it with its copy button and test it below.</value></data>
+  <data name="AiPromptOpen" xml:space="preserve"><value>Open in browser</value></data>
+  <data name="AiPromptOpenFormat" xml:space="preserve"><value>Open in {0}</value></data>
+  <data name="AiServiceLabel" xml:space="preserve"><value>AI for scripts</value></data>
+  <data name="AiServiceToolTip" xml:space="preserve"><value>Where the sparkle icon in the popup sends the prompt for a script block</value></data>
+  <data name="AiServiceCustom" xml:space="preserve"><value>Custom address</value></data>
+  <data name="AiPromptEditTemplate" xml:space="preserve"><value>Edit template</value></data>
+  <data name="AiPromptTemplateErrorFormat" xml:space="preserve"><value>The template ai-prompt.txt could not be created:
+{0}</value></data>
+  <data name="AiPromptTestHeading" xml:space="preserve"><value>Test the answer</value></data>
+  <data name="AiPromptTestPlaceholder" xml:space="preserve"><value>Paste the {{ … }} block from the answer here, it runs right away</value></data>
+  <data name="AiPromptResetTemplate" xml:space="preserve"><value>Reset template</value></data>
+  <data name="AiPromptResetConfirm" xml:space="preserve"><value>Go back to the built-in prompt? Your ai-prompt.txt is moved to the Recycle Bin.</value></data>
+  <data name="AiPromptResetErrorFormat" xml:space="preserve"><value>The template ai-prompt.txt could not be deleted:
+{0}</value></data>
+  <data name="AiPromptCopyBlock" xml:space="preserve"><value>Copy block</value></data>
+  <data name="AiPromptWrapped" xml:space="preserve"><value>The answer had no {{ … }}, "Copy block" adds it.</value></data>
+  <data name="AiPromptTestEmpty" xml:space="preserve"><value>The result is empty.</value></data>
+  <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Edit</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Rename…</value></data>
   <data name="RenameTitle" xml:space="preserve"><value>Rename</value></data>

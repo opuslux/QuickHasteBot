@@ -44,6 +44,12 @@ public sealed class AppSettings
     /// <summary>{{ … }} in Textbausteinen beim Einfügen als JavaScript auswerten. Aus: wird wörtlich eingefügt (z.B. Mustache-Vorlagen).</summary>
     public bool EvaluateScripts { get; set; } = true;
 
+    /// <summary>Wohin das KI-Icon im Popup den Prompt schickt, mit {prompt} und {lang}. Standard: ChatGPT.</summary>
+    public string AiPromptUrl { get; set; } = ScriptPrompt.DefaultUrl;
+
+    /// <summary>Zuletzt im KI-Prompt-Fenster eingegebener Text, steht beim nächsten Öffnen wieder da.</summary>
+    public string AiPromptText { get; set; } = "";
+
     /// <summary>Diese Dateien werden eingefügt, alle anderen mit der zugeordneten Anwendung geöffnet.</summary>
     public List<string> TextExtensions { get; set; } = [".txt"];
 

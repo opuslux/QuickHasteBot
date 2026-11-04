@@ -78,6 +78,30 @@
   <data name="TrayExit" xml:space="preserve"><value>Beenden</value></data>
   <data name="ScriptErrorFormat" xml:space="preserve"><value>Das Skript in Block {0} von «{1}» ist fehlgeschlagen, nichts wurde eingefügt:
 {2}</value></data>
+  <data name="AiPromptTooltip" xml:space="preserve"><value>Skriptblock von einer KI schreiben lassen</value></data>
+  <data name="AiPromptTitle" xml:space="preserve"><value>Skriptblock mit KI</value></data>
+  <data name="AiPromptLabel" xml:space="preserve"><value>Was soll das Skript einfügen?</value></data>
+  <data name="AiPromptPlaceholder" xml:space="preserve"><value>z.B. das Datum in 14 Tagen mit Wochentag, oder die Zwischenablage in Grossbuchstaben</value></data>
+  <data name="AiPromptPreview" xml:space="preserve"><value>Vollständiger Prompt</value></data>
+  <data name="AiPromptHint" xml:space="preserve"><value>Der Browser öffnet sich mit dem Prompt. Die Antwort kommt als Codeblock: mit dessen Kopieren-Knopf kopieren und unten testen.</value></data>
+  <data name="AiPromptOpen" xml:space="preserve"><value>Im Browser öffnen</value></data>
+  <data name="AiPromptOpenFormat" xml:space="preserve"><value>In {0} öffnen</value></data>
+  <data name="AiServiceLabel" xml:space="preserve"><value>KI für Skripte</value></data>
+  <data name="AiServiceToolTip" xml:space="preserve"><value>Wohin die Funkelsterne im Popup den Prompt für einen Skriptblock schicken</value></data>
+  <data name="AiServiceCustom" xml:space="preserve"><value>Eigene Adresse</value></data>
+  <data name="AiPromptEditTemplate" xml:space="preserve"><value>Vorlage bearbeiten</value></data>
+  <data name="AiPromptTemplateErrorFormat" xml:space="preserve"><value>Die Vorlage ai-prompt.txt konnte nicht angelegt werden:
+{0}</value></data>
+  <data name="AiPromptTestHeading" xml:space="preserve"><value>Antwort testen</value></data>
+  <data name="AiPromptTestPlaceholder" xml:space="preserve"><value>Den {{ … }}-Block aus der Antwort hier einfügen, er läuft sofort</value></data>
+  <data name="AiPromptResetTemplate" xml:space="preserve"><value>Vorlage zurücksetzen</value></data>
+  <data name="AiPromptResetConfirm" xml:space="preserve"><value>Zurück zum eingebauten Prompt? Deine ai-prompt.txt kommt in den Papierkorb.</value></data>
+  <data name="AiPromptResetErrorFormat" xml:space="preserve"><value>Die Vorlage ai-prompt.txt konnte nicht gelöscht werden:
+{0}</value></data>
+  <data name="AiPromptCopyBlock" xml:space="preserve"><value>Block kopieren</value></data>
+  <data name="AiPromptWrapped" xml:space="preserve"><value>Die Antwort hatte kein {{ … }}, «Block kopieren» ergänzt es.</value></data>
+  <data name="AiPromptTestEmpty" xml:space="preserve"><value>Das Ergebnis ist leer.</value></data>
+  <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Bearbeiten</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Umbenennen…</value></data>
   <data name="RenameTitle" xml:space="preserve"><value>Umbenennen</value></data>

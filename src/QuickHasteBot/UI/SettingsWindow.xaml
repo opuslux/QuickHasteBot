@@ -87,6 +87,11 @@
                                   Click="OnSearchContentChanged" />
                         <CheckBox x:Name="ScriptsInput" Content="{x:Static ui:Strings.EvaluateScripts}" Margin="0,4,0,0"
                                   ToolTip="{x:Static ui:Strings.EvaluateScriptsToolTip}" Click="OnScriptsChanged" />
+                        <DockPanel Margin="0,10,0,0">
+                            <TextBlock Text="{x:Static ui:Strings.AiServiceLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <ComboBox x:Name="AiServiceInput" Width="220" HorizontalAlignment="Left"
+                                      ToolTip="{x:Static ui:Strings.AiServiceToolTip}" SelectionChanged="OnAiServiceChanged" />
+                        </DockPanel>
                     </StackPanel>
                 </Grid>
             </TabItem>

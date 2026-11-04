@@ -205,8 +205,84 @@ public class WindowSmokeTests
         viewModel.WrapPreview = false;
         viewModel.Query = "";
 
+        // KI-Prompt: ohne Text gesperrt, die Vorschau zeigt den ganzen Prompt mit der Eingabe am Anfang
+        var ai = new AiPromptWindow(controller);
+        Assert.Equal("In ChatGPT öffnen", ai.OpenButton.Content);
+        Assert.Equal("ChatGPT", ai.ServiceInput.SelectedItem?.ToString());
+        Assert.Equal(Visibility.Collapsed, ai.ResetTemplateLink.Visibility);
+        Assert.False(ai.OpenButton.IsEnabled);
+        Assert.Equal(Visibility.Visible, ai.Placeholder.Visibility);
+        ai.RequirementInput.Text = "Datum in 14 Tagen mit Wochentag";
+        Assert.True(ai.OpenButton.IsEnabled);
+        Assert.Equal(Visibility.Collapsed, ai.Placeholder.Visibility);
+        Assert.StartsWith("Write JavaScript code for this task: Datum in 14 Tagen mit Wochentag", ai.PromptPreview.Text);
+
+        // Antwort testen: läuft wie beim Einfügen, Codeblock-Zäune stören nicht
+        Assert.Equal(Visibility.Collapsed, ai.TestResultBox.Visibility);
+        ai.AnswerInput.Text = "```js\n{{ (() => { const w = ['So', 'Mo']; return w.at(1) + ' ' + 6 * 7; })() }}\n```";
+        ai.TestAnswer();
+        Assert.Equal(Visibility.Visible, ai.TestResultBox.Visibility);
+        Assert.Equal("Mo 42", ai.TestResult.Text);
+        Assert.Equal(Visibility.Visible, ai.CopyRow.Visibility);
+        Assert.Equal(Visibility.Hidden, ai.WrappedHint.Visibility);
+        Assert.Equal("{{ (() => { const w = ['So', 'Mo']; return w.at(1) + ' ' + 6 * 7; })() }}", ai.Block);
+
+        // Eine echte ChatGPT-Antwort, markiert statt mit dem Kopieren-Knopf: Sprachzeile oben, ohne {{ }}
+        ai.AnswerInput.Text = """
+            javascript
+            const spider = [
+              "        / _ \\        ",
+              "      \\_\\(_)/_/      "
+            ].join("\n");
+
+            spider
+            """;
+        ai.TestAnswer();
+        Assert.Equal("        / _ \\        \n      \\_\\(_)/_/      ".ReplaceLineEndings(), ai.TestResult.Text.ReplaceLineEndings());
+        Assert.Equal(Visibility.Visible, ai.WrappedHint.Visibility);
+        Assert.StartsWith("{{ const spider = [", ai.Block);
+        Assert.EndsWith("spider }}", ai.Block);
+        Snapshot(ai, "ai-prompt.png");
+
+        // Fehler: rot, nichts zu kopieren
+        ai.AnswerInput.Text = "{{ 1 + }}";
+        ai.TestAnswer();
+        Assert.StartsWith("Block 1: ", ai.TestResult.Text);
+        Assert.Equal(Visibility.Collapsed, ai.CopyRow.Visibility);
+        ai.AnswerInput.Text = "";
+        ai.TestAnswer();
+        Assert.Equal(Visibility.Collapsed, ai.TestResultBox.Visibility);
+        // Der Dienst lässt sich hier wählen, gilt sofort und wird gespeichert
+        ai.ServiceInput.SelectedItem = ScriptPrompt.Services.Single(s => s.Name == "Perplexity");
+        Assert.Equal("In Perplexity öffnen", ai.OpenButton.Content);
+        Assert.Contains(@"""AiPromptUrl"": ""https://www.perplexity.ai/search?q={prompt}""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        ai.Close();
+
+        // Vorlage: wird beim ersten Mal mit dem eingebauten Prompt angelegt, eine eigene gilt für die Vorschau
+        var template = controller.CreateAiPromptTemplate();
+        Assert.Equal(ScriptPrompt.DefaultTemplate, File.ReadAllText(template));
+        File.WriteAllText(template, "Mach mir JS: {task}");
+        Assert.Equal(template, controller.CreateAiPromptTemplate());
+        Assert.Equal("Mach mir JS: {task}", File.ReadAllText(template));
+        var own = new AiPromptWindow(controller);
+        Assert.Equal("Mach mir JS: Datum in 14 Tagen mit Wochentag", own.PromptPreview.Text);
+        // Zurücksetzen gibt es nur mit eigener Vorlage. Ohne Datei gilt wieder der eingebaute Prompt.
+        Assert.Equal(Visibility.Visible, own.ResetTemplateLink.Visibility);
+        File.Delete(template); // im Programm über den Papierkorb, siehe ResetAiPromptTemplate
+        own.RefreshTemplate();
+        Assert.Equal(Visibility.Collapsed, own.ResetTemplateLink.Visibility);
+        Assert.StartsWith("Write JavaScript code for this task: Datum in 14 Tagen mit Wochentag", own.PromptPreview.Text);
+        controller.ResetAiPromptTemplate(0); // ohne Datei nichts zu tun
+        Assert.False(controller.HasAiPromptTemplate);
+        own.Close();
+
         var settings = new SettingsWindow(controller);
         Assert.Equal(PopupPosition.TopRight, settings.PositionInput.Position);
+        // KI-Dienst: zeigt die Wahl aus dem Prompt-Fenster, eine Auswahl hier gilt ebenso sofort
+        Assert.Equal("Perplexity", settings.AiServiceInput.SelectedItem?.ToString());
+        Assert.Equal(3, settings.AiServiceInput.Items.Count);
+        settings.AiServiceInput.SelectedIndex = 0;
+        Assert.Equal(ScriptPrompt.DefaultUrl, controller.Settings.AiPromptUrl);
         Snapshot(settings, "settings.png");
         settings.SettingsTabs.SelectedIndex = 1;
         Snapshot(settings, "settings-popup.png");
@@ -274,8 +350,15 @@ public class WindowSmokeTests
         Assert.Empty(viewModel.DetailItems);
         Assert.Equal("", viewModel.DetailText);
 
+        // Eine von Hand eingetragene Adresse erscheint als eigener Eintrag
+        controller.Settings.AiPromptUrl = "https://claude.ai/new?q={prompt}";
         var settings = new SettingsWindow(controller);
         Assert.Equal("QuickHasteBot – Settings", settings.Title);
+        Assert.Equal(4, settings.AiServiceInput.Items.Count);
+        Assert.Equal("Custom address", settings.AiServiceInput.SelectedItem?.ToString());
+        var customAi = new AiPromptWindow(controller);
+        Assert.Equal("Open in browser", customAi.OpenButton.Content);
+        customAi.Close();
         Snapshot(settings, "settings-en.png");
         settings.Close();
         popup.Close();
@@ -291,8 +374,25 @@ public class WindowSmokeTests
         controller.ShowSettings(new Point(-20000, -20000));
         Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);
 
+        // Das KI-Fenster gibt es nur einmal, sein Text überlebt Schliessen und Sprachwechsel
+        AiPromptWindow Prompt() => Application.Current.Windows.OfType<AiPromptWindow>().Single();
+        controller.ShowAiPrompt(new Point(-20000, -20000));
+        Prompt().RequirementInput.Text = "Zufälliger Satz";
+        controller.ShowAiPrompt(new Point(-20000, -20000));
+        Assert.Equal("Skriptblock mit KI", Prompt().Title);
+
         controller.ChangeLanguage("en");
         Assert.Equal("QuickHasteBot – Settings", Current().Title);
+        Assert.Equal("Script block with AI", Prompt().Title);
+        Assert.Equal("Zufälliger Satz", Prompt().RequirementInput.Text);
+        Assert.Equal(-20000, Prompt().Left);
+        Prompt().Close();
+        controller.ShowAiPrompt(new Point(-20000, -20000));
+        Assert.Equal("Zufälliger Satz", Prompt().RequirementInput.Text);
+        Prompt().Close();
+        // Gespeichert, steht also auch nach einem Neustart wieder da
+        using (var restarted = new AppController(new AppPaths(dir.Path)))
+            Assert.Equal("Zufälliger Satz", restarted.Settings.AiPromptText);
         Assert.Equal(-20000, Current().Left);
         Assert.Equal("Snippets", Strings.BreadcrumbRoot);
         Assert.Equal("en", controller.Settings.Language);

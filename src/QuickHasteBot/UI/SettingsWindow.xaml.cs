@@ -31,6 +31,7 @@ internal partial class SettingsWindow : Window
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         ScriptsInput.IsChecked = app.Settings.EvaluateScripts;
+        (AiServiceInput.ItemsSource, AiServiceInput.SelectedItem) = app.AiServiceChoices();
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
         LanguageInput.ItemsSource = UiLanguage.Choices;
@@ -160,6 +161,12 @@ internal partial class SettingsWindow : Window
     {
         _app.Settings.SearchContent = SearchContentInput.IsChecked == true;
         _app.SaveSettings();
+    }
+
+    void OnAiServiceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && AiServiceInput.SelectedItem is AiService service)
+            _app.ChangeAiService(service);
     }
 
     void OnScriptsChanged(object sender, RoutedEventArgs e)

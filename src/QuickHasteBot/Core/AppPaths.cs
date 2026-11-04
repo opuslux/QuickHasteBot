@@ -16,6 +16,9 @@ public sealed class AppPaths(string baseDirectory)
 
     public string LogFile => Path.Combine(BaseDirectory, "QuickHasteBot.log");
 
+    /// <summary>Eigene Vorlage für den KI-Prompt mit {task}. Fehlt sie, gilt der eingebaute Prompt.</summary>
+    public string AiPromptFile => Path.Combine(BaseDirectory, "ai-prompt.txt");
+
     /// <summary>Relative Pfade gelten ab dem exe-Ordner, Umgebungsvariablen werden aufgelöst.</summary>
     public string ResolveStructure(string configured)
     {
