@@ -367,6 +367,13 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
+    // Funkelsterne neben der Stecknadel: Skriptblock von einer KI schreiben lassen, in einem eigenen Fenster
+    void OnAiPromptClick(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        _app.ShowAiPrompt();
+    }
+
     void OnEditClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, EditSelected);
 
     void OnExplorerClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, RevealSelected);

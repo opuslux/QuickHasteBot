@@ -21,6 +21,7 @@ internal sealed class AppController : IDisposable
     SearchPopup? _popup;
     TrayIcon? _tray;
     SettingsWindow? _settingsWindow;
+    AiPromptWindow? _aiPromptWindow;
 
     public AppController(AppPaths paths)
     {
@@ -74,6 +75,33 @@ internal sealed class AppController : IDisposable
     }
 
     public void ShowSettings() => ShowSettings(position: null);
+
+    /// <summary>Das KI-Prompt-Fenster gibt es nur einmal, ein weiterer Klick holt es nach vorne.</summary>
+    public void ShowAiPrompt() => ShowAiPrompt(position: null);
+
+    internal void ShowAiPrompt(Point? position)
+    {
+        if (_aiPromptWindow is null)
+        {
+            var window = new AiPromptWindow(this);
+            if (position is { } p)
+            {
+                window.WindowStartupLocation = WindowStartupLocation.Manual;
+                (window.Left, window.Top) = (p.X, p.Y);
+            }
+            window.Closed += (_, _) =>
+            {
+                if (_aiPromptWindow == window)
+                    _aiPromptWindow = null;
+            };
+            _aiPromptWindow = window;
+            window.Show();
+        }
+
+        if (_aiPromptWindow.WindowState == WindowState.Minimized)
+            _aiPromptWindow.WindowState = WindowState.Normal;
+        _aiPromptWindow.Activate();
+    }
 
     internal void ShowSettings(Point? position)
     {
@@ -165,6 +193,88 @@ internal sealed class AppController : IDisposable
             .Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Auswahl für Einstellungen und Prompt-Fenster. Eine von Hand eingetragene Adresse erscheint als eigener Eintrag
+    /// und bleibt, bis man etwas anderes wählt.
+    /// </summary>
+    public (IReadOnlyList<AiService> Choices, AiService Selected) AiServiceChoices()
+    {
+        if (ScriptPrompt.ServiceFor(Settings.AiPromptUrl) is { } known)
+            return (ScriptPrompt.Services, known);
+
+        var custom = new AiService(Strings.AiServiceCustom, Settings.AiPromptUrl);
+        return ([.. ScriptPrompt.Services, custom], custom);
+    }
+
+    public void ChangeAiService(AiService service)
+    {
+        if (Settings.AiPromptUrl == service.Url) return;
+        Settings.AiPromptUrl = service.Url;
+        SaveSettings();
+    }
+
+    /// <summary>Öffnet den Prompt für einen Skriptblock im Browser, Standard ChatGPT. Liest die Vorlage jedes Mal frisch.</summary>
+    public void OpenAiPrompt(string task)
+    {
+        var prompt = ScriptPrompt.Build(task, ReadAiPromptTemplate());
+        ShellOpen(ScriptPrompt.Url(Settings.AiPromptUrl, prompt, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName));
+    }
+
+    /// <summary>Inhalt von ai-prompt.txt, null ohne Datei (dann gilt der eingebaute Prompt).</summary>
+    public string? ReadAiPromptTemplate()
+    {
+        if (!File.Exists(_paths.AiPromptFile)) return null;
+        try
+        {
+            return TextFileReader.Read(_paths.AiPromptFile);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"KI-Vorlage konnte nicht gelesen werden: {_paths.AiPromptFile}", ex);
+            return null;
+        }
+    }
+
+    /// <summary>Legt ai-prompt.txt beim ersten Mal mit dem eingebauten Prompt an und öffnet sie im Editor.</summary>
+    public void EditAiPromptTemplate()
+    {
+        try
+        {
+            CreateAiPromptTemplate();
+            ShellOpen(_paths.AiPromptFile);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"KI-Vorlage konnte nicht angelegt werden: {_paths.AiPromptFile}", ex);
+            MessageBox.Show(string.Format(Strings.AiPromptTemplateErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    public bool HasAiPromptTemplate => File.Exists(_paths.AiPromptFile);
+
+    /// <summary>Zurück zum eingebauten Prompt: ai-prompt.txt kommt in den Papierkorb, eigene Änderungen bleiben so wiederherstellbar.</summary>
+    public void ResetAiPromptTemplate(nint owner)
+    {
+        if (!HasAiPromptTemplate) return;
+        try
+        {
+            RecycleBin.Delete(_paths.AiPromptFile, owner);
+        }
+        catch (IOException ex)
+        {
+            Log.Error($"KI-Vorlage konnte nicht gelöscht werden: {_paths.AiPromptFile}", ex);
+            MessageBox.Show(string.Format(Strings.AiPromptResetErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    /// <returns>Pfad der Vorlage. Eine vorhandene bleibt, wie sie ist.</returns>
+    internal string CreateAiPromptTemplate()
+    {
+        if (!File.Exists(_paths.AiPromptFile))
+            File.WriteAllText(_paths.AiPromptFile, ScriptPrompt.DefaultTemplate);
+        return _paths.AiPromptFile;
+    }
+
     public void RevealInExplorer(Snippet snippet)
     {
         if (snippet.IsFolder)
@@ -246,12 +356,24 @@ internal sealed class AppController : IDisposable
             old.Close();
             ShowSettings(position);
         }
+
+        // Der eingegebene Text überlebt das, er steht im Fenster statisch
+        if (_aiPromptWindow is { } oldPrompt)
+        {
+            var position = new Point(oldPrompt.Left, oldPrompt.Top);
+            _aiPromptWindow = null;
+            oldPrompt.Close();
+            ShowAiPrompt(position);
+        }
     }
 
     public void SaveSettings() => _store.Save(Settings);
 
     public void Exit()
     {
+        // Text im offenen KI-Prompt-Fenster, der sonst erst beim Senden oder Schliessen gespeichert wird
+        if (_aiPromptWindow is not null)
+            SaveSettings();
         Dispose();
         Application.Current.Shutdown();
     }

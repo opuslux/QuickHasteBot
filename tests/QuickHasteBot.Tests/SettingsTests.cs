@@ -40,7 +40,20 @@ public class SettingsTests
         Assert.Equal(PasteMode.Clipboard, loaded.PasteMode);
         Assert.True(loaded.SingleClick);
         Assert.True(loaded.EvaluateScripts);
+        Assert.Equal(ScriptPrompt.DefaultUrl, loaded.AiPromptUrl);
         Assert.Equal(1.0 / 3, loaded.ListColumnShare);
+    }
+
+    [Fact]
+    public void Ai_prompt_url_stays_readable_in_the_file()
+    {
+        using var dir = new TempDirectory();
+        var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
+
+        store.Save(new AppSettings { AiPromptUrl = ScriptPrompt.Services.Single(s => s.Name == "Google AI Mode").Url });
+
+        // Von Hand änderbar: & und {} nicht als \u-Escape
+        Assert.Contains(@"""AiPromptUrl"": ""https://www.google.com/search?udm=50&hl={lang}&q={prompt}""", File.ReadAllText(store.FilePath));
     }
 
     [Theory]

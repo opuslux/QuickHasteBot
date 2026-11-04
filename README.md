@@ -86,26 +86,34 @@ With the mouse, the selection follows the pointer as soon as it rests on an entr
 Everything between `{{` and `}}` is evaluated as JavaScript when pasting and replaced by its result. If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts` in `settings.json`).
 
 ```
-Zurich, {{ date('d. MMMM yyyy') }}
-Please reply by {{ date('dddd, d.M.', 14) }}.
+Zurich, {{ date('dddd, dd. MMMM yyyy') }}
+Please reply by {{ date('dd.MM.yyyy', 14) }} (week {{ isoweek(14) }}).
 Order number: {{ clipboard.trim().toUpperCase() }}
 Total incl. VAT: {{ (19.90 * 1.081).toFixed(2) }}
+Kind regards, {{ user }}
 ```
 
-Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, template strings, arrow functions), these helpers are available:
+Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, template strings, arrow functions), these helpers cover what JavaScript can't do well or at all here:
 
 | Helper | Result |
 |---|---|
-| `date(format, days)` | Today's date, or shifted by `days` (negative for the past). `format` is a [.NET date format](https://learn.microsoft.com/dotnet/standard/base-types/custom-date-and-time-format-strings) in the Windows language and region; without it, the short date (`03.11.2026`). |
-| `time(format)` | The current time, without a format the short time (`14:05`) |
-| `clipboard` | The text on the clipboard before pasting |
-| `guid()` | A new GUID |
-| `user` | The Windows user name |
+| `date(format, days)` | Today's date, or shifted by `days` (negative for the past). `format` is a [.NET date format](https://learn.microsoft.com/dotnet/standard/base-types/custom-date-and-time-format-strings) in the Windows language and region, e.g. `'dddd, dd. MMMM yyyy'` → `Dienstag, 03. November 2026`; without it, the short date (`03.11.2026`). |
+| `time(format)` | The current time, without a format `HH:mm` (`14:05`); `'HH:mm:ss'` with seconds. |
+| `isoweek(days)` | The ISO calendar week (`45`), optionally shifted by `days` like `date()`. |
+| `clipboard` | The text that was on the clipboard before pasting. |
+| `user` | The Windows user name. |
+| `guid()` | A new GUID, e.g. for reference numbers. |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
+
+**Writing a block with AI:** the sparkle icon to the right of the pin in the popup opens a small prompt editor in its own window. It stays open after sending, so the prompt can be adjusted and sent again; Esc or "Close" closes it, and the text is kept for next time, even after a restart (`AiPromptText` in `settings.json`). Describe what the block should insert (in any language, e.g. "the date in 14 days with the weekday"), then click "Open in ChatGPT" or press Ctrl+Enter. QuickHasteBot adds the rules of the script engine, the helpers listed above and two examples, and opens the AI with the full prompt (it can be expanded in the editor). The answer comes as a code block: copy it with the code block's copy button and paste it under "Test the answer" in the prompt editor, where it runs right away and shows the result or the error. "Copy block" then puts the finished block on the clipboard, ready to paste into a snippet: code fences and a leading language label ("javascript") are removed, and if the AI left out the `{{ }}`, they are added. (Selecting text instead of using the copy button can lose characters that chat apps display as formatting or citations, such as backticks or `[1]`.)
+
+"Edit template" creates `ai-prompt.txt` next to the exe with the built-in prompt and opens it in the editor. `{task}` stands for what you typed; changes apply the next time you send. "Reset template" (shown once the file exists) moves it to the Recycle Bin, and the built-in prompt applies again.
+
+The service is chosen at the bottom left of the prompt editor or in the settings under "AI for scripts", and is remembered: ChatGPT (default, free without an account), Google AI Mode or Perplexity. Google AI Mode tends to show search results instead of code. Any other service can be entered by hand as `AiPromptUrl` in `settings.json`, with `{prompt}` for the prompt and `{lang}` for the interface language, e.g. `https://claude.ai/new?q={prompt}`; the settings then show it as "Custom address".
 
 ## Portable
 
@@ -113,6 +121,7 @@ Everything lives next to `QuickHasteBot.exe`:
 
 - `structure\` with your snippets. The path can be changed in the settings (relative, absolute, or with `%USERPROFILE%`).
 - `settings.json` with the settings. It is saved immediately on every change and can also be edited by hand (`"Language": "en"`, `"de"`, or empty for the Windows language).
+- `ai-prompt.txt` (optional) with your own prompt template for the AI, see [Scripts](#scripts).
 - `QuickHasteBot.log` with errors and startup information.
 
 The only thing written elsewhere is the short animation in the settings window, which is extracted to `%TEMP%\QuickHasteBot` the first time the settings open.
