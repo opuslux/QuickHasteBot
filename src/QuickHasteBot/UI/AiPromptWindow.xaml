@@ -20,6 +20,33 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- Kleiner Knopf mit Symbol wie im Popup, grau, beim Darüberfahren heller -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <StackPanel Margin="20,16,20,20">
@@ -62,14 +89,24 @@
 
         <!-- Antwort der KI einfügen und gleich ausführen, bevor sie in einem Baustein landet -->
         <Separator Margin="0,16,0,12" />
-        <TextBlock Text="{x:Static ui:Strings.AiPromptTestHeading}" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <!-- Rechts: nochmal ausführen, für Blöcke mit Uhrzeit, Zufall oder Zwischenablage.
+             Bei leerem Feld übernimmt er das Beispiel aus dem Platzhalter. -->
+        <DockPanel Margin="0,0,0,8">
+            <Button x:Name="RerunButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Content="&#xE72C;"
+                    ToolTip="{x:Static ui:Strings.AiPromptTestUseExample}" Click="OnRerun" />
+            <TextBlock Text="{x:Static ui:Strings.AiPromptTestHeading}" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </DockPanel>
         <Grid>
-            <TextBox x:Name="AnswerInput" AcceptsReturn="True" TextWrapping="Wrap" MinLines="2" MaxLines="6"
+            <TextBox x:Name="AnswerInput" AcceptsReturn="True" TextWrapping="Wrap" MinLines="3" MaxLines="6"
                      VerticalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                      TextChanged="OnAnswerChanged" />
-            <TextBlock x:Name="AnswerPlaceholder" Text="{x:Static ui:Strings.AiPromptTestPlaceholder}" Margin="12,6,12,0"
-                       TextWrapping="Wrap" IsHitTestVisible="False"
-                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            <!-- Leer immer mit Beispiel, damit klar ist, wie ein Block aussieht -->
+            <TextBlock x:Name="AnswerPlaceholder" Margin="12,6,12,0" FontSize="12" TextWrapping="Wrap" IsHitTestVisible="False"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                <Run Text="{x:Static ui:Strings.AiPromptTestPlaceholder}" /><LineBreak />
+                <Run Text="{x:Static ui:Strings.AiPromptTestExampleLabel}" /><LineBreak />
+                <Run Text="{x:Static ui:Strings.AiPromptTestExample}" FontFamily="Cascadia Mono, Consolas" />
+            </TextBlock>
         </Grid>
         <Border x:Name="TestResultBox" Margin="0,8,0,0" Padding="10,6" CornerRadius="4" BorderThickness="1"
                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" Visibility="Collapsed">

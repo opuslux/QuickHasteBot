@@ -16,7 +16,8 @@ namespace QuickHasteBot.UI;
 /// stehen, damit man den Prompt anpassen und erneut schicken kann. Eigenes Fenster in der Taskleiste, nicht am
 /// Popup: das liegt immer im Vordergrund und würde den Browser verdecken.
 /// Unten lässt sich die Antwort einfügen und gleich ausführen.
-/// Enter macht eine neue Zeile, Strg+Enter öffnet den Browser, Esc schliesst. Der Dienst wird sofort gespeichert,
+/// Enter macht eine neue Zeile, Strg+Enter öffnet den Browser, F5 führt die Antwort erneut aus (leer: übernimmt das Beispiel),
+/// Esc schliesst. Der Dienst wird sofort gespeichert,
 /// der Text beim Senden und Schliessen, damit er auch nach einem Neustart wieder dasteht.
 /// </summary>
 internal partial class AiPromptWindow : Window
@@ -109,10 +110,28 @@ internal partial class AiPromptWindow : Window
 
     void OnAnswerChanged(object sender, TextChangedEventArgs e)
     {
-        AnswerPlaceholder.Visibility = AnswerInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var empty = AnswerInput.Text.Length == 0;
+        AnswerPlaceholder.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+        RerunButton.ToolTip = empty ? Strings.AiPromptTestUseExample : Strings.AiPromptTestRerun;
         _testTimer.Stop();
         _testTimer.Start();
     }
+
+    /// <summary>
+    /// Leeres Feld: das Beispiel aus dem Platzhalter übernehmen. Sonst erneut ausführen, denn die Antwort läuft
+    /// nur beim Tippen, und Uhrzeit, Zufall oder Zwischenablage blieben auf dem Stand vom Einfügen.
+    /// </summary>
+    internal void Rerun()
+    {
+        if (AnswerInput.Text.Length == 0)
+        {
+            AnswerInput.Text = Strings.AiPromptTestExample;
+            AnswerInput.CaretIndex = AnswerInput.Text.Length;
+        }
+        TestAnswer();
+    }
+
+    void OnRerun(object sender, RoutedEventArgs e) => Rerun();
 
     /// <summary>
     /// Führt die eingefügte Antwort aus wie beim Einfügen eines Bausteins und zeigt Ergebnis oder Fehler.
@@ -174,6 +193,11 @@ internal partial class AiPromptWindow : Window
         if (e.Key == Key.Escape)
         {
             Close();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F5)
+        {
+            Rerun();
             e.Handled = true;
         }
         else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)

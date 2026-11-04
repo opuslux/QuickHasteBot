@@ -217,8 +217,22 @@ public class WindowSmokeTests
         Assert.Equal(Visibility.Collapsed, ai.Placeholder.Visibility);
         Assert.StartsWith("Write JavaScript code for this task: Datum in 14 Tagen mit Wochentag", ai.PromptPreview.Text);
 
-        // Antwort testen: läuft wie beim Einfügen, Codeblock-Zäune stören nicht
+        // Antwort testen, leer: Platzhalter mit Beispiel, der Knopf übernimmt es, jeder weitere Klick würfelt neu
         Assert.Equal(Visibility.Collapsed, ai.TestResultBox.Visibility);
+        Assert.Equal(Visibility.Visible, ai.AnswerPlaceholder.Visibility);
+        Assert.Equal("Beispiel übernehmen (F5)", ai.RerunButton.ToolTip);
+        Snapshot(ai, "ai-prompt-empty.png");
+        string[] faces = ["Ja", "Nein", "Vielleicht", "Morgen"];
+        ai.Rerun();
+        Assert.StartsWith("{{ ['Ja', 'Nein'", ai.AnswerInput.Text);
+        Assert.Equal(Visibility.Collapsed, ai.AnswerPlaceholder.Visibility);
+        Assert.StartsWith("Erneut ausführen (F5)", (string)ai.RerunButton.ToolTip);
+        Assert.Contains(ai.TestResult.Text, faces);
+        var rolled = Enumerable.Range(0, 50).Select(_ => { ai.Rerun(); return ai.TestResult.Text; }).ToHashSet();
+        Assert.Subset(faces.ToHashSet(), rolled);
+        Assert.True(rolled.Count > 1);
+
+        // Läuft wie beim Einfügen, Codeblock-Zäune stören nicht
         ai.AnswerInput.Text = "```js\n{{ (() => { const w = ['So', 'Mo']; return w.at(1) + ' ' + 6 * 7; })() }}\n```";
         ai.TestAnswer();
         Assert.Equal(Visibility.Visible, ai.TestResultBox.Visibility);
@@ -252,6 +266,7 @@ public class WindowSmokeTests
         ai.AnswerInput.Text = "";
         ai.TestAnswer();
         Assert.Equal(Visibility.Collapsed, ai.TestResultBox.Visibility);
+        Assert.Equal(Visibility.Visible, ai.AnswerPlaceholder.Visibility);
         // Der Dienst lässt sich hier wählen, gilt sofort und wird gespeichert
         ai.ServiceInput.SelectedItem = ScriptPrompt.Services.Single(s => s.Name == "Perplexity");
         Assert.Equal("In Perplexity öffnen", ai.OpenButton.Content);

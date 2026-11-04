@@ -101,6 +101,10 @@
   <data name="AiPromptCopyBlock" xml:space="preserve"><value>Block kopieren</value></data>
   <data name="AiPromptWrapped" xml:space="preserve"><value>Die Antwort hatte kein {{ … }}, «Block kopieren» ergänzt es.</value></data>
   <data name="AiPromptTestEmpty" xml:space="preserve"><value>Das Ergebnis ist leer.</value></data>
+  <data name="AiPromptTestRerun" xml:space="preserve"><value>Erneut ausführen (F5), z. B. für Uhrzeit oder Zwischenablage</value></data>
+  <data name="AiPromptTestExampleLabel" xml:space="preserve"><value>Beispiel, ↻ übernimmt es: ein Entscheidungswürfel</value></data>
+  <data name="AiPromptTestExample" xml:space="preserve"><value>{{ ['Ja', 'Nein', 'Vielleicht', 'Morgen'][Math.random() * 4 | 0] }}</value></data>
+  <data name="AiPromptTestUseExample" xml:space="preserve"><value>Beispiel übernehmen (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Bearbeiten</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Umbenennen…</value></data>
