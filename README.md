@@ -62,7 +62,8 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 | Shift+Enter | Paste with the other method (typing instead of clipboard or vice versa) |
 | Alt+1 … Alt+9 | Like a click on the entry with that number (the first nine entries in the list are numbered on the right); with Shift, the other paste method |
 | → / ← / Backspace | With an empty search box: open folder / go up one level |
-| Ctrl+O | Open the snippet in its editor |
+| Ctrl+O | Edit the snippet (in the [built-in editor](#editor)) |
+| Ctrl+N | New snippet in the current folder |
 | Ctrl+E | Show it in Explorer |
 | F2 | Rename the selected file or folder |
 | Ctrl+, | Settings |
@@ -74,7 +75,7 @@ By default the popup opens to the bottom left of the mouse pointer, with the poi
 
 The pin next to the folder path makes the popup open where it was closed last time, in the same folder with the same entry selected, even after a restart. The same option is in the settings under "When opening".
 
-With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". Right-clicking an entry, in either column, offers **Edit** (snippets only; like Ctrl+O, opens the program Windows uses for the file type, e.g. Notepad++), **Rename…** (also for folders, or F2 on the selected entry), **Clone…** (a copy in the same folder, with an editable name suggested like Explorer does: `Name - Copy.txt`) and **Delete…** (asks first, then moves the file to the Recycle Bin; where there is none, e.g. on a network drive, Windows asks whether to delete it permanently). The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
+With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". Right-clicking an entry, in either column, offers **Edit** (snippets only; like Ctrl+O, opens the [built-in editor](#editor)), **Open with default program** (the program Windows uses for the file type, e.g. Notepad++), **New snippet…** (in that folder, or next to that file), **Rename…** (also for folders, or F2 on the selected entry), **Clone…** (a copy in the same folder, with an editable name suggested like Explorer does: `Name - Copy.txt`) and **Delete…** (asks first, then moves the file to the Recycle Bin; where there is none, e.g. on a network drive, Windows asks whether to delete it permanently). The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
 
 ## Pasting: two methods
 
@@ -115,7 +116,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 
-**Writing a block with AI:** the sparkle icon to the right of the pin in the popup opens a small prompt editor in its own window. It stays open after sending, so the prompt can be adjusted and sent again; Esc or "Close" closes it, and the text is kept for next time, even after a restart (`AiPromptText` in `settings.json`). Describe what the block should insert (in any language, e.g. "the date in 14 days with the weekday"), then click "Open in ChatGPT" or press Ctrl+Enter. QuickHasteBot adds the rules of the script engine, the helpers listed above and two examples, and opens the AI with the full prompt (it can be expanded in the editor). The answer comes as a code block: copy it with the code block's copy button and paste it under "Test the answer" in the prompt editor, where it runs right away and shows the result or the error. "Copy block" then puts the finished block on the clipboard, ready to paste into a snippet: code fences and a leading language label ("javascript") are removed, and if the AI left out the `{{ }}`, they are added. (Selecting text instead of using the copy button can lose characters that chat apps display as formatting or citations, such as backticks or `[1]`.)
+**Writing a block with AI:** the sparkle icon to the right of the pin in the popup opens a small prompt editor in its own window. It stays open after sending, so the prompt can be adjusted and sent again; Esc or "Close" closes it, and the text is kept for next time, even after a restart (`AiPromptText` in `settings.json`). Describe what the block should insert (in any language, e.g. "the date in 14 days with the weekday"), then click "Open in ChatGPT" or press Ctrl+Enter. QuickHasteBot adds the rules of the script engine, the helpers listed above and two examples, and opens the AI with the full prompt (it can be expanded in the editor). The answer comes as a code block: copy it with the code block's copy button and paste it under "Test the answer" in the prompt editor, where it runs right away and shows the result or the error. "Copy block" then puts the finished block on the clipboard, ready to paste into a snippet (while an editor is open, "Insert into editor" puts it at the cursor there): code fences and a leading language label ("javascript") are removed, and if the AI left out the `{{ }}`, they are added. (Selecting text instead of using the copy button can lose characters that chat apps display as formatting or citations, such as backticks or `[1]`.)
 
 "Edit template" creates `ai-prompt.txt` next to the exe with the built-in prompt and opens it in the editor. `{task}` stands for what you typed; changes apply the next time you send. "Reset template" (shown once the file exists) moves it to the Recycle Bin, and the built-in prompt applies again.
 
@@ -197,6 +198,18 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 - The window guard follows: it now watches that window instead of turning off. `{guard,off}` still keeps it off.
 
 **Programs running as administrator:** Windows doesn't let normal programs send keys to them or read their fields, and drops everything silently. QuickHasteBot doesn't need administrator rights and doesn't ask for them. Instead, it detects such a program before typing or pasting and says so, and the picker shows it while hovering. The fix is to start that program without administrator rights.
+
+## Editor
+
+"Edit" and Ctrl+O open text snippets in a built-in editor, "New snippet…" and Ctrl+N an empty one. One window per file; several can be open.
+
+- **Name** at the top: changing it renames the file when saving. The extension stays (`.txt` for new snippets).
+- **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element and window tags, and script helpers like `{{ date() }}`, each with a short explanation. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
+- **Pick element** opens the [crosshair picker](#elements-focus-click-set). Its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the script prompt window, which can insert its block the same way.
+- **Preview** below the text shows what the snippet turns into while you type: scripts evaluated, keys as readable tags, and script errors in red. Nothing is sent.
+- **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. Cancel or Esc stops the wait. Holding Esc stops a running snippet.
+- **Save** (Ctrl+S) keeps the file's encoding: ANSI (Windows-1252) stays ANSI, UTF-8 and UTF-16 stay as they were. Only text that ANSI can't hold (e.g. an emoji) turns an ANSI file into UTF-8 with BOM, so that nothing is lost. If the file was changed in another program in the meantime, the editor asks before overwriting. Closing with unsaved changes asks too.
+- To keep using another editor, turn off "Edit snippets in the built-in editor" (`UseBuiltInEditor` in `settings.json`). The right-click menu offers both either way.
 
 ## Portable
 

@@ -32,6 +32,7 @@ internal partial class ElementPickerWindow : Window
         IncludeWindowInput.IsChecked = app.Settings.PickerIncludeWindow;
         StatusText.Text = Strings.PickerReady;
         Closed += (_, _) => _highlight.Close();
+        Activated += (_, _) => UpdateInsertButton();
     }
 
     void OnTargetDown(object sender, MouseButtonEventArgs e)
@@ -147,6 +148,7 @@ internal partial class ElementPickerWindow : Window
         _updating = false;
 
         ResultPanel.Visibility = Visibility.Visible;
+        UpdateInsertButton();
         UpdateTag();
         if (selectors.Count == 0)
         {
@@ -217,6 +219,16 @@ internal partial class ElementPickerWindow : Window
         {
             TestButton.IsEnabled = true;
         }
+    }
+
+    void UpdateInsertButton() => InsertButton.Visibility = _app.ActiveEditor is null ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>Tag in den zuletzt benutzten Editor, an die Schreibmarke, und den Editor nach vorne.</summary>
+    void OnInsert(object sender, RoutedEventArgs e)
+    {
+        if (_app.ActiveEditor is not { } editor || TagOutput.Text.Length == 0) return;
+        editor.Insert(TagOutput.Text);
+        editor.Activate();
     }
 
     void OnCopy(object sender, RoutedEventArgs e)

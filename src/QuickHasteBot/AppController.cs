@@ -23,6 +23,7 @@ internal sealed class AppController : IDisposable
     SettingsWindow? _settingsWindow;
     AiPromptWindow? _aiPromptWindow;
     ElementPickerWindow? _elementPicker;
+    readonly List<SnippetEditorWindow> _editors = [];
 
     public AppController(AppPaths paths)
     {
@@ -104,6 +105,79 @@ internal sealed class AppController : IDisposable
         _aiPromptWindow.Activate();
     }
 
+    /// <summary>Der zuletzt benutzte offene Editor: Picker und KI-Fenster können dort einfügen.</summary>
+    internal SnippetEditorWindow? ActiveEditor { get; private set; }
+
+    /// <summary>Endung für neue Bausteine, die erste der Textendungen (Standard .txt).</summary>
+    internal string NewSnippetExtension => Settings.TextExtensions.FirstOrDefault(e => e.StartsWith('.')) ?? ".txt";
+
+    /// <summary>
+    /// "Bearbeiten" im Popup: Textbausteine im eingebauten Editor (ausser in den Einstellungen abgeschaltet),
+    /// alles andere wie bisher mit dem Programm, das Windows dafür vorsieht.
+    /// </summary>
+    public void EditSnippet(Snippet snippet)
+    {
+        if (snippet.Kind == SnippetKind.Text && Settings.UseBuiltInEditor)
+            OpenEditor(snippet.FullPath);
+        else
+            Edit(snippet);
+    }
+
+    /// <summary>Eine Datei im eingebauten Editor, ist sie schon offen, kommt dieses Fenster nach vorne.</summary>
+    public void OpenEditor(string path)
+    {
+        if (_editors.FirstOrDefault(e => string.Equals(e.FilePath, path, StringComparison.OrdinalIgnoreCase)) is { } open)
+        {
+            Bring(open);
+            return;
+        }
+
+        SnippetEditorWindow window;
+        try
+        {
+            window = SnippetEditorWindow.Open(this, path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"Textbaustein konnte nicht gelesen werden: {path}", ex);
+            MessageBox.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        Track(window);
+    }
+
+    /// <summary>Neuer, leerer Baustein in diesem Ordner, angelegt wird die Datei beim ersten Speichern.</summary>
+    public void NewSnippet(Snippet folder) => Track(SnippetEditorWindow.New(this, folder.IsFolder ? folder.FullPath : Path.GetDirectoryName(folder.FullPath)!));
+
+    void Track(SnippetEditorWindow window)
+    {
+        _editors.Add(window);
+        ActiveEditor = window;
+        window.Activated += (_, _) => ActiveEditor = window;
+        window.Closed += (_, _) =>
+        {
+            _editors.Remove(window);
+            if (ActiveEditor == window)
+                ActiveEditor = _editors.LastOrDefault();
+        };
+        window.Show();
+        Bring(window);
+    }
+
+    static void Bring(Window window)
+    {
+        if (window.WindowState == WindowState.Minimized)
+            window.WindowState = WindowState.Normal;
+        window.Activate();
+    }
+
+    /// <summary>Nach dem Speichern im Editor: Liste gleich neu einlesen, nicht erst wenn der Watcher sich meldet.</summary>
+    internal void SnippetSaved(string path)
+    {
+        Library.Reload();
+        Log.Info($"Baustein gespeichert: {path}");
+    }
+
     /// <summary>Den Element-Picker gibt es nur einmal, ein weiterer Aufruf holt ihn nach vorne.</summary>
     public void ShowElementPicker()
     {
@@ -168,6 +242,20 @@ internal sealed class AppController : IDisposable
             return;
         }
 
+        if (await RunTextAsync(text, snippet.Name, alternate, targetWindow, snippet.FullPath) is { } problem)
+            MessageBox.Show(problem.Message, "QuickHasteBot", MessageBoxButton.OK, problem.Icon);
+    }
+
+    /// <summary>Warum ein Baustein nicht (ganz) eingefügt wurde, für eine Meldung.</summary>
+    internal sealed record RunProblem(string Message, MessageBoxImage Icon);
+
+    /// <summary>
+    /// Bringt einen Bausteintext ins Zielfenster: Tasten-Tags markieren, Skripte auswerten, dann als Formular-Baustein
+    /// ausführen oder einfügen. Auch für den Testlauf im Editor, mit dem ungespeicherten Text.
+    /// </summary>
+    /// <returns>Null, wenn alles geklappt hat (oder mit Esc gestoppt wurde).</returns>
+    internal async Task<RunProblem?> RunTextAsync(string text, string name, bool alternate, nint targetWindow, string? logPath = null)
+    {
         // Tasten-Tags werden zu Markern, bevor Skripte laufen: was ein Skript ausgibt oder aus der Zwischenablage kommt,
         // wird so nie als Tag gelesen, nur key() im Skript erzeugt bewusst Tasten
         text = KeyTags.StripMarkers(text);
@@ -186,25 +274,56 @@ internal sealed class AppController : IDisposable
             catch (SnippetScriptException ex)
             {
                 // Lieber gar nichts einfügen als eine Fehlermeldung mitten in eine Mail
-                Log.Error($"Skript in Block {ex.Block} fehlgeschlagen: {snippet.FullPath}", ex);
-                MessageBox.Show(string.Format(Strings.ScriptErrorFormat, ex.Block, snippet.Name, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                Log.Error($"Skript in Block {ex.Block} fehlgeschlagen: {logPath ?? name}", ex);
+                return new(string.Format(Strings.ScriptErrorFormat, ex.Block, name, ex.Message), MessageBoxImage.Warning);
             }
         }
 
         if (form is not null && KeyTags.HasMarkers(text))
         {
             var result = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
-            var message = FormMessage(result, snippet.Name);
-            if (message is not null)
-                MessageBox.Show(message, "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
+            return FormMessage(result, name) is { } message ? new(message, MessageBoxImage.Information) : null;
         }
 
         var mode = alternate ? AppSettings.Other(Settings.PasteMode) : Settings.PasteMode;
         if (!await _paste.PasteAsync(text, mode, targetWindow))
-            MessageBox.Show(string.Format(Strings.TargetElevatedFormat, snippet.Name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
-                "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
+            return new(string.Format(Strings.TargetElevatedFormat, name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
+                MessageBoxImage.Information);
+        return null;
+    }
+
+    /// <param name="Text">Was eingefügt würde, Tasten als lesbare Tags wie {tab}.</param>
+    /// <param name="IsForm">Enthält Tasten- oder Element-Tags, wird darum getippt.</param>
+    /// <param name="Error">Skriptfehler statt eines Ergebnisses.</param>
+    internal sealed record SnippetPreview(string Text, bool IsForm, string? Error);
+
+    /// <summary>
+    /// Was ein Bausteintext ergibt, ohne etwas zu senden: für die Vorschau im Editor. Liest die Zwischenablage nur,
+    /// wenn ein Skript sie erwähnt.
+    /// </summary>
+    internal SnippetPreview Preview(string text)
+    {
+        text = KeyTags.StripMarkers(text);
+        var form = Settings.EvaluateKeyTags ? new FormBuilder() : null;
+        if (form is not null)
+            text = KeyTags.MarkTags(text, form);
+
+        if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
+        {
+            var clipboard = SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
+            try
+            {
+                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form));
+            }
+            catch (SnippetScriptException ex)
+            {
+                return new("", false, string.Format(Strings.AiPromptTestErrorFormat, ex.Block, ex.Message));
+            }
+        }
+
+        return form is not null && KeyTags.HasMarkers(text)
+            ? new(KeyTags.Preview(text, form), true, null)
+            : new(text, false, null);
     }
 
     /// <summary>Warum ein Formular-Baustein abgebrochen hat, null wenn er durchgelaufen ist oder mit Esc gestoppt wurde.</summary>

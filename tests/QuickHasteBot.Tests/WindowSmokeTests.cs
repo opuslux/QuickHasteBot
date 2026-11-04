@@ -244,6 +244,65 @@ public class WindowSmokeTests
         Assert.EndsWith("spider }}", ai.Block);
         Snapshot(ai, "ai-prompt.png");
 
+        // Editor: ANSI-Baustein öffnen, Vorschau, einfügen, speichern (bleibt ANSI), umbenennen
+        var ansi = dir.Bytes(@"structure\Editor\Gruss.txt", [0x47, 0x72, 0xFC, 0x73, 0x73, 0x65]); // "Grüsse" in Windows-1252
+        var editor = SnippetEditorWindow.Open(controller, ansi);
+        Assert.Equal("Gruss", editor.NameInput.Text);
+        Assert.Equal("Grüsse", editor.BodyInput.Text);
+        Assert.Equal(".txt", editor.ExtensionText.Text);
+        Assert.False(editor.IsDirty);
+        Assert.Equal("Gruss – Baustein bearbeiten", editor.Title);
+        Assert.Equal("Vorschau: wird so eingefügt", editor.PreviewLabel.Text);
+
+        editor.BodyInput.Text = "Max{tab}";
+        editor.BodyInput.Select(editor.BodyInput.Text.Length, 0);
+        editor.Insert("{focus,#id}", "id");
+        Assert.Equal("Max{tab}{focus,#id}", editor.BodyInput.Text);
+        Assert.Equal("id", editor.BodyInput.SelectedText);
+        editor.BodyInput.SelectedText = "email";
+        editor.BodyInput.Text += "{{ 6 * 7 }}";
+        editor.UpdatePreview();
+        Assert.Equal("Vorschau: ein Formular-Baustein, wird mit diesen Tasten getippt", editor.PreviewLabel.Text);
+        Assert.Equal("Max{tab}{focus,#email}«42»".Replace("«", "").Replace("»", ""), editor.PreviewText.Text);
+        Assert.True(editor.IsDirty);
+        Assert.StartsWith("● ", editor.Title);
+        Snapshot(editor, "editor.png");
+
+        editor.BodyInput.Text = "{{ 1 + }}";
+        editor.UpdatePreview();
+        Assert.Equal("Vorschau: Skriptfehler, es würde nichts eingefügt", editor.PreviewLabel.Text);
+        Assert.StartsWith("Block 1: ", editor.PreviewText.Text);
+
+        editor.BodyInput.Text = "Grüsse aus Zürich";
+        Assert.True(editor.Save());
+        Assert.Equal(TextEncoding.Windows1252, TextFile.Read(ansi).Encoding);
+        Assert.Equal("Grüsse aus Zürich", TextFile.Read(ansi).Text);
+        Assert.False(editor.IsDirty);
+        Assert.Equal("Gespeichert.", editor.StatusText.Text);
+        Assert.NotNull(controller.Library.Find(@"Editor\Gruss.txt"));
+
+        editor.NameInput.Text = "Gruss Zürich";
+        Assert.True(editor.Save());
+        Assert.False(File.Exists(ansi));
+        Assert.Equal("Grüsse aus Zürich", TextFile.Read(Path.Combine(dir.Path, @"structure\Editor\Gruss Zürich.txt")).Text);
+        Assert.NotNull(controller.Library.Find(@"Editor\Gruss Zürich.txt"));
+        editor.Close();
+
+        // Neuer Baustein: ohne Namen nicht speicherbar, dann als UTF-8 im Ordner
+        var created = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, @"structure\Editor"));
+        Assert.Equal("Neuer Baustein – Baustein bearbeiten", created.Title);
+        created.BodyInput.Text = "Neu 😀";
+        Assert.False(created.Save());
+        Assert.Equal("Der Baustein braucht einen Namen.", created.StatusText.Text);
+        created.NameInput.Text = "Gruss Zürich";
+        Assert.False(created.Save());
+        Assert.Equal(Strings.NameExists, created.StatusText.Text);
+        created.NameInput.Text = "Neu";
+        Assert.True(created.Save());
+        Assert.Equal(new TextFileContent("Neu 😀", TextEncoding.Utf8), TextFile.Read(Path.Combine(dir.Path, @"structure\Editor\Neu.txt")));
+        Assert.Equal(created.FilePath, Path.Combine(dir.Path, @"structure\Editor\Neu.txt"));
+        created.Close();
+
         // Element-Picker: vor dem ersten Erfassen nur Fadenkreuz und leere Felder
         var picker = new ElementPickerWindow(controller);
         Assert.Equal("QuickHasteBot – Element erfassen", picker.Title);

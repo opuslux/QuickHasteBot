@@ -1,0 +1,80 @@
+<Window x:Class="QuickHasteBot.UI.SnippetEditorWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:QuickHasteBot.UI"
+        Icon="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
+        Width="760" Height="600" MinWidth="520" MinHeight="380"
+        WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="OnPreviewKeyDown" Closing="OnClosing">
+
+    <Grid Margin="16,12,16,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Name der Datei, Endung fest dahinter. Umbenannt wird beim Speichern. -->
+        <DockPanel Grid.Row="0">
+            <TextBlock Text="{x:Static ui:Strings.EditorName}" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <TextBlock x:Name="ExtensionText" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="4,0,12,0"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <TextBlock x:Name="FolderText" DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="260" Margin="8,0,0,0"
+                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <TextBox x:Name="NameInput" TextChanged="OnChanged" />
+        </DockPanel>
+
+        <!-- Werkzeuge: Tags einfügen, Element mit dem Fadenkreuz erfassen, Skriptblock von der KI -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,6">
+            <Button x:Name="TagsButton" Content="{x:Static ui:Strings.EditorInsertTag}" ToolTip="{x:Static ui:Strings.EditorInsertTagToolTip}"
+                    Click="OnTagsClick" />
+            <Button Margin="8,0,0,0" ToolTip="{x:Static ui:Strings.EditorPickerToolTip}" Click="OnPickerClick">
+                <StackPanel Orientation="Horizontal">
+                    <Path Width="14" Height="14" Stretch="Uniform" StrokeThickness="1.4" VerticalAlignment="Center"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Data="M16,0 L16,11 M16,21 L16,32 M0,16 L11,16 M21,16 L32,16 M6,16 A10,10 0 1 1 26,16 A10,10 0 1 1 6,16" />
+                    <TextBlock Text="{x:Static ui:Strings.EditorPicker}" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
+            <Button Margin="8,0,0,0" ToolTip="{x:Static ui:Strings.AiPromptTooltip}" Click="OnAiClick">
+                <StackPanel Orientation="Horizontal">
+                    <Path Width="14" Height="14" Stretch="Uniform" VerticalAlignment="Center"
+                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Data="M7,4 Q7,10 13,10 Q7,10 7,16 Q7,10 1,10 Q7,10 7,4 Z
+                                M13,0 Q13,3 16,3 Q13,3 13,6 Q13,3 10,3 Q13,3 13,0 Z
+                                M3,1 Q3,3 5,3 Q3,3 3,5 Q3,3 1,3 Q3,3 3,1 Z" />
+                    <TextBlock Text="{x:Static ui:Strings.EditorAi}" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+
+        <TextBox x:Name="BodyInput" Grid.Row="2" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+                 FontFamily="Cascadia Mono, Consolas" FontSize="13" TextChanged="OnChanged" />
+
+        <!-- Was der Baustein ergibt: Skripte ausgewertet, Tasten als lesbare Tags -->
+        <StackPanel Grid.Row="3" Margin="0,10,0,0">
+            <TextBlock x:Name="PreviewLabel" FontSize="12" Margin="0,0,0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Border Padding="10,6" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="PreviewText" TextWrapping="Wrap" FontFamily="Cascadia Mono, Consolas" FontSize="12" />
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+
+        <DockPanel Grid.Row="4" Margin="0,12,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="TestButton" Content="{x:Static ui:Strings.EditorTest}" MinWidth="100"
+                        ToolTip="{x:Static ui:Strings.EditorTestToolTip}" Click="OnTest" />
+                <Button x:Name="SaveButton" Content="{x:Static ui:Strings.EditorSave}" MinWidth="100" Margin="8,0,0,0"
+                        Style="{DynamicResource AccentButtonStyle}" ToolTip="Ctrl+S" Click="OnSave" />
+                <Button Content="{x:Static ui:Strings.Close}" MinWidth="100" Margin="8,0,0,0" Click="OnCloseClick" />
+            </StackPanel>
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12" Margin="0,0,12,0"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </DockPanel>
+    </Grid>
+</Window>

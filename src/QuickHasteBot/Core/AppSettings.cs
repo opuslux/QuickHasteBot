@@ -50,6 +50,9 @@ public sealed class AppSettings
     /// <summary>Formular-Bausteine abbrechen, wenn ein anderes Fenster nach vorne kommt. Pro Baustein mit {guard,off} abschaltbar.</summary>
     public bool KeyTagsWindowGuard { get; set; } = true;
 
+    /// <summary>"Bearbeiten" öffnet Textbausteine im eingebauten Editor. Aus: mit dem Programm, das Windows für die Endung vorsieht.</summary>
+    public bool UseBuiltInEditor { get; set; } = true;
+
     /// <summary>Element-Picker: {window,process=…} vor den Tag setzen, damit der Baustein das Programm zuerst nach vorne holt.</summary>
     public bool PickerIncludeWindow { get; set; }
 
