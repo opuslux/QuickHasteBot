@@ -44,6 +44,8 @@
   <data name="StructureMissingFormat" xml:space="preserve"><value>{0}  (existiert nicht)</value></data>
   <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Textbausteinen wählen</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Auch im Inhalt der Textbausteine suchen</value></data>
+  <data name="EvaluateScripts" xml:space="preserve"><value>{{ … }} in Textbausteinen als JavaScript ausführen</value></data>
+  <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>Beim Einfügen wird z.B. {{ date() }} zum heutigen Datum. Aus: {{ … }} wird unverändert eingefügt.</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>Allgemein</value></data>
   <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
   <data name="StartupHeading" xml:space="preserve"><value>Start und Anzeige</value></data>
@@ -74,6 +76,8 @@
   <data name="TraySettings" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="TrayOpenStructure" xml:space="preserve"><value>Textbausteine öffnen</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Beenden</value></data>
+  <data name="ScriptErrorFormat" xml:space="preserve"><value>Das Skript in Block {0} von «{1}» ist fehlgeschlagen, nichts wurde eingefügt:
+{2}</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>Der Textbaustein konnte nicht gelesen werden:
 {0}</value></data>
   <data name="UnexpectedErrorFormat" xml:space="preserve"><value>Unerwarteter Fehler:

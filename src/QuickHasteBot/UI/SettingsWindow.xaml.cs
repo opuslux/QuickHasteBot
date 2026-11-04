@@ -30,6 +30,7 @@ internal partial class SettingsWindow : Window
         PositionInput.Position = app.Settings.PopupPosition;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
+        ScriptsInput.IsChecked = app.Settings.EvaluateScripts;
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
         LanguageInput.ItemsSource = UiLanguage.Choices;
@@ -158,6 +159,12 @@ internal partial class SettingsWindow : Window
     void OnSearchContentChanged(object sender, RoutedEventArgs e)
     {
         _app.Settings.SearchContent = SearchContentInput.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnScriptsChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.EvaluateScripts = ScriptsInput.IsChecked == true;
         _app.SaveSettings();
     }
 

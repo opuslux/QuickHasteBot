@@ -85,6 +85,8 @@
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <CheckBox x:Name="SearchContentInput" Content="{x:Static ui:Strings.SearchContent}" Margin="0,8,0,0"
                                   Click="OnSearchContentChanged" />
+                        <CheckBox x:Name="ScriptsInput" Content="{x:Static ui:Strings.EvaluateScripts}" Margin="0,4,0,0"
+                                  ToolTip="{x:Static ui:Strings.EvaluateScriptsToolTip}" Click="OnScriptsChanged" />
                     </StackPanel>
                 </Grid>
             </TabItem>

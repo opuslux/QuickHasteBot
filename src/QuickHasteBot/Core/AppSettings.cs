@@ -41,6 +41,9 @@ public sealed class AppSettings
     /// <summary>Suche auch im Inhalt der Textbausteine, nicht nur im Namen.</summary>
     public bool SearchContent { get; set; } = true;
 
+    /// <summary>{{ … }} in Textbausteinen beim Einfügen als JavaScript auswerten. Aus: wird wörtlich eingefügt (z.B. Mustache-Vorlagen).</summary>
+    public bool EvaluateScripts { get; set; } = true;
+
     /// <summary>Diese Dateien werden eingefügt, alle anderen mit der zugeordneten Anwendung geöffnet.</summary>
     public List<string> TextExtensions { get; set; } = [".txt"];
 

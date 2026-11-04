@@ -10,7 +10,7 @@ The user interface is available in English and German. By default it follows the
 
 Every release comes with two ZIPs containing the same app:
 
-- `QuickHasteBot-x.y.z-win-x64.zip` (about 3 MB) requires the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+- `QuickHasteBot-x.y.z-win-x64.zip` (about 4 MB) requires the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
 - `QuickHasteBot-x.y.z-win-x64-standalone.zip` (about 60 MB) includes the runtime and also works on machines that only have an older .NET installed.
 
 ## Snippets
@@ -79,6 +79,32 @@ With the mouse, the selection follows the pointer as soon as it rests on an entr
 
 - **Clipboard** (default): the text is placed on the clipboard briefly, then Ctrl+V is sent. Afterwards the previous clipboard content is restored, and the clipboard history (Win+V) is not cluttered.
 - **Typing**: the text is sent character by character as Unicode input. This also works where pasting is blocked, but is slower for long texts.
+
+## Scripts
+
+Everything between `{{` and `}}` is evaluated as JavaScript when pasting and replaced by its result. If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts` in `settings.json`).
+
+```
+Zurich, {{ date('d. MMMM yyyy') }}
+Please reply by {{ date('dddd, d.M.', 14) }}.
+Order number: {{ clipboard.trim().toUpperCase() }}
+Total incl. VAT: {{ (19.90 * 1.081).toFixed(2) }}
+```
+
+Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, template strings, arrow functions), these helpers are available:
+
+| Helper | Result |
+|---|---|
+| `date(format, days)` | Today's date, or shifted by `days` (negative for the past). `format` is a [.NET date format](https://learn.microsoft.com/dotnet/standard/base-types/custom-date-and-time-format-strings) in the Windows language and region; without it, the short date (`03.11.2026`). |
+| `time(format)` | The current time, without a format the short time (`14:05`) |
+| `clipboard` | The text on the clipboard before pasting |
+| `guid()` | A new GUID |
+| `user` | The Windows user name |
+
+- All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
+- There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
+- `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
+- If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 
 ## Portable
 
