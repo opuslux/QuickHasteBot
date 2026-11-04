@@ -108,6 +108,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
 | `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
 | `focus(el)`, `click(el)`, `set(el, value)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`. |
+| `window(app)` | Like [`{window,…}`](#other-programs-window): `window('crm')`. |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
@@ -176,10 +177,26 @@ The element is described like this, parts combined with `;`:
 | `class=btn primary` | exactly this class attribute (in Windows programs: the window class) | |
 | `type=edit` | the kind: `edit`, `button`, `checkbox`, `radio`, `combobox`/`dropdown`, `link`, `listitem`, `menuitem`, `tab`, … | |
 | `index=2` | the second match | |
+| `window=crm` | first bring this program to the front and search there, see below | |
 
 QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome, Edge and Firefox fill with the page's form, and Windows programs with their controls (in WinForms, `#name` is the control's name). Each element tag waits up to 5 seconds for the element to appear, e.g. while a page loads, so `{wait}` is rarely needed; on large pages the very first search takes a moment longer. If nothing turns up, the snippet stops with a message. Holding Esc stops the wait.
 
-**Element picker:** the crosshair icon in the popup (next to the sparkle) or "Pick element…" in the tray menu opens a small window that stays on top. Hold the mouse button on its crosshair, drag it onto a field, button or link (a red frame shows what is under the pointer, with its type, id, name, class and value) and let go. The picker then checks which selectors find exactly that element, the most stable first (a real id before the label, ids that web apps generate anew on every load, like `:r3:` or `mui-12345`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`. Another selector or action can be picked, and the tag edited and copied again.
+**Element picker:** the crosshair icon in the popup (next to the sparkle) or "Pick element…" in the tray menu opens a small window that stays on top. Hold the mouse button on its crosshair, drag it onto a field, button or link (a red frame shows what is under the pointer, with its type, id, name, class and value) and let go. The picker then checks which selectors find exactly that element, the most stable first (a real id before the label, ids that web apps generate anew on every load, like `:r3:` or `mui-12345`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`. Another selector or action can be picked, and the tag edited and copied again. With "Include the window" (remembered), the tag starts with `{window,process=…}` for the program it was picked in.
+
+### Other programs: window
+
+`{window,…}` brings a program to the front, and the rest of the snippet goes there. So a snippet works wherever you start it from:
+
+```
+{window,crm}{set,name=Search;type=combobox,"Müller"}{enter}
+```
+
+- `{window,crm}`: a program called `crm(.exe)`, or else a window whose title contains "crm". `{window,process=crm}` only matches the program, `{window,title=Customers*}` only the title (`*` stands for any text; without `*`, part of the title is enough). Case doesn't matter.
+- If the program has several windows, the one used last wins. A minimized window is restored. If none turns up within 5 seconds (e.g. while the program starts), the snippet stops with a message. Holding Esc stops the wait.
+- For a single tag, `window=` in the element does the same: `{set,name=Search;type=combobox;window=crm,"Müller"}`.
+- The window guard follows: it now watches that window instead of turning off. `{guard,off}` still keeps it off.
+
+**Programs running as administrator:** Windows doesn't let normal programs send keys to them or read their fields, and drops everything silently. QuickHasteBot doesn't need administrator rights and doesn't ask for them. Instead, it detects such a program before typing or pasting and says so, and the picker shows it while hovering. The fix is to start that program without administrator rights.
 
 ## Portable
 

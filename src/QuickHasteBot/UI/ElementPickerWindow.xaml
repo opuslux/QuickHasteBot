@@ -70,6 +70,8 @@
                 <RadioButton x:Name="ActionClick" GroupName="Action" Content="{x:Static ui:Strings.PickerActionClick}" MinWidth="90" Checked="OnActionChanged" />
                 <RadioButton x:Name="ActionSet" GroupName="Action" Content="{x:Static ui:Strings.PickerActionSet}" MinWidth="90" Checked="OnActionChanged" />
             </StackPanel>
+            <CheckBox x:Name="IncludeWindowInput" Content="{x:Static ui:Strings.PickerIncludeWindow}" Margin="0,6,0,0"
+                      ToolTip="{x:Static ui:Strings.PickerIncludeWindowToolTip}" Click="OnIncludeWindowChanged" />
             <TextBlock Text="{x:Static ui:Strings.PickerSelectors}" Margin="0,10,0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             <ListBox x:Name="SelectorList" MaxHeight="130" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                      SelectionChanged="OnSelectorChanged" />

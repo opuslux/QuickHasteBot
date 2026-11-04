@@ -52,6 +52,7 @@ public static partial class SnippetScript
         ("focus(el)", "focus a field: '#id', 'name=Label', '.class'"),
         ("click(el)", "click a button or link"),
         ("set(el, value)", "fill a field or dropdown, checkbox 'on'/'off'"),
+        ("window(app)", "bring a program to the front"),
     ];
 
     [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
@@ -131,6 +132,7 @@ public static partial class SnippetScript
         Function("focus", 1, args => ElementMarker(context, "focus", [Format(args, 0) ?? ""]));
         Function("click", 1, args => ElementMarker(context, "click", [Format(args, 0) ?? ""]));
         Function("set", 2, args => ElementMarker(context, "set", [Format(args, 0) ?? "", Format(args, 1) ?? ""]));
+        Function("window", 1, args => ElementMarker(context, "window", [Format(args, 0) ?? ""]));
 
         void Function(string name, int length, Func<JsValue[], string> body) =>
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
@@ -149,7 +151,10 @@ public static partial class SnippetScript
     {
         if (context.Form is null)
             throw new InvalidOperationException("key tags are disabled in the settings");
-        if (!KeyTags.TryParseElement(spec, args, out var steps, out var error))
+        var ok = spec == "window"
+            ? KeyTags.TryParseWindow(args, out var steps, out var error)
+            : KeyTags.TryParseElement(spec, args, out steps, out error);
+        if (!ok)
             throw new ArgumentException(error);
         return context.Form.Markers(steps);
     }

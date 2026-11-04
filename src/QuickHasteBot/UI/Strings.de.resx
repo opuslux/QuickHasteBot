@@ -58,6 +58,14 @@ Wechselt der Baustein absichtlich das Fenster, beginne ihn mit {{guard,off}}.</v
 Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich das Element erkennen lässt.</value></data>
   <data name="FormElementFailedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} hat nicht geklappt.
 {2}</value></data>
+  <data name="FormWindowNotFoundFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Für {1} ist innerhalb von {2} Sekunden kein Fenster aufgetaucht. Ist das Programm offen?</value></data>
+  <data name="FormWindowNotActivatedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Das Fenster für {1} liess sich nicht nach vorne holen.</value></data>
+  <data name="TargetElevatedFormat" xml:space="preserve"><value>«{0}» kommt nicht an {1} heran: Es läuft mit Administratorrechten, und Windows lässt normale Programme dort keine Tasten senden.
+
+{1} ohne Administratorrechte starten (in der Verknüpfung: Eigenschaften › Erweitert/Kompatibilität › «Als Administrator ausführen» ausschalten). QuickHasteBot selbst braucht keine.</value></data>
+  <data name="PickerElevatedFormat" xml:space="preserve"><value>{0} läuft mit Administratorrechten: Windows lässt QuickHasteBot die Felder weder sehen noch ausfüllen. Ohne Administratorrechte starten.</value></data>
+  <data name="PickerIncludeWindow" xml:space="preserve"><value>Fenster mitnehmen</value></data>
+  <data name="PickerIncludeWindowToolTip" xml:space="preserve"><value>Setzt {window,…} davor: Der Baustein holt dann zuerst dieses Programm nach vorne, egal von wo aus du ihn startest.</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Element erfassen…</value></data>
   <data name="PickerTooltip" xml:space="preserve"><value>Formularfeld für Tasten-Tags erfassen (Fadenkreuz)</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Element erfassen</value></data>

@@ -17,8 +17,10 @@ internal sealed record ElementResult(ElementOutcome Outcome, string? Text = null
 
 /// <summary>Was der Picker über das Element unter der Maus anzeigt.</summary>
 /// <param name="Bounds">In physischen Bildschirmpixeln.</param>
+/// <param name="Blocked">Das Programm läuft mit Administratorrechten, Windows lässt uns weder lesen noch ausfüllen.</param>
 internal sealed record ElementInfo(
-    AutomationElement Element, string Id, string Name, string ClassName, string Type, string? Value, string Process, Rect Bounds);
+    AutomationElement? Element, string Id, string Name, string ClassName, string Type, string? Value, string Process, Rect Bounds,
+    bool Blocked = false);
 
 /// <summary>
 /// Elemente per UI Automation finden und bedienen: {focus,…}, {click,…}, {set,…} und der Element-Picker.
@@ -287,6 +289,11 @@ internal static class ElementAutomation
     {
         try
         {
+            // Programme mit Administratorrechten zeigen uns nur ihr Fenster, nicht die Felder: gar nicht erst fragen
+            var root = GetAncestor(WindowFromPoint(new POINT { X = x, Y = y }), GA_ROOT);
+            if (ProcessAccess.IsBlocked(root))
+                return new ElementInfo(null, "", "", "", "", null, ProcessAccess.ProcessName(root), Rect.Empty, Blocked: true);
+
             var point = new Point(x, y);
             var element = AutomationElement.FromPoint(point);
             if (element is null || element.Current.ProcessId == Environment.ProcessId) return null;
@@ -361,6 +368,7 @@ internal static class ElementAutomation
     /// </summary>
     public static IReadOnlyList<ElementSelector> VerifiedSelectors(ElementInfo info)
     {
+        if (info.Element is null) return [];
         var window = TopLevel(info.Element);
         var type = ElementSelector.Types.ContainsKey(ElementSelector.TypeAlias(info.Type)) ? info.Type : null;
         var verified = new List<ElementSelector>();

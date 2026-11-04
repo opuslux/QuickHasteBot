@@ -85,3 +85,50 @@ public class ElementSelectorTests
         Assert.Equal(["name=Absenden;type=button", "name=Absenden", "#:r3:"], candidates);
     }
 }
+
+public class WindowSelectorTests
+{
+    static WindowSelector Parse(string text)
+    {
+        Assert.True(WindowSelector.TryParse(text, out var selector, out var error), error);
+        return selector;
+    }
+
+    [Theory]
+    [InlineData("crm", "crm", "Kunden – CRM", true)]       // Programmname
+    [InlineData("crm", "msedge", "Crm Handbuch – Edge", true)] // oder Titel enthält
+    [InlineData("crm", "notepad", "Einkauf.txt", false)]
+    [InlineData("crm.exe", "Crm", "", true)]
+    [InlineData("process=crm", "msedge", "Crm Handbuch – Edge", false)] // nur der Programmname
+    [InlineData("process=crm", "CRM", "", true)]
+    [InlineData("title=Kunden", "crm", "Stammdaten Kunden", true)]       // ohne * genügt ein Teil
+    [InlineData("title=Kunden*", "crm", "Stammdaten Kunden", false)]     // mit * muss das Muster passen
+    [InlineData("title=Kunden*", "crm", "kunden – Müller AG", true)]
+    [InlineData("title=*Rechnung*.pdf*", "acrobat", "Rechnung 2026-11.pdf - Adobe", true)]
+    public void Windows_match_by_program_or_title(string selector, string process, string title, bool matches) =>
+        Assert.Equal(matches, Parse(selector).Matches(process, title));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("process=")]
+    [InlineData("class=Notepad")]
+    public void Invalid_window_selectors_explain(string text)
+    {
+        Assert.False(WindowSelector.TryParse(text, out _, out var error));
+        Assert.Contains("window", error);
+    }
+
+    [Theory]
+    [InlineData("crm")]
+    [InlineData("process=crm")]
+    [InlineData("title=Kunden*")]
+    public void ToString_round_trips(string text) => Assert.Equal(text, Parse(text).ToString());
+
+    [Fact]
+    public void Element_selectors_can_name_a_window()
+    {
+        Assert.True(ElementSelector.TryParse("name=Suchen;type=combobox;window=process=crm", out var selector, out var error), error);
+        Assert.Equal("crm", selector.Window?.Process);
+        Assert.Equal("name=Suchen;type=combobox;window=process=crm", selector.ToString());
+    }
+}

@@ -10,7 +10,7 @@ namespace QuickHasteBot.Interop;
 /// Ersetzt SendKeys der alten Version (Probleme mit Umlauten, Tastaturlayout und Sonderzeichen wie {}+^%~()).
 /// Muss auf dem UI-Thread laufen (Clipboard braucht STA).
 /// </summary>
-internal enum FormOutcome { Completed, EscapePressed, WindowChanged, ElementNotFound, ElementFailed }
+internal enum FormOutcome { Completed, EscapePressed, WindowChanged, ElementNotFound, ElementFailed, WindowNotFound, WindowNotActivated, Elevated }
 
 /// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
 /// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/>: warum.</param>
@@ -36,10 +36,16 @@ internal sealed class PasteService
         DataFormats.UnicodeText, DataFormats.Text, DataFormats.Rtf, DataFormats.Html, DataFormats.Bitmap, DataFormats.FileDrop,
     ];
 
-    public async Task PasteAsync(string text, PasteMode mode, nint targetWindow)
+    /// <returns>False, wenn das Zielprogramm mit Administratorrechten läuft und Windows die Eingabe verwerfen würde.</returns>
+    public async Task<bool> PasteAsync(string text, PasteMode mode, nint targetWindow)
     {
         if (!await WindowFocus.ActivateAndWaitAsync(targetWindow))
             Log.Info("Zielfenster konnte nicht aktiviert werden, sende trotzdem an das aktuelle Vordergrundfenster");
+        if (ProcessAccess.IsBlocked(GetForegroundWindow()))
+        {
+            Log.Info($"Zielprogramm läuft mit Administratorrechten, Windows lässt nichts einfügen: {ProcessAccess.ProcessName(GetForegroundWindow())}");
+            return false;
+        }
 
         // Sonst wird aus Strg+V bei gedrückter Shift-Taste (Shift+Enter) ein Strg+Shift+V
         await WaitForModifiersReleasedAsync();
@@ -48,6 +54,7 @@ internal sealed class PasteService
             await PasteViaClipboardAsync(text);
         else
             await TypeAsync(text);
+        return true;
     }
 
     static async Task PasteViaClipboardAsync(string text)
@@ -106,7 +113,9 @@ internal sealed class PasteService
     /// </summary>
     public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard)
     {
-        if (!await WindowFocus.ActivateAndWaitAsync(targetWindow))
+        // Beginnt der Baustein mit {window,…}, ist das Fenster vom Hotkey egal
+        var startsWithWindow = steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is WindowStep or ElementStep { Selector.Window: not null };
+        if (!startsWithWindow && !await WindowFocus.ActivateAndWaitAsync(targetWindow))
         {
             // Anders als beim Einfügen nicht einfach ans aktuelle Fenster senden, {enter} & Co. könnten dort Schaden anrichten
             if (windowGuard)
@@ -116,9 +125,12 @@ internal sealed class PasteService
         await WaitForModifiersReleasedAsync();
 
         var guarded = windowGuard;
+        var guardOff = false; // {guard,off} im Baustein: auch {window,…} schaltet den Schutz nicht wieder ein
         var guardWindow = RootOwner(GetForegroundWindow());
         var keyDelay = DefaultKeyDelay;
         var charDelay = 0;
+        nint checkedWindow = 0;
+        var checkedBlocked = false;
 
         for (var i = 0; i < steps.Count; i++)
         {
@@ -126,6 +138,27 @@ internal sealed class PasteService
                 return Aborted(FormOutcome.EscapePressed, i);
             if (guarded && WindowChanged(ref guardWindow))
                 return Aborted(FormOutcome.WindowChanged, i);
+
+            // {window,…} vor dem Element: Programm nach vorne holen, dann dort suchen
+            var searchWindow = GetForegroundWindow();
+            var window = steps[i] switch
+            {
+                WindowStep w => w.Window,
+                ElementStep { Selector.Window: { } w } => w,
+                _ => null,
+            };
+            if (window is not null)
+            {
+                var (hwnd, failure) = await BringToFrontAsync(window, i);
+                if (failure is not null) return failure;
+                searchWindow = hwnd;
+                guardWindow = RootOwner(hwnd);
+                guarded = windowGuard && !guardOff;
+            }
+
+            // Programme mit Administratorrechten nehmen von uns nichts an (UIPI), ohne dass Windows es meldet
+            if (steps[i] is TextStep or KeyStep or ElementStep && Blocked(searchWindow))
+                return Aborted(FormOutcome.Elevated, i, ProcessAccess.ProcessName(searchWindow));
 
             switch (steps[i])
             {
@@ -171,11 +204,15 @@ internal sealed class PasteService
                     keyDelay = charDelay = delay.Milliseconds;
                     break;
 
+                case WindowStep:
+                    // Schon oben nach vorne geholt, kurz Zeit lassen, bis das Programm Eingaben annimmt
+                    await Task.Delay(Math.Max(keyDelay, 100));
+                    break;
+
                 case ElementStep element:
                 {
                     // UI Automation blockiert, darum nicht auf dem UI-Thread. Gesucht wird im Fenster, das jetzt vorne ist.
-                    var window = GetForegroundWindow();
-                    var result = await Task.Run(() => ElementAutomation.Run(element, window, EscapeDown));
+                    var result = await Task.Run(() => ElementAutomation.Run(element, searchWindow, EscapeDown));
                     switch (result.Outcome)
                     {
                         case ElementOutcome.Cancelled:
@@ -197,12 +234,38 @@ internal sealed class PasteService
 
                 case GuardStep guard:
                     guarded = guard.On;
+                    guardOff = !guard.On;
                     if (guard.On)
                         guardWindow = RootOwner(GetForegroundWindow());
                     break;
             }
         }
         return new FormResult(FormOutcome.Completed);
+
+        bool Blocked(nint hwnd)
+        {
+            if (hwnd != checkedWindow)
+                (checkedWindow, checkedBlocked) = (hwnd, ProcessAccess.IsBlocked(hwnd));
+            return checkedBlocked;
+        }
+
+        // Fenster suchen (bis FindTimeout, das Programm startet vielleicht gerade), wiederherstellen und nach vorne holen
+        async Task<(nint Window, FormResult? Failure)> BringToFrontAsync(WindowSelector selector, int step)
+        {
+            var deadline = Environment.TickCount64 + (long)ElementAutomation.FindTimeout.TotalMilliseconds;
+            nint hwnd;
+            while ((hwnd = await Task.Run(() => WindowFinder.Find(selector))) == 0)
+            {
+                if (EscapeDown()) return (0, Aborted(FormOutcome.EscapePressed, step));
+                if (Environment.TickCount64 > deadline) return (0, Aborted(FormOutcome.WindowNotFound, step));
+                await Task.Delay(200);
+            }
+            if (ProcessAccess.IsBlocked(hwnd))
+                return (0, Aborted(FormOutcome.Elevated, step, ProcessAccess.ProcessName(hwnd)));
+            if (!await WindowFinder.ActivateAsync(hwnd))
+                return (0, Aborted(FormOutcome.WindowNotActivated, step));
+            return (hwnd, null);
+        }
 
         FormResult Aborted(FormOutcome outcome, int step, string? error = null)
         {

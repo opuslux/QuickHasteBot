@@ -251,4 +251,36 @@ public class KeyTagsTests
         Assert.Equal(action, step.Action);
         Assert.Equal(selector.ToString(), step.Selector.ToString());
     }
+
+    // --- Fenster ---
+
+    [Fact]
+    public void Window_tag_brings_a_program_to_the_front()
+    {
+        var step = Assert.IsType<WindowStep>(Assert.Single(Steps("{window,crm}")));
+        Assert.Equal("crm", step.Window.Any);
+        Assert.Equal("kunden*", Assert.IsType<WindowStep>(Assert.Single(Steps("{window,title=kunden*}"))).Window.Title);
+    }
+
+    [Fact]
+    public void Window_tag_combines_with_elements_and_text() =>
+        Assert.Equal("{window,process=crm}{set,name=Suchen;type=combobox,\"crm\"}{enter}",
+            Show("{window,process=crm}{set,name=Suchen;type=combobox,\"crm\"}{enter}"));
+
+    [Fact]
+    public void Element_tags_can_carry_their_window()
+    {
+        var step = Element("{set,name=Suchen;type=combobox;window=crm,\"x\"}");
+        Assert.Equal("crm", step.Selector.Window?.Any);
+    }
+
+    [Theory]
+    [InlineData("{window}")]
+    [InlineData("{window,a,b}")]
+    [InlineData("{window,class=x}")]
+    public void Incomplete_window_tags_stay_text(string text) => Assert.Equal("«" + text + "»", Show(text));
+
+    [Fact]
+    public void Scripts_bring_windows_to_the_front() =>
+        Assert.Equal("{window,crm}{focus,#suche}«x»", Show("{{ window('crm') + focus('#suche') + 'x' }}"));
 }

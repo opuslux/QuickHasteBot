@@ -16,6 +16,7 @@ namespace QuickHasteBot.UI;
 /// </summary>
 internal partial class ElementPickerWindow : Window
 {
+    readonly AppController _app;
     readonly ElementHighlight _highlight = new();
     bool _picking;
     bool _probing;
@@ -24,9 +25,11 @@ internal partial class ElementPickerWindow : Window
     ElementInfo? _picked;
     bool _updating;
 
-    public ElementPickerWindow()
+    public ElementPickerWindow(AppController app)
     {
         InitializeComponent();
+        _app = app;
+        IncludeWindowInput.IsChecked = app.Settings.PickerIncludeWindow;
         StatusText.Text = Strings.PickerReady;
         Closed += (_, _) => _highlight.Close();
     }
@@ -66,6 +69,7 @@ internal partial class ElementPickerWindow : Window
             ShowDetails(info);
             if (info is null) _highlight.Hide();
             else _highlight.ShowAt(info.Bounds);
+            StatusText.Text = info is { Blocked: true } ? string.Format(Strings.PickerElevatedFormat, info.Process) : Strings.PickerDragging;
         }
 
         if (_pending is { } next && (next.X != point.X || next.Y != point.Y) && _picking)
@@ -114,8 +118,15 @@ internal partial class ElementPickerWindow : Window
 
     async Task Pick(ElementInfo info)
     {
-        _picked = info;
         ShowDetails(info);
+        if (info.Blocked)
+        {
+            _picked = null;
+            ResultPanel.Visibility = Visibility.Collapsed;
+            StatusText.Text = string.Format(Strings.PickerElevatedFormat, info.Process);
+            return;
+        }
+        _picked = info;
         StatusText.Text = Strings.PickerChecking;
         var selectors = await Task.Run(() => ElementAutomation.VerifiedSelectors(info));
         if (_picked != info) return; // inzwischen ein anderes Element erfasst
@@ -173,7 +184,19 @@ internal partial class ElementPickerWindow : Window
         }
         var action = ActionClick.IsChecked == true ? ElementAction.Click : ActionSet.IsChecked == true ? ElementAction.Set : ElementAction.Focus;
         var value = info.Type == "CheckBox" ? "on" : info.Value ?? "";
-        TagOutput.Text = KeyTags.ElementTag(action, selector, value);
+        var tag = KeyTags.ElementTag(action, selector, value);
+        // process= statt nur des Namens: "crm" allein träfe auch einen Browser-Tab mit Crm im Titel
+        if (IncludeWindowInput.IsChecked == true && info.Process.Length > 0)
+            tag = KeyTags.WindowTag(new WindowSelector(info.Process, null, null)) + tag;
+        TagOutput.Text = tag;
+    }
+
+    void OnIncludeWindowChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.PickerIncludeWindow = IncludeWindowInput.IsChecked == true;
+        _app.SaveSettings();
+        UpdateTag();
+        if (Copy()) StatusText.Text = Strings.PickerCopied;
     }
 
     void OnCopy(object sender, RoutedEventArgs e)

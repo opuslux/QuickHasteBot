@@ -11,7 +11,9 @@ namespace QuickHasteBot.Core;
 /// </summary>
 /// <param name="Classes">Einzelne Klassen aus ".btn.primary", das Element muss sie alle haben.</param>
 /// <param name="Index">Das wievielte passende Element, ab 1.</param>
-public sealed partial record ElementSelector(string? Id, string? Name, string? ClassName, IReadOnlyList<string> Classes, string? Type, int Index)
+/// <param name="Window">window=: dieses Programmfenster zuerst nach vorne holen und darin suchen, sonst im vorderen Fenster.</param>
+public sealed partial record ElementSelector(
+    string? Id, string? Name, string? ClassName, IReadOnlyList<string> Classes, string? Type, int Index, WindowSelector? Window = null)
 {
     /// <summary>Die Typen, die man bei type= angeben kann, mit den Namen von UI Automation (ControlType.*).</summary>
     public static readonly IReadOnlyDictionary<string, string> Types = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -35,6 +37,7 @@ public sealed partial record ElementSelector(string? Id, string? Name, string? C
         selector = new ElementSelector(null, null, null, [], null, 1);
         error = "";
         string? id = null, name = null, className = null, type = null;
+        WindowSelector? window = null;
         var classes = new List<string>();
         var index = 1;
 
@@ -76,6 +79,11 @@ public sealed partial record ElementSelector(string? Id, string? Name, string? C
                     }
                     type = uia;
                     break;
+                case "window":
+                    if (!WindowSelector.TryParse(value, out var w, out error))
+                        return false;
+                    window = w;
+                    break;
                 case "index":
                     if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out index) || index < 1)
                     {
@@ -84,7 +92,7 @@ public sealed partial record ElementSelector(string? Id, string? Name, string? C
                     }
                     break;
                 default:
-                    error = $"unknown selector part \"{key}=\", use id, name, class, type or index";
+                    error = $"unknown selector part \"{key}=\", use id, name, class, type, index or window";
                     return false;
             }
         }
@@ -95,7 +103,7 @@ public sealed partial record ElementSelector(string? Id, string? Name, string? C
             return false;
         }
 
-        selector = new ElementSelector(NullIfEmpty(id), NullIfEmpty(name), NullIfEmpty(className), classes, type, index);
+        selector = new ElementSelector(NullIfEmpty(id), NullIfEmpty(name), NullIfEmpty(className), classes, type, index, window);
         return true;
     }
 
@@ -111,6 +119,7 @@ public sealed partial record ElementSelector(string? Id, string? Name, string? C
         if (ClassName is not null) parts.Add("class=" + ClassName);
         if (Type is not null) parts.Add("type=" + TypeAlias(Type));
         if (Index > 1) parts.Add("index=" + Index.ToString(CultureInfo.InvariantCulture));
+        if (Window is not null) parts.Add("window=" + Window);
         return string.Join(';', parts);
     }
 

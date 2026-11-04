@@ -109,7 +109,7 @@ internal sealed class AppController : IDisposable
     {
         if (_elementPicker is null)
         {
-            var window = new ElementPickerWindow();
+            var window = new ElementPickerWindow(this);
             window.Closed += (_, _) =>
             {
                 if (_elementPicker == window)
@@ -200,6 +200,9 @@ internal sealed class AppController : IDisposable
                 FormOutcome.WindowChanged => string.Format(Strings.FormWindowChangedFormat, snippet.Name),
                 FormOutcome.ElementNotFound => string.Format(Strings.FormElementNotFoundFormat, snippet.Name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
                 FormOutcome.ElementFailed => string.Format(Strings.FormElementFailedFormat, snippet.Name, result.Step, result.Error),
+                FormOutcome.WindowNotFound => string.Format(Strings.FormWindowNotFoundFormat, snippet.Name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
+                FormOutcome.WindowNotActivated => string.Format(Strings.FormWindowNotActivatedFormat, snippet.Name, result.Step),
+                FormOutcome.Elevated => string.Format(Strings.TargetElevatedFormat, snippet.Name, result.Error),
                 _ => null,
             };
             if (message is not null)
@@ -208,7 +211,9 @@ internal sealed class AppController : IDisposable
         }
 
         var mode = alternate ? AppSettings.Other(Settings.PasteMode) : Settings.PasteMode;
-        await _paste.PasteAsync(text, mode, targetWindow);
+        if (!await _paste.PasteAsync(text, mode, targetWindow))
+            MessageBox.Show(string.Format(Strings.TargetElevatedFormat, snippet.Name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
+                "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     /// <summary>

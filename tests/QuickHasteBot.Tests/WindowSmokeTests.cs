@@ -245,7 +245,7 @@ public class WindowSmokeTests
         Snapshot(ai, "ai-prompt.png");
 
         // Element-Picker: vor dem ersten Erfassen nur Fadenkreuz und leere Felder
-        var picker = new ElementPickerWindow();
+        var picker = new ElementPickerWindow(controller);
         Assert.Equal("QuickHasteBot – Element erfassen", picker.Title);
         Assert.Equal(Visibility.Collapsed, picker.ResultPanel.Visibility);
         Assert.Equal("–", picker.IdText.Text);

@@ -23,6 +23,9 @@ public sealed record DelayStep(int Milliseconds) : FormStep;
 /// <summary>{guard,on|off}: Fensterschutz ab hier ein- oder ausschalten.</summary>
 public sealed record GuardStep(bool On) : FormStep;
 
+/// <summary>{window,…}: dieses Programmfenster nach vorne holen, die folgenden Schritte gehen dorthin.</summary>
+public sealed record WindowStep(WindowSelector Window) : FormStep;
+
 public enum ElementAction { Focus, Click, Set }
 
 /// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
@@ -135,6 +138,9 @@ public static partial class KeyTags
         if (spec is "focus" or "click" or "set")
             return TryParseElement(spec, args, out steps, out error);
 
+        if (spec == "window")
+            return TryParseWindow(args, out steps, out error);
+
         if (args.Count > 1)
         {
             error = $"too many arguments in \"{content}\"";
@@ -217,6 +223,20 @@ public static partial class KeyTags
         return true;
     }
 
+    internal static bool TryParseWindow(List<string> args, out IReadOnlyList<FormStep> steps, out string error)
+    {
+        steps = [];
+        if (args.Count != 1)
+        {
+            error = "\"window\" needs a program or title, e.g. {window,crm}";
+            return false;
+        }
+        if (!WindowSelector.TryParse(args[0], out var window, out error))
+            return false;
+        steps = [new WindowStep(window)];
+        return true;
+    }
+
     /// <summary>Ein Element-Tag, wie es der Picker in die Zwischenablage legt. Setzt Argumente nur in "…", wenn nötig.</summary>
     public static string ElementTag(ElementAction action, ElementSelector selector, string? value = null)
     {
@@ -230,6 +250,12 @@ public static partial class KeyTags
             var clean = arg.Replace("\"", "").ReplaceLineEndings(" ");
             return always || clean.IndexOfAny([',', '{', '}']) >= 0 || clean != clean.Trim() ? "\"" + clean + "\"" : clean;
         }
+    }
+
+    public static string WindowTag(WindowSelector window)
+    {
+        var text = window.ToString().Replace("\"", "");
+        return "{window," + (text.IndexOfAny([',', '{', '}']) >= 0 || text != text.Trim() ? "\"" + text + "\"" : text) + "}";
     }
 
     static KeyStep Key(string name, ushort vk, IReadOnlyList<ushort> modifiers, int repeat) =>
@@ -335,6 +361,7 @@ public static partial class KeyTags
         DelayStep d => $"{{delay,{d.Milliseconds}}}",
         GuardStep g => g.On ? "{guard,on}" : "{guard,off}",
         ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
+        WindowStep w => WindowTag(w.Window),
         _ => "",
     };
 

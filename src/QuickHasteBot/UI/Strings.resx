@@ -58,6 +58,14 @@ If the snippet switches windows on purpose, start it with {{guard,off}}.</value>
 The element picker (crosshair in the popup or tray menu) shows how the element can be found.</value></data>
   <data name="FormElementFailedFormat" xml:space="preserve"><value>"{0}" was stopped: {1} didn't work.
 {2}</value></data>
+  <data name="FormWindowNotFoundFormat" xml:space="preserve"><value>"{0}" was stopped: no window for {1} came up within {2} seconds. Is the program open?</value></data>
+  <data name="FormWindowNotActivatedFormat" xml:space="preserve"><value>"{0}" was stopped: the window for {1} couldn't be brought to the front.</value></data>
+  <data name="TargetElevatedFormat" xml:space="preserve"><value>"{0}" can't reach {1}: it runs as administrator, and Windows doesn't let normal programs send keys to it.
+
+Start {1} without administrator rights (in its shortcut: Properties › Advanced/Compatibility › turn off "Run as administrator"). QuickHasteBot itself doesn't need them.</value></data>
+  <data name="PickerElevatedFormat" xml:space="preserve"><value>{0} runs as administrator: Windows doesn't let QuickHasteBot see or fill its fields. Start it without administrator rights.</value></data>
+  <data name="PickerIncludeWindow" xml:space="preserve"><value>Include the window</value></data>
+  <data name="PickerIncludeWindowToolTip" xml:space="preserve"><value>Puts {window,…} in front, so the snippet first brings this program to the front, wherever you start it from.</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Pick element…</value></data>
   <data name="PickerTooltip" xml:space="preserve"><value>Pick a form field for key tags (crosshair)</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Pick element</value></data>
