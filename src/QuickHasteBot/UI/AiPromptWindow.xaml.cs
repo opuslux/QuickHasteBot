@@ -115,7 +115,7 @@ internal partial class AiPromptWindow : Window
 
     void OnResetTemplate(object sender, MouseButtonEventArgs e)
     {
-        if (MessageBox.Show(this, Strings.AiPromptResetConfirm, "QuickHasteBot", MessageBoxButton.YesNo, MessageBoxImage.Question,
+        if (MessageDialog.Show(this, Strings.AiPromptResetConfirm, MessageBoxButton.YesNo, MessageBoxImage.Question,
                 MessageBoxResult.No) != MessageBoxResult.Yes) return;
 
         _app.ResetAiPromptTemplate(new WindowInteropHelper(this).Handle);

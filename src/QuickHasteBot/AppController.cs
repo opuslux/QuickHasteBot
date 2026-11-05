@@ -51,6 +51,7 @@ internal sealed class AppController : IDisposable
 
     public void Start()
     {
+        UiTheme.Apply(Settings.Theme);
         _hotkey = new GlobalHotkey();
         _hotkey.Pressed += (_, _) => ShowSearch();
         _popup = new SearchPopup(this);
@@ -143,7 +144,7 @@ internal sealed class AppController : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Error($"Textbaustein konnte nicht gelesen werden: {path}", ex);
-            MessageBox.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageDialog.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         Track(window);
@@ -241,12 +242,12 @@ internal sealed class AppController : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Error($"Textbaustein konnte nicht gelesen werden: {snippet.FullPath}", ex);
-            MessageBox.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageDialog.Show(string.Format(Strings.SnippetReadErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
         if (await RunTextAsync(text, snippet.Name, alternate, targetWindow, snippet.FullPath) is { } problem)
-            MessageBox.Show(problem.Message, "QuickHasteBot", MessageBoxButton.OK, problem.Icon);
+            MessageDialog.Show(problem.Message, MessageBoxButton.OK, problem.Icon);
     }
 
     /// <summary>Warum ein Baustein nicht (ganz) eingefügt wurde, für eine Meldung.</summary>
@@ -448,7 +449,7 @@ internal sealed class AppController : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Error($"KI-Vorlage konnte nicht angelegt werden: {_paths.AiPromptFile}", ex);
-            MessageBox.Show(string.Format(Strings.AiPromptTemplateErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageDialog.Show(string.Format(Strings.AiPromptTemplateErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -465,7 +466,7 @@ internal sealed class AppController : IDisposable
         catch (IOException ex)
         {
             Log.Error($"KI-Vorlage konnte nicht gelöscht werden: {_paths.AiPromptFile}", ex);
-            MessageBox.Show(string.Format(Strings.AiPromptResetErrorFormat, ex.Message), "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageDialog.Show(string.Format(Strings.AiPromptResetErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -567,6 +568,14 @@ internal sealed class AppController : IDisposable
             oldPrompt.Close();
             ShowAiPrompt(position);
         }
+    }
+
+    /// <summary>Gilt sofort für alle offenen Fenster, anders als die Sprache muss nichts neu aufgebaut werden.</summary>
+    public void ChangeTheme(AppTheme theme)
+    {
+        Settings.Theme = theme;
+        SaveSettings();
+        UiTheme.Apply(theme);
     }
 
     public void SaveSettings() => _store.Save(Settings);

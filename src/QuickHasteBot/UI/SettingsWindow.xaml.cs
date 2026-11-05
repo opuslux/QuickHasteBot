@@ -39,6 +39,8 @@ internal partial class SettingsWindow : Window
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
         LanguageInput.ItemsSource = UiLanguage.Choices;
         LanguageInput.SelectedItem = UiLanguage.Choices.FirstOrDefault(c => c.Code == app.Settings.Language) ?? UiLanguage.Choices[0];
+        ThemeInput.ItemsSource = UiTheme.Choices;
+        ThemeInput.SelectedItem = UiTheme.Choices.FirstOrDefault(c => c.Theme == app.Settings.Theme) ?? UiTheme.Choices[0];
         _loading = false;
 
         UpdateHotkeyStatus();
@@ -61,7 +63,8 @@ internal partial class SettingsWindow : Window
     public void ShowMessage(string message)
     {
         HotkeyStatus.Text = message;
-        HotkeyStatus.Foreground = (Brush)FindResource("SystemFillColorCriticalBrush");
+        // Als Referenz: folgt einem Wechsel zwischen hell und dunkel, solange das Fenster offen ist
+        HotkeyStatus.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCriticalBrush");
     }
 
     // Ein Klick auf einen Tab schiebt in WPF die Tastatur ins erste Feld des Tabs. Im ersten Tab ist das der Hotkey,
@@ -80,7 +83,7 @@ internal partial class SettingsWindow : Window
         if (_app.HotkeyActive)
         {
             HotkeyStatus.Text = Strings.HotkeyActive;
-            HotkeyStatus.Foreground = (Brush)FindResource("TextFillColorSecondaryBrush");
+            HotkeyStatus.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorSecondaryBrush");
         }
         else
         {
@@ -254,6 +257,12 @@ internal partial class SettingsWindow : Window
 
         // Dieses Fenster wird dabei ersetzt, darum erst nach dem Auswahl-Ereignis
         Dispatcher.BeginInvoke(() => _app.ChangeLanguage(choice.Code));
+    }
+
+    void OnThemeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_loading && ThemeInput.SelectedItem is ThemeChoice choice && choice.Theme != _app.Settings.Theme)
+            _app.ChangeTheme(choice.Theme);
     }
 
     void OnRemoveLegacyAutostart(object sender, RoutedEventArgs e)

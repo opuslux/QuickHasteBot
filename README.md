@@ -223,7 +223,7 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 Everything lives next to `QuickHasteBot.exe`:
 
 - `structure\` with your snippets. The path can be changed in the settings (relative, absolute, or with `%USERPROFILE%`).
-- `settings.json` with the settings. It is saved immediately on every change and can also be edited by hand (`"Language": "en"`, `"de"`, or empty for the Windows language).
+- `settings.json` with the settings. It is saved immediately on every change and can also be edited by hand (`"Language": "en"`, `"de"`, or empty for the Windows language; `"Theme": "System"`, `"Light"` or `"Dark"`, also under "Theme" in the settings and applied right away).
 - `ai-prompt.txt` (optional) with your own prompt template for the AI, see [Scripts](#scripts).
 - `QuickHasteBot.log` with errors and startup information.
 

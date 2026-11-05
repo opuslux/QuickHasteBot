@@ -266,7 +266,7 @@ internal partial class SnippetEditorWindow : Window
         // Inzwischen in einem anderen Programm geändert? Nicht still überschreiben.
         if (_path is not null && File.Exists(_path) && File.GetLastWriteTimeUtc(_path) != _savedWriteTime)
         {
-            var answer = MessageBox.Show(this, string.Format(Strings.EditorChangedOnDiskFormat, DisplayName), "QuickHasteBot",
+            var answer = MessageDialog.Show(this, string.Format(Strings.EditorChangedOnDiskFormat, DisplayName),
                 MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
             if (answer != MessageBoxResult.Yes) return false;
         }
@@ -450,7 +450,7 @@ internal partial class SnippetEditorWindow : Window
     void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         if (!IsDirty) return;
-        var answer = MessageBox.Show(this, string.Format(Strings.EditorSaveChangesFormat, DisplayName), "QuickHasteBot",
+        var answer = MessageDialog.Show(this, string.Format(Strings.EditorSaveChangesFormat, DisplayName),
             MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Yes);
         if (answer == MessageBoxResult.Cancel || answer == MessageBoxResult.Yes && !Save())
             e.Cancel = true;

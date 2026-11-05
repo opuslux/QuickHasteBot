@@ -31,6 +31,7 @@ public class WindowSmokeTests
             German();
             English();
             SwitchLanguage();
+            ThemeAndDialogs();
         }
         finally
         {
@@ -534,6 +535,56 @@ public class WindowSmokeTests
         Current().Close();
     }
 
+    /// <summary>Hell/dunkel aus den Einstellungen gilt sofort, die eigenen Meldungen folgen dem Theme.</summary>
+    static void ThemeAndDialogs()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de", "Theme": "Dark" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        Assert.Equal(AppTheme.Dark, controller.Settings.Theme);
+        try
+        {
+            var settings = new SettingsWindow(controller);
+            Assert.Equal("Dunkel", settings.ThemeInput.SelectedItem?.ToString());
+            Assert.Equal(["Automatisch (Windows)", "Hell", "Dunkel"], settings.ThemeInput.Items.Cast<object>().Select(i => i.ToString()));
+            settings.ThemeInput.SelectedIndex = 1;
+            Assert.Equal(ThemeMode.Light, Application.Current.ThemeMode);
+            Assert.Contains(@"""Theme"": ""Light""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+            settings.ThemeInput.SelectedIndex = 2;
+            Assert.Equal(ThemeMode.Dark, Application.Current.ThemeMode);
+            Snapshot(settings, "settings-dark.png");
+            settings.Close();
+
+            // Löschen fragt mit Ja/Nein, vorgewählt und mit Esc: Nein
+            var delete = new MessageDialog(string.Format(Strings.DeleteConfirmFormat, "Gruss.txt"), MessageBoxButton.YesNo,
+                MessageBoxImage.Question, MessageBoxResult.No);
+            Snapshot(delete, "dialog-dark.png");
+            var buttons = delete.Buttons.Children.OfType<System.Windows.Controls.Button>().ToList();
+            Assert.Equal(["Ja", "Nein"], buttons.Select(b => b.Content));
+            Assert.True(buttons[1].IsDefault);
+            Assert.True(buttons[1].IsCancel);
+            Assert.Equal(MessageBoxResult.No, delete.Result);
+            Assert.Equal(Visibility.Visible, delete.Symbol.Visibility);
+            buttons[0].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert.Equal(MessageBoxResult.Yes, delete.Result);
+            Assert.False(delete.IsVisible);
+
+            // Nur OK, ohne Symbol: Esc ergibt OK
+            controller.ChangeTheme(AppTheme.Light);
+            var info = new MessageDialog("Hinweis", MessageBoxButton.OK, MessageBoxImage.None, MessageBoxResult.None);
+            Snapshot(info, "dialog-light.png");
+            Assert.Equal("OK", info.Buttons.Children.OfType<System.Windows.Controls.Button>().Single().Content);
+            Assert.Equal(MessageBoxResult.OK, info.Result);
+            Assert.Equal(Visibility.Collapsed, info.Symbol.Visibility);
+            info.Close();
+        }
+        finally
+        {
+            // Die übrigen Tests rechnen mit dem hellen Theme
+            UiTheme.Apply(AppTheme.Light);
+        }
+    }
+
     static void Snapshot(Window window, string fileName)
     {
         // Offscreen anzeigen, damit Layout und Ressourcen wirklich aufgelöst werden
@@ -556,7 +607,10 @@ public class WindowSmokeTests
         var visual = new DrawingVisual();
         using (var context = visual.RenderOpen())
         {
-            context.DrawRectangle(window.Background ?? Brushes.White, null, new Rect(0, 0, width, height));
+            // Fluent lässt den Hintergrund für Mica durchsichtig: dann den des Themes, sonst wäre auch das dunkle Theme weiss
+            var background = window.Background is SolidColorBrush { Color.A: > 0 } own ? own
+                : window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
+            context.DrawRectangle(background, null, new Rect(0, 0, width, height));
             context.DrawRectangle(new VisualBrush(content), null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
         }
         bitmap.Render(visual);

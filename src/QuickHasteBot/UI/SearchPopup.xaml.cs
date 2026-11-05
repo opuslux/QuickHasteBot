@@ -495,7 +495,7 @@ internal partial class SearchPopup : Window
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Log.Error($"Konnte nicht geändert werden: {snippet.FullPath}", ex);
-            WithDialog(() => MessageBox.Show(this, string.Format(errorFormat, ex.Message), "QuickHasteBot",
+            WithDialog(() => MessageDialog.Show(this, string.Format(errorFormat, ex.Message),
                 MessageBoxButton.OK, MessageBoxImage.Warning));
         }
     }
@@ -503,7 +503,7 @@ internal partial class SearchPopup : Window
     void Delete(Snippet snippet)
     {
         var name = Path.GetFileName(snippet.FullPath);
-        var answer = WithDialog(() => MessageBox.Show(this, string.Format(Strings.DeleteConfirmFormat, name), "QuickHasteBot",
+        var answer = WithDialog(() => MessageDialog.Show(this, string.Format(Strings.DeleteConfirmFormat, name),
             MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No));
         if (answer != MessageBoxResult.Yes) return;
 
@@ -517,7 +517,7 @@ internal partial class SearchPopup : Window
         catch (IOException ex)
         {
             Log.Error($"Löschen von {snippet.FullPath} fehlgeschlagen", ex);
-            WithDialog(() => MessageBox.Show(this, string.Format(Strings.DeleteErrorFormat, name, ex.Message), "QuickHasteBot",
+            WithDialog(() => MessageDialog.Show(this, string.Format(Strings.DeleteErrorFormat, name, ex.Message),
                 MessageBoxButton.OK, MessageBoxImage.Warning));
         }
     }

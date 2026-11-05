@@ -20,6 +20,9 @@ internal sealed class HotkeyBox : TextBox
         AllowDrop = false;
         Cursor = Cursors.Hand;
         CaretBrush = System.Windows.Media.Brushes.Transparent;
+        // Der Fluent-Stil gilt nur für TextBox selbst, nicht für abgeleitete Klassen. Ohne das bliebe das Feld
+        // im alten Windows-Look, im dunklen Theme ein weisser Kasten. Als Referenz, damit es dem Theme-Wechsel folgt.
+        SetResourceReference(StyleProperty, typeof(TextBox));
     }
 
     protected override void OnPreviewTextInput(TextCompositionEventArgs e) => e.Handled = true;

@@ -170,6 +170,13 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="ShowTray" xml:space="preserve"><value>Show tray icon</value></data>
   <data name="LanguageLabel" xml:space="preserve"><value>Language</value></data>
   <data name="LanguageAuto" xml:space="preserve"><value>Automatic (Windows)</value></data>
+  <data name="ThemeLabel" xml:space="preserve"><value>Theme</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>Automatic (Windows)</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="DialogYes" xml:space="preserve"><value>Yes</value></data>
+  <data name="DialogNo" xml:space="preserve"><value>No</value></data>
+  <data name="DialogOk" xml:space="preserve"><value>OK</value></data>
   <data name="ExitApp" xml:space="preserve"><value>Quit QuickHasteBot</value></data>
   <data name="Close" xml:space="preserve"><value>Close</value></data>
   <data name="SearchPlaceholder" xml:space="preserve"><value>Search snippets…</value></data>

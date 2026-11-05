@@ -23,6 +23,14 @@ public enum PopupPosition
     TopRight,
 }
 
+/// <summary>Hell oder dunkel, System folgt der App-Einstellung von Windows (auch beim Umschalten im Betrieb).</summary>
+public enum AppTheme
+{
+    System,
+    Light,
+    Dark,
+}
+
 public sealed class AppSettings
 {
     public const string DefaultStructurePath = "structure";
@@ -67,6 +75,8 @@ public sealed class AppSettings
 
     /// <summary>"en" oder "de", leer heisst: wie die Anzeigesprache von Windows.</summary>
     public string Language { get; set; } = "";
+
+    public AppTheme Theme { get; set; } = AppTheme.System;
 
     /// <summary>Breite des Popups, an den Rändern verstellbar. Schmaler als die Zeile mit den Tastenkürzeln wird es nie.</summary>
     public double PopupWidth { get; set; } = DefaultPopupWidth;
