@@ -13,6 +13,7 @@ internal sealed class TrayIcon : IDisposable
         var menu = new ContextMenu();
         menu.Items.Add(MenuItem(Strings.TraySettings, app.ShowSettings));
         menu.Items.Add(MenuItem(Strings.TrayOpenStructure, app.OpenStructureFolder));
+        menu.Items.Add(MenuItem(Strings.TrayElementPicker, app.ShowElementPicker));
         menu.Items.Add(new Separator());
         menu.Items.Add(MenuItem(Strings.TrayExit, app.Exit));
 

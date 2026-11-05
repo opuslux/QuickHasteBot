@@ -186,4 +186,101 @@ public class KeyTagsTests
         var text = SnippetScript.Render("{{ 'a' + key('tab') + 'b' + key('ctrl+a', 2) }}", SnippetScriptTests.Context with { Form = form });
         Assert.Equal("a{tab}b{ctrl+a,2}", KeyTags.Preview(text, form));
     }
+
+    // --- Element-Tags ---
+
+    static ElementStep Element(string tag) => Assert.IsType<ElementStep>(Assert.Single(Steps(tag)));
+
+    [Fact]
+    public void Element_tags_focus_click_and_set()
+    {
+        var focus = Element("{focus,#email}");
+        Assert.Equal(ElementAction.Focus, focus.Action);
+        Assert.Equal("email", focus.Selector.Id);
+
+        var click = Element("{click,name=Absenden;type=button}");
+        Assert.Equal(ElementAction.Click, click.Action);
+        Assert.Equal("Absenden", click.Selector.Name);
+        Assert.Equal("Button", click.Selector.Type);
+
+        var set = Element("{set,#land,\"Österreich\"}");
+        Assert.Equal(ElementAction.Set, set.Action);
+        Assert.Equal("Österreich", set.Value);
+
+        Assert.Equal("a, b}", Element("{set,#x,\"a, b}\"}").Value);
+        Assert.Equal("Absenden", Element("{click Absenden}").Selector.Name);
+    }
+
+    [Theory]
+    [InlineData("{focus}")]
+    [InlineData("{set,#email}")]
+    [InlineData("{click,#a,#b}")]
+    [InlineData("{focus,type=banana}")]
+    public void Incomplete_element_tags_stay_text(string text) => Assert.Equal("«" + text + "»", Show(text));
+
+    [Fact]
+    public void Element_tags_mix_with_text_and_keys() =>
+        Assert.Equal("{focus,#vorname}«Max»{tab}«Müller»{set,#land,\"Schweiz\"}{click,name=Senden;type=button}",
+            Show("{focus,#vorname}Max{tab}Müller{set,#land,Schweiz}{click,name=Senden;type=button}"));
+
+    [Fact]
+    public void Scripts_use_focus_click_and_set() =>
+        Assert.Equal("{focus,#email}«m@example.com»{set,#ok,\"on\"}{click,name=Senden}",
+            Show("{{ focus('#email') + 'm@example.com' + set('#ok', 'on') + click('Senden') }}"));
+
+    [Fact]
+    public void Bad_selector_in_a_script_is_an_error()
+    {
+        var ex = Assert.Throws<SnippetScriptException>(() => Steps("{{ focus('type=banana') }}"));
+        Assert.Contains("banana", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(ElementAction.Focus, "#email", null, "{focus,#email}")]
+    [InlineData(ElementAction.Set, "#email", "a,b", "{set,#email,\"a,b\"}")]
+    [InlineData(ElementAction.Set, "#ok", "on", "{set,#ok,\"on\"}")]
+    [InlineData(ElementAction.Click, "name=Weiter, bitte;type=button", null, "{click,\"name=Weiter, bitte;type=button\"}")]
+    [InlineData(ElementAction.Set, "#q", "Zitat \"x\"", "{set,#q,\"Zitat x\"}")]
+    public void Picker_tags_parse_back_to_the_same_step(ElementAction action, string selectorText, string? value, string expected)
+    {
+        Assert.True(ElementSelector.TryParse(selectorText, out var selector, out _));
+        var tag = KeyTags.ElementTag(action, selector, value);
+        Assert.Equal(expected, tag);
+
+        var step = Element(tag);
+        Assert.Equal(action, step.Action);
+        Assert.Equal(selector.ToString(), step.Selector.ToString());
+    }
+
+    // --- Fenster ---
+
+    [Fact]
+    public void Window_tag_brings_a_program_to_the_front()
+    {
+        var step = Assert.IsType<WindowStep>(Assert.Single(Steps("{window,crm}")));
+        Assert.Equal("crm", step.Window.Any);
+        Assert.Equal("kunden*", Assert.IsType<WindowStep>(Assert.Single(Steps("{window,title=kunden*}"))).Window.Title);
+    }
+
+    [Fact]
+    public void Window_tag_combines_with_elements_and_text() =>
+        Assert.Equal("{window,process=crm}{set,name=Suchen;type=combobox,\"crm\"}{enter}",
+            Show("{window,process=crm}{set,name=Suchen;type=combobox,\"crm\"}{enter}"));
+
+    [Fact]
+    public void Element_tags_can_carry_their_window()
+    {
+        var step = Element("{set,name=Suchen;type=combobox;window=crm,\"x\"}");
+        Assert.Equal("crm", step.Selector.Window?.Any);
+    }
+
+    [Theory]
+    [InlineData("{window}")]
+    [InlineData("{window,a,b}")]
+    [InlineData("{window,class=x}")]
+    public void Incomplete_window_tags_stay_text(string text) => Assert.Equal("«" + text + "»", Show(text));
+
+    [Fact]
+    public void Scripts_bring_windows_to_the_front() =>
+        Assert.Equal("{window,crm}{focus,#suche}«x»", Show("{{ window('crm') + focus('#suche') + 'x' }}"));
 }

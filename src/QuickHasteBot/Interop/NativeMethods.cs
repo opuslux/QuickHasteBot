@@ -7,7 +7,10 @@ internal static partial class NativeMethods
     public const int WM_HOTKEY = 0x0312;
     public const uint MOD_NOREPEAT = 0x4000;
 
+    public const uint INPUT_MOUSE = 0;
     public const uint INPUT_KEYBOARD = 1;
+    public const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    public const uint MOUSEEVENTF_LEFTUP = 0x0004;
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint KEYEVENTF_UNICODE = 0x0004;
     public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
@@ -21,12 +24,20 @@ internal static partial class NativeMethods
     public const ushort VK_V = 0x56;
     public const ushort VK_ESCAPE = 0x1B;
 
+    public const uint GA_ROOT = 2;
     public const uint GA_ROOTOWNER = 3;
 
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOZORDER = 0x0004;
     public const uint SWP_NOACTIVATE = 0x0010;
+    public const uint SWP_SHOWWINDOW = 0x0040;
+    public static readonly nint HWND_TOPMOST = -1;
+
+    public const int GWL_EXSTYLE = -20;
+    public const long WS_EX_TRANSPARENT = 0x00000020;
+    public const long WS_EX_TOOLWINDOW = 0x00000080;
+    public const long WS_EX_NOACTIVATE = 0x08000000;
 
     public const int DWMWA_CLOAK = 13;
     public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
@@ -156,6 +167,78 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial nint GetAncestor(nint hwnd, uint gaFlags);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool SetCursorPos(int x, int y);
+
+    // Fenster in Z-Reihenfolge durchgehen ({window,…})
+    public const uint GW_HWNDNEXT = 2;
+    public const uint GW_OWNER = 4;
+    public const int SW_RESTORE = 9;
+    public const int DWMWA_CLOAKED = 14;
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetTopWindow(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetWindow(nint hWnd, uint uCmd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsWindowVisible(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsIconic(nint hWnd);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool ShowWindow(nint hWnd, int nCmdShow);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW")]
+    public static unsafe partial int GetWindowText(nint hWnd, char* text, int maxCount);
+
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmGetWindowAttribute(nint hwnd, int attribute, out int value, int size);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint WindowFromPoint(POINT point);
+
+    // Integritätsstufe eines Prozesses: Windows (UIPI) sperrt Eingaben in Programme mit höherer Stufe (Administrator)
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+    public const uint TOKEN_QUERY = 0x0008;
+    public const int TokenIntegrityLevel = 25;
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    public static partial nint OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [LibraryImport("kernel32.dll")]
+    public static partial nint GetCurrentProcess();
+
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool CloseHandle(nint handle);
+
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool OpenProcessToken(nint process, uint access, out nint token);
+
+    [LibraryImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetTokenInformation(nint token, int infoClass, nint info, int length, out int returned);
+
+    [LibraryImport("advapi32.dll")]
+    public static partial nint GetSidSubAuthorityCount(nint sid);
+
+    [LibraryImport("advapi32.dll")]
+    public static partial nint GetSidSubAuthority(nint sid, uint index);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    public static partial nint GetWindowLongPtr(nint hWnd, int nIndex);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    public static partial nint SetWindowLongPtr(nint hWnd, int nIndex, nint dwNewLong);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

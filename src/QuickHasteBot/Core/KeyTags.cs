@@ -23,6 +23,14 @@ public sealed record DelayStep(int Milliseconds) : FormStep;
 /// <summary>{guard,on|off}: Fensterschutz ab hier ein- oder ausschalten.</summary>
 public sealed record GuardStep(bool On) : FormStep;
 
+/// <summary>{window,…}: dieses Programmfenster nach vorne holen, die folgenden Schritte gehen dorthin.</summary>
+public sealed record WindowStep(WindowSelector Window) : FormStep;
+
+public enum ElementAction { Focus, Click, Set }
+
+/// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
+public sealed record ElementStep(ElementAction Action, ElementSelector Selector, string? Value) : FormStep;
+
 /// <summary>
 /// Sammelt die Schritte eines Formular-Bausteins. Im Text stehen statt der Schritte unsichtbare Marker
 /// (Zeichen aus der Private Use Area), damit Tags und key() aus Skripten in einer geordneten Liste landen,
@@ -97,10 +105,25 @@ public static partial class KeyTags
 
     // Ein {{ … }}-Block (bleibt unangetastet) oder ein Tag-Kandidat. Argumente in "…" dürfen } und , enthalten.
     [GeneratedRegex("""\{\{.*?\}\}|\{((?:"[^"]*"|[^{}"\r\n])+)\}""", RegexOptions.Singleline)]
-    private static partial Regex Candidate();
+    internal static partial Regex Candidate();
 
     [GeneratedRegex(@"^((?:(?:ctrl|alt|shift|win)\+)*[a-z0-9]+)(?:\s*,\s*|\s+|$)", RegexOptions.IgnoreCase)]
-    private static partial Regex NamePart();
+    internal static partial Regex NamePart();
+
+    static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "window" };
+
+    /// <summary>
+    /// Ein Name, den es als Tag gibt ("tab", "shift+tab", "ctrl+a", "wait" …), egal ob die Argumente stimmen.
+    /// So lässt sich {tab,x} als fehlerhaftes Tag erkennen, während {name} einfach Text ist.
+    /// </summary>
+    internal static bool IsTagName(string spec)
+    {
+        if (Commands.Contains(spec)) return true;
+        var parts = spec.Split('+');
+        var key = parts[^1];
+        return Keys.ContainsKey(key) || parts.Length > 1 && key.Length == 1 && char.IsAsciiLetterOrDigit(key[0]);
+    }
 
     /// <summary>Ersetzt die Tags ausserhalb von {{ … }} durch Marker für <paramref name="form"/>.</summary>
     public static string MarkTags(string text, FormBuilder form) =>
@@ -126,6 +149,13 @@ public static partial class KeyTags
         var spec = name.Groups[1].Value.ToLowerInvariant();
         var args = SplitArgs(content[name.Length..]);
         if (args is null) return false;
+
+        if (spec is "focus" or "click" or "set")
+            return TryParseElement(spec, args, out steps, out error);
+
+        if (spec == "window")
+            return TryParseWindow(args, out steps, out error);
+
         if (args.Count > 1)
         {
             error = $"too many arguments in \"{content}\"";
@@ -159,7 +189,11 @@ public static partial class KeyTags
                 return true;
             }
             case "clear":
-                if (arg is not null) return false;
+                if (arg is not null)
+                {
+                    error = "\"clear\" takes no arguments";
+                    return false;
+                }
                 steps = [Key("ctrl+a", 0x41, [VK_CONTROL], 1), Key("del", VK_DELETE, [], 1)];
                 return true;
         }
@@ -168,8 +202,12 @@ public static partial class KeyTags
         if (count is { } c)
             repeat = c;
         else if (arg is not null && !int.TryParse(arg, NumberStyles.None, CultureInfo.InvariantCulture, out repeat))
+            repeat = 0;
+        if (repeat < 1)
+        {
+            error = $"the number after \"{spec}\" is how often to press it, e.g. {{{spec},3}}";
             return false;
-        if (repeat < 1) return false;
+        }
         repeat = Math.Min(repeat, MaxRepeat);
 
         var parts = spec.Split('+');
@@ -186,6 +224,61 @@ public static partial class KeyTags
 
         steps = [Key(spec, vk, modifiers, repeat)];
         return true;
+    }
+
+    /// <summary>{focus,#email}, {click,Absenden}, {set,#land,"Österreich"}.</summary>
+    internal static bool TryParseElement(string spec, List<string> args, out IReadOnlyList<FormStep> steps, out string error)
+    {
+        steps = [];
+        var action = spec switch { "focus" => ElementAction.Focus, "click" => ElementAction.Click, _ => ElementAction.Set };
+        var expected = action == ElementAction.Set ? 2 : 1;
+        if (args.Count != expected)
+        {
+            error = action == ElementAction.Set
+                ? "\"set\" needs an element and a value, e.g. {set,#email,\"max@example.com\"}"
+                : $"\"{spec}\" needs an element, e.g. {{{spec},#email}} or {{{spec},name=Send}}";
+            return false;
+        }
+        if (!ElementSelector.TryParse(args[0], out var selector, out error))
+            return false;
+
+        steps = [new ElementStep(action, selector, action == ElementAction.Set ? args[1] : null)];
+        return true;
+    }
+
+    internal static bool TryParseWindow(List<string> args, out IReadOnlyList<FormStep> steps, out string error)
+    {
+        steps = [];
+        if (args.Count != 1)
+        {
+            error = "\"window\" needs a program or title, e.g. {window,crm}";
+            return false;
+        }
+        if (!WindowSelector.TryParse(args[0], out var window, out error))
+            return false;
+        steps = [new WindowStep(window)];
+        return true;
+    }
+
+    /// <summary>Ein Element-Tag, wie es der Picker in die Zwischenablage legt. Setzt Argumente nur in "…", wenn nötig.</summary>
+    public static string ElementTag(ElementAction action, ElementSelector selector, string? value = null)
+    {
+        var tag = "{" + action.ToString().ToLowerInvariant() + "," + Quote(selector.ToString());
+        if (action == ElementAction.Set)
+            tag += "," + Quote(value ?? "", always: true);
+        return tag + "}";
+
+        static string Quote(string arg, bool always = false)
+        {
+            var clean = arg.Replace("\"", "").ReplaceLineEndings(" ");
+            return always || clean.IndexOfAny([',', '{', '}']) >= 0 || clean != clean.Trim() ? "\"" + clean + "\"" : clean;
+        }
+    }
+
+    public static string WindowTag(WindowSelector window)
+    {
+        var text = window.ToString().Replace("\"", "");
+        return "{window," + (text.IndexOfAny([',', '{', '}']) >= 0 || text != text.Trim() ? "\"" + text + "\"" : text) + "}";
     }
 
     static KeyStep Key(string name, ushort vk, IReadOnlyList<ushort> modifiers, int repeat) =>
@@ -290,6 +383,8 @@ public static partial class KeyTags
         WaitStep w => $"{{wait,{w.Milliseconds}}}",
         DelayStep d => $"{{delay,{d.Milliseconds}}}",
         GuardStep g => g.On ? "{guard,on}" : "{guard,off}",
+        ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
+        WindowStep w => WindowTag(w.Window),
         _ => "",
     };
 

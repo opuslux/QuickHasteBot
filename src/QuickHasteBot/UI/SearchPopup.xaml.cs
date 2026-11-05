@@ -374,6 +374,12 @@ internal partial class SearchPopup : Window
         _app.ShowAiPrompt();
     }
 
+    void OnElementPickerClick(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        _app.ShowElementPicker();
+    }
+
     void OnEditClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, EditSelected);
 
     void OnExplorerClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, RevealSelected);
@@ -391,7 +397,7 @@ internal partial class SearchPopup : Window
     void EditSelected()
     {
         Hide();
-        _app.Edit(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
+        _app.EditSnippet(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
     }
 
     void RevealSelected()
@@ -419,17 +425,31 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
-    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: nur Umbenennen.</summary>
+    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: Umbenennen. Beide: Neuer Baustein.</summary>
     void ShowItemMenu(Snippet snippet, UIElement target)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
         // Alles andere öffnet schon per Klick die zugeordnete Anwendung
         if (snippet.Kind == SnippetKind.Text)
+        {
             menu.Items.Add(MenuEntry(Strings.MenuEdit, () =>
             {
                 Hide();
-                _app.Edit(snippet);
+                _app.EditSnippet(snippet);
             }));
+            if (_app.Settings.UseBuiltInEditor)
+                menu.Items.Add(MenuEntry(Strings.MenuEditExternal, () =>
+                {
+                    Hide();
+                    _app.Edit(snippet);
+                }));
+        }
+        // Neuer Baustein im Ordner bzw. neben der Datei
+        menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, () =>
+        {
+            Hide();
+            _app.NewSnippet(snippet);
+        }));
         menu.Items.Add(MenuEntry(Strings.MenuRename, () => Rename(snippet)));
         if (!snippet.IsFolder)
         {
@@ -572,6 +592,10 @@ internal partial class SearchPopup : Window
                 break;
             case Key.O when ctrl:
                 EditSelected();
+                break;
+            case Key.N when ctrl:
+                Hide();
+                _app.NewSnippet(_viewModel.CurrentFolder);
                 break;
             case Key.E when ctrl:
                 RevealSelected();

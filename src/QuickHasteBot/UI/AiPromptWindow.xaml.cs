@@ -182,6 +182,7 @@ internal partial class AiPromptWindow : Window
                 ShowTestResult(result, "TextFillColorPrimaryBrush", monospace: true);
             WrappedHint.Visibility = wrapped ? Visibility.Visible : Visibility.Hidden;
             CopyRow.Visibility = Visibility.Visible;
+            InsertButton.Visibility = _app.ActiveEditor is null ? Visibility.Collapsed : Visibility.Visible;
         }
         catch (SnippetScriptException ex)
         {
@@ -191,6 +192,14 @@ internal partial class AiPromptWindow : Window
 
     /// <summary>Was "Block kopieren" in die Zwischenablage legt: die Antwort ohne Codeblock-Zäune, mit {{ }}.</summary>
     internal string Block { get; private set; } = "";
+
+    /// <summary>Block in den zuletzt benutzten Editor, an die Schreibmarke.</summary>
+    void OnInsertBlock(object sender, RoutedEventArgs e)
+    {
+        if (_app.ActiveEditor is not { } editor || Block.Length == 0) return;
+        editor.Insert(Block);
+        editor.Activate();
+    }
 
     void OnCopyBlock(object sender, RoutedEventArgs e)
     {

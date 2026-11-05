@@ -1,0 +1,175 @@
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.Document;
+using ICSharpCode.AvalonEdit.Rendering;
+using QuickHasteBot.Core;
+
+namespace QuickHasteBot.UI;
+
+/// <summary>
+/// Farben für Tags und Skripte im Editor, nach <see cref="SnippetSyntax"/>. Hell und dunkel je nach Fluent-Theme:
+/// erkannt an der Textfarbe des Editors, die per DynamicResource mitwechselt. Fehlerhafte Tags sind rot unterstrichen,
+/// darüber zeigt ein Tooltip den Grund.
+/// </summary>
+internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisposable
+{
+    sealed record Palette(Brush Key, Brush Element, Brush Argument, Brush String, Brush Error, Brush Delimiter,
+        Brush Keyword, Brush Helper, Brush Number, Brush Comment)
+    {
+        public Brush For(SyntaxKind kind) => kind switch
+        {
+            SyntaxKind.Key => Key,
+            SyntaxKind.Element => Element,
+            SyntaxKind.Argument => Argument,
+            SyntaxKind.String => String,
+            SyntaxKind.Error => Error,
+            SyntaxKind.ScriptDelimiter => Delimiter,
+            SyntaxKind.Keyword => Keyword,
+            SyntaxKind.Helper => Helper,
+            SyntaxKind.Number => Number,
+            _ => Comment,
+        };
+    }
+
+    // An die Farben von VS Code angelehnt, auf dem jeweiligen Fluent-Hintergrund gut lesbar
+    static readonly Palette Light = new(Brush("#0060B8"), Brush("#9A1FB8"), Brush("#1A7F8A"), Brush("#A31515"), Brush("#D13438"),
+        Brush("#B35900"), Brush("#0000E0"), Brush("#795E26"), Brush("#098658"), Brush("#5F7F3F"));
+    static readonly Palette Dark = new(Brush("#5CB8FF"), Brush("#D49BE0"), Brush("#4EC9B0"), Brush("#CE9178"), Brush("#FF8A80"),
+        Brush("#E0B060"), Brush("#6FA8E8"), Brush("#DCDCAA"), Brush("#B5CEA8"), Brush("#7FA866"));
+
+    static readonly TextDecorationCollection ErrorUnderline = CreateUnderline();
+
+    readonly TextEditor _editor;
+    readonly bool _keyTags;
+    readonly bool _scripts;
+    readonly DependencyPropertyDescriptor _foreground = DependencyPropertyDescriptor.FromProperty(Control.ForegroundProperty, typeof(TextEditor));
+    readonly ToolTip _toolTip = new();
+    IReadOnlyList<SyntaxSpan> _spans = [];
+    ITextSourceVersion? _version;
+    Palette _palette = Light;
+
+    SnippetHighlighting(TextEditor editor, bool keyTags, bool scripts)
+    {
+        _editor = editor;
+        _keyTags = keyTags;
+        _scripts = scripts;
+    }
+
+    /// <summary>Hängt die Farben an <paramref name="editor"/>. Beim Schliessen Dispose aufrufen.</summary>
+    public static SnippetHighlighting Attach(TextEditor editor, bool keyTags, bool scripts)
+    {
+        var highlighting = new SnippetHighlighting(editor, keyTags, scripts);
+        highlighting.UpdatePalette();
+        editor.TextArea.TextView.LineTransformers.Add(highlighting);
+        // Eine Änderung kann andere Zeilen umfärben ("{{" ohne Ende, dann "}}" drei Zeilen weiter)
+        editor.TextChanged += highlighting.OnTextChanged;
+        highlighting._foreground.AddValueChanged(editor, highlighting.OnThemeChanged);
+        editor.TextArea.TextView.MouseHover += highlighting.OnMouseHover;
+        editor.TextArea.TextView.MouseHoverStopped += highlighting.OnMouseHoverStopped;
+        return highlighting;
+    }
+
+    public void Dispose()
+    {
+        // Der Descriptor hält den Editor sonst fest
+        _foreground.RemoveValueChanged(_editor, OnThemeChanged);
+        _toolTip.IsOpen = false;
+    }
+
+    void OnTextChanged(object? sender, EventArgs e) => _editor.TextArea.TextView.Redraw();
+
+    void OnThemeChanged(object? sender, EventArgs e)
+    {
+        UpdatePalette();
+        _editor.TextArea.TextView.Redraw();
+    }
+
+    /// <summary>Heller Text = dunkles Theme.</summary>
+    void UpdatePalette()
+    {
+        var dark = _editor.Foreground is SolidColorBrush { Color: var c } && (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) > 128;
+        _palette = dark ? Dark : Light;
+    }
+
+    IReadOnlyList<SyntaxSpan> Spans()
+    {
+        var document = _editor.Document;
+        if (_version is null || !_version.Equals(document.Version))
+        {
+            _spans = SnippetSyntax.Tokenize(document.Text, _keyTags, _scripts);
+            _version = document.Version;
+        }
+        return _spans;
+    }
+
+    protected override void ColorizeLine(DocumentLine line)
+    {
+        var spans = Spans();
+        foreach (var span in spans)
+        {
+            if (span.End <= line.Offset) continue;
+            if (span.Start >= line.EndOffset) break;
+            var start = Math.Max(span.Start, line.Offset);
+            var end = Math.Min(span.End, line.EndOffset);
+            if (end <= start) continue;
+
+            var brush = _palette.For(span.Kind);
+            var bold = span.Kind == SyntaxKind.ScriptDelimiter;
+            var error = span.Kind == SyntaxKind.Error;
+            ChangeLinePart(start, end, element =>
+            {
+                element.TextRunProperties.SetForegroundBrush(brush);
+                if (bold)
+                {
+                    var face = element.TextRunProperties.Typeface;
+                    element.TextRunProperties.SetTypeface(new Typeface(face.FontFamily, face.Style, FontWeights.Bold, face.Stretch));
+                }
+                if (error)
+                    element.TextRunProperties.SetTextDecorations(ErrorUnderline);
+            });
+        }
+    }
+
+    /// <summary>Über einem fehlerhaften Tag sagt ein Tooltip, was nicht stimmt.</summary>
+    void OnMouseHover(object sender, MouseEventArgs e)
+    {
+        var view = _editor.TextArea.TextView;
+        if (ErrorAt(e.GetPosition(view)) is not { } error) return;
+        _toolTip.PlacementTarget = view;
+        _toolTip.Content = error;
+        _toolTip.IsOpen = true;
+        e.Handled = true;
+    }
+
+    /// <summary>Warum das Tag an <paramref name="point"/> (relativ zur TextView) nicht gilt, null wenn dort keins ist.</summary>
+    internal string? ErrorAt(Point point)
+    {
+        var view = _editor.TextArea.TextView;
+        view.EnsureVisualLines();
+        if (view.GetPositionFloor(point + view.ScrollOffset) is not { } position) return null;
+        var offset = _editor.Document.GetOffset(position.Location);
+        return Spans().FirstOrDefault(s => s.Kind == SyntaxKind.Error && offset >= s.Start && offset < s.End).Error;
+    }
+
+    void OnMouseHoverStopped(object sender, MouseEventArgs e) => _toolTip.IsOpen = false;
+
+    static SolidColorBrush Brush(string hex)
+    {
+        var brush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+        brush.Freeze();
+        return brush;
+    }
+
+    static TextDecorationCollection CreateUnderline()
+    {
+        var pen = new Pen(Brush("#E81123"), 1) { DashStyle = DashStyles.Dot };
+        pen.Freeze();
+        var decorations = new TextDecorationCollection { new TextDecoration(TextDecorationLocation.Underline, pen, 1, TextDecorationUnit.FontRecommended, TextDecorationUnit.FontRecommended) };
+        decorations.Freeze();
+        return decorations;
+    }
+}
