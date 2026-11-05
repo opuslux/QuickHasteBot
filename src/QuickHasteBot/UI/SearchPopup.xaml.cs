@@ -124,7 +124,8 @@ internal partial class SearchPopup : Window
         // Die Kürzel hängen von Sprache und Einfügemethode ab, deshalb bei jedem Öffnen neu messen. Jedes einzeln,
         // die StackPanel selbst meldet nur, was beim letzten Layout Platz hatte. Vor dem ersten Anzeigen ist die
         // Bindung der Einfügehinweise noch nicht übertragen, das hier sofort nachholen.
-        PasteHintsText.SetCurrentValue(TextBlock.TextProperty, _viewModel.PasteHints);
+        EnterHint.SetCurrentValue(KeyHint.LabelProperty, _viewModel.EnterHint);
+        ShiftEnterHint.SetCurrentValue(KeyHint.LabelProperty, _viewModel.ShiftEnterHint);
         var unlimited = new Size(double.PositiveInfinity, double.PositiveInfinity);
         var hints = HintBar.Children.OfType<UIElement>().Sum(hint =>
         {

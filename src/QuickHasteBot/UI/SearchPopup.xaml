@@ -195,9 +195,12 @@
                                 <TextBlock Text="›" FontSize="12" Margin="5,0"
                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                            Visibility="{Binding ShowSeparator, Converter={StaticResource BoolToVisibility}}" />
-                                <TextBlock Text="{Binding Name}" FontSize="12" MouseLeftButtonUp="OnBreadcrumbClick">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
+                                <!-- Symbol und Name zusammen anklickbar, beim Darüberfahren beide in Akzentfarbe -->
+                                <StackPanel Orientation="Horizontal" Background="Transparent" MouseLeftButtonUp="OnBreadcrumbClick">
+                                    <StackPanel.Resources>
+                                        <Style x:Key="CrumbPart" TargetType="TextBlock">
+                                            <Setter Property="FontSize" Value="12" />
+                                            <Setter Property="VerticalAlignment" Value="Center" />
                                             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsNavigable}" Value="True">
@@ -206,15 +209,32 @@
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
                                                         <Condition Binding="{Binding IsNavigable}" Value="True" />
-                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True" />
+                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=StackPanel}}" Value="True" />
                                                     </MultiDataTrigger.Conditions>
                                                     <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                                                    <Setter Property="TextDecorations" Value="Underline" />
                                                 </MultiDataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                    </StackPanel.Resources>
+                                    <TextBlock Text="&#xE80F;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Margin="0,1,5,0"
+                                               Style="{StaticResource CrumbPart}"
+                                               Visibility="{Binding IsRoot, Converter={StaticResource BoolToVisibility}}" />
+                                    <TextBlock Text="{Binding Name}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource CrumbPart}">
+                                                <Style.Triggers>
+                                                    <MultiDataTrigger>
+                                                        <MultiDataTrigger.Conditions>
+                                                            <Condition Binding="{Binding IsNavigable}" Value="True" />
+                                                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=StackPanel}}" Value="True" />
+                                                        </MultiDataTrigger.Conditions>
+                                                        <Setter Property="TextDecorations" Value="Underline" />
+                                                    </MultiDataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -346,30 +366,18 @@
                 </ui:FillDecorator>
             </Grid>
 
-            <!-- Tastenkürzel, die Befehle lassen sich auch anklicken -->
+            <!-- Tastenkürzel, Tasten als Kästchen. Bearbeiten, Explorer und Einstellungen lassen sich auch anklicken. -->
             <StackPanel x:Name="HintBar" Grid.Row="3" Orientation="Horizontal" Margin="4,8,4,0">
                 <StackPanel.Resources>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="FontSize" Value="11" />
-                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                    </Style>
-                    <Style x:Key="HintLink" TargetType="TextBlock">
-                        <Setter Property="FontSize" Value="11" />
+                    <Style TargetType="ui:KeyHint">
                         <Setter Property="Margin" Value="12,0,0,0" />
-                        <Setter Property="Cursor" Value="Hand" />
-                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                                <Setter Property="TextDecorations" Value="Underline" />
-                            </Trigger>
-                        </Style.Triggers>
                     </Style>
                 </StackPanel.Resources>
-                <TextBlock x:Name="PasteHintsText" Text="{Binding PasteHints}" />
-                <TextBlock Text="{x:Static ui:Strings.HintEdit}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnEditClick" />
-                <TextBlock Text="{x:Static ui:Strings.HintExplorer}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnExplorerClick" />
-                <TextBlock Text="{x:Static ui:Strings.HintSettings}" Style="{StaticResource HintLink}" MouseLeftButtonUp="OnSettingsClick" />
+                <ui:KeyHint x:Name="EnterHint" Keys="Enter" Label="{Binding EnterHint}" Margin="0" />
+                <ui:KeyHint x:Name="ShiftEnterHint" Keys="Shift Enter" Label="{Binding ShiftEnterHint}" />
+                <ui:KeyHint Keys="Ctrl O" Label="{x:Static ui:Strings.HintEdit}" IsLink="True" MouseLeftButtonUp="OnEditClick" />
+                <ui:KeyHint Keys="Ctrl E" Label="{x:Static ui:Strings.HintExplorer}" IsLink="True" MouseLeftButtonUp="OnExplorerClick" />
+                <ui:KeyHint Keys="Ctrl ," Label="{x:Static ui:Strings.HintSettings}" IsLink="True" MouseLeftButtonUp="OnSettingsClick" />
             </StackPanel>
         </Grid>
 

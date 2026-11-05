@@ -459,7 +459,7 @@ public class WindowSmokeTests
         Assert.Equal(popup.MinWidth, popup.Width);
         Snapshot(popup, "popup-narrow.png");
         Assert.InRange(popup.MinWidth, 300, 600);
-        // Die ganze Zeile hat Platz, auch "Ctrl+, Settings" am Ende
+        // Die ganze Zeile hat Platz, auch "Ctrl , Settings" am Ende
         Assert.True(popup.HintBar.ActualWidth >= popup.HintBar.Children.OfType<FrameworkElement>().Sum(c => c.ActualWidth + c.Margin.Left + c.Margin.Right) - 0.5);
         controller.Settings.PopupWidth = 900;
         popup.ApplyWidth();

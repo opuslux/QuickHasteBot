@@ -105,10 +105,11 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     public bool IsEmpty => _emptyText.Length > 0;
 
-    /// <summary>Bearbeiten, Explorer und Einstellungen stehen daneben als Links im Popup.</summary>
-    public string PasteHints => app.Settings.PasteMode == PasteMode.Clipboard
-        ? Strings.HintsClipboard
-        : Strings.HintsTyping;
+    /// <summary>Was Enter tut, je nach Einfügemethode. Bearbeiten, Explorer und Einstellungen stehen daneben als Links im Popup.</summary>
+    public string EnterHint => app.Settings.PasteMode == PasteMode.Clipboard ? Strings.HintPaste : Strings.HintType;
+
+    /// <summary>Shift+Enter nimmt die andere Methode.</summary>
+    public string ShiftEnterHint => app.Settings.PasteMode == PasteMode.Clipboard ? Strings.HintType : Strings.HintPaste;
 
     /// <summary>Der gerade angezeigte Ordner im Blätter-Modus.</summary>
     public Snippet CurrentFolder => app.Library.Find(_folderPath) ?? app.Library.Root;
@@ -126,7 +127,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         OnPropertyChanged(nameof(Query));
         OnPropertyChanged(nameof(ShowPlaceholder));
         // Kann sich inzwischen im Einstellungsfenster geändert haben
-        OnPropertyChanged(nameof(PasteHints));
+        OnPropertyChanged(nameof(EnterHint));
+        OnPropertyChanged(nameof(ShiftEnterHint));
         OnPropertyChanged(nameof(RememberFolder));
         OnPropertyChanged(nameof(WrapPreview));
         Refresh(selectRelativePath: startFolder is null && settings.RememberFolder ? settings.LastSelected : null);
@@ -268,7 +270,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     static IReadOnlyList<Breadcrumb> BuildBreadcrumbs(string folderPath)
     {
         var parts = SplitPath(folderPath);
-        var crumbs = new List<Breadcrumb> { new(Strings.BreadcrumbRoot, parts.Length > 0 ? "" : null, ShowSeparator: false) };
+        var crumbs = new List<Breadcrumb> { new(Strings.BreadcrumbRoot, parts.Length > 0 ? "" : null, ShowSeparator: false, IsRoot: true) };
         for (var i = 0; i < parts.Length; i++)
         {
             var isCurrent = i == parts.Length - 1;
