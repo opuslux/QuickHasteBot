@@ -144,6 +144,9 @@ public static partial class SnippetScript
             throw new InvalidOperationException("key tags are disabled in the settings");
         if (!KeyTags.TryParse(spec, count, out var steps, out var error))
             throw new ArgumentException(error);
+        // Programme startet nur, was wörtlich im Baustein steht, nie Skript-Ausgabe oder die Zwischenablage
+        if (steps.Any(s => s is StartStep))
+            throw new ArgumentException("scripts can't start programs, write {start,…} in the snippet text");
         return context.Form.Markers(steps);
     }
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using QuickHasteBot.Core;
@@ -10,10 +11,17 @@ namespace QuickHasteBot.Interop;
 /// Ersetzt SendKeys der alten Version (Probleme mit Umlauten, Tastaturlayout und Sonderzeichen wie {}+^%~()).
 /// Muss auf dem UI-Thread laufen (Clipboard braucht STA).
 /// </summary>
-internal enum FormOutcome { Completed, EscapePressed, WindowChanged, ElementNotFound, ElementFailed, WindowNotFound, WindowNotActivated, Elevated }
+internal enum FormOutcome
+{
+    Completed, EscapePressed, WindowChanged, ElementNotFound, ElementFailed, WindowNotFound, WindowNotActivated, Elevated,
+    /// <summary>{start,…}: Windows konnte das Programm nicht starten (nicht gefunden, UAC abgelehnt …).</summary>
+    StartFailed,
+    /// <summary>{start,…}: gestartet, aber in <see cref="WindowFinder.StartTimeout"/> kein Fenster mit dem Programmnamen.</summary>
+    StartedWindowNotFound,
+}
 
 /// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
-/// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/>: warum.</param>
+/// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/> und <see cref="FormOutcome.StartFailed"/>: warum.</param>
 internal sealed record FormResult(FormOutcome Outcome, string? Step = null, string? Error = null);
 
 internal sealed class PasteService
@@ -113,8 +121,8 @@ internal sealed class PasteService
     /// </summary>
     public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard)
     {
-        // Beginnt der Baustein mit {window,…}, ist das Fenster vom Hotkey egal
-        var startsWithWindow = steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is WindowStep or ElementStep { Selector.Window: not null };
+        // Beginnt der Baustein mit {window,…} oder {start,…}, ist das Fenster vom Hotkey egal
+        var startsWithWindow = steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is WindowStep or StartStep or ElementStep { Selector.Window: not null };
         if (!startsWithWindow && !await WindowFocus.ActivateAndWaitAsync(targetWindow))
         {
             // Anders als beim Einfügen nicht einfach ans aktuelle Fenster senden, {enter} & Co. könnten dort Schaden anrichten
@@ -139,17 +147,18 @@ internal sealed class PasteService
             if (guarded && WindowChanged(ref guardWindow))
                 return Aborted(FormOutcome.WindowChanged, i);
 
-            // {window,…} vor dem Element: Programm nach vorne holen, dann dort suchen
+            // {window,…} vor dem Element: Programm nach vorne holen, dann dort suchen. {start,…} startet es vorher, falls nötig.
             var searchWindow = GetForegroundWindow();
             var window = steps[i] switch
             {
                 WindowStep w => w.Window,
+                StartStep s => s.Window,
                 ElementStep { Selector.Window: { } w } => w,
                 _ => null,
             };
             if (window is not null)
             {
-                var (hwnd, failure) = await BringToFrontAsync(window, i);
+                var (hwnd, failure) = await BringToFrontAsync(window, i, steps[i] as StartStep);
                 if (failure is not null) return failure;
                 searchWindow = hwnd;
                 guardWindow = RootOwner(hwnd);
@@ -204,7 +213,7 @@ internal sealed class PasteService
                     keyDelay = charDelay = delay.Milliseconds;
                     break;
 
-                case WindowStep:
+                case WindowStep or StartStep:
                     // Schon oben nach vorne geholt, kurz Zeit lassen, bis das Programm Eingaben annimmt
                     await Task.Delay(Math.Max(keyDelay, 100));
                     break;
@@ -249,22 +258,45 @@ internal sealed class PasteService
             return checkedBlocked;
         }
 
-        // Fenster suchen (bis FindTimeout, das Programm startet vielleicht gerade), wiederherstellen und nach vorne holen
-        async Task<(nint Window, FormResult? Failure)> BringToFrontAsync(WindowSelector selector, int step)
+        // Fenster suchen (bis FindTimeout, das Programm startet vielleicht gerade), wiederherstellen und nach vorne holen.
+        // Mit start: ist keins da, das Programm starten und länger warten, bis StartTimeout.
+        async Task<(nint Window, FormResult? Failure)> BringToFrontAsync(WindowSelector selector, int step, StartStep? start)
         {
-            var deadline = Environment.TickCount64 + (long)ElementAutomation.FindTimeout.TotalMilliseconds;
-            nint hwnd;
-            while ((hwnd = await Task.Run(() => WindowFinder.Find(selector))) == 0)
+            var hwnd = await Task.Run(() => WindowFinder.Find(selector));
+            var launched = false;
+            Process? process = null;
+            try
             {
-                if (EscapeDown()) return (0, Aborted(FormOutcome.EscapePressed, step));
-                if (Environment.TickCount64 > deadline) return (0, Aborted(FormOutcome.WindowNotFound, step));
-                await Task.Delay(200);
+                if (hwnd == 0 && start is not null)
+                {
+                    if (!WindowFinder.TryStart(start, out process, out var error))
+                        return (0, Aborted(FormOutcome.StartFailed, step, error));
+                    launched = true;
+                }
+
+                var timeout = launched ? WindowFinder.StartTimeout : ElementAutomation.FindTimeout;
+                var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
+                while (hwnd == 0)
+                {
+                    if (EscapeDown()) return (0, Aborted(FormOutcome.EscapePressed, step));
+                    if (Environment.TickCount64 > deadline)
+                        return (0, Aborted(launched ? FormOutcome.StartedWindowNotFound : FormOutcome.WindowNotFound, step));
+                    await Task.Delay(200);
+                    hwnd = await Task.Run(() => WindowFinder.Find(selector));
+                }
+                if (ProcessAccess.IsBlocked(hwnd))
+                    return (0, Aborted(FormOutcome.Elevated, step, ProcessAccess.ProcessName(hwnd)));
+                // Das Fenster ist da, das Programm lädt aber vielleicht noch
+                if (process is not null && !await WindowFinder.WaitForInputIdleAsync(process, EscapeDown))
+                    return (0, Aborted(FormOutcome.EscapePressed, step));
+                if (!await WindowFinder.ActivateAsync(hwnd))
+                    return (0, Aborted(FormOutcome.WindowNotActivated, step));
+                return (hwnd, null);
             }
-            if (ProcessAccess.IsBlocked(hwnd))
-                return (0, Aborted(FormOutcome.Elevated, step, ProcessAccess.ProcessName(hwnd)));
-            if (!await WindowFinder.ActivateAsync(hwnd))
-                return (0, Aborted(FormOutcome.WindowNotActivated, step));
-            return (hwnd, null);
+            finally
+            {
+                process?.Dispose();
+            }
         }
 
         FormResult Aborted(FormOutcome outcome, int step, string? error = null)

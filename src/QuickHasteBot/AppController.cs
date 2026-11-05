@@ -355,6 +355,8 @@ internal sealed class AppController : IDisposable
         FormOutcome.WindowNotFound => string.Format(Strings.FormWindowNotFoundFormat, name, result.Step, ElementAutomation.FindTimeout.TotalSeconds),
         FormOutcome.WindowNotActivated => string.Format(Strings.FormWindowNotActivatedFormat, name, result.Step),
         FormOutcome.Elevated => string.Format(Strings.TargetElevatedFormat, name, result.Error),
+        FormOutcome.StartFailed => string.Format(Strings.FormStartFailedFormat, name, result.Step, result.Error),
+        FormOutcome.StartedWindowNotFound => string.Format(Strings.FormStartedWindowNotFoundFormat, name, result.Step, WindowFinder.StartTimeout.TotalSeconds),
         _ => null,
     };
 

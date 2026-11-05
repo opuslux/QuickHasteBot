@@ -131,7 +131,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
 | `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
 | `focus(el)`, `click(el)`, `set(el, value)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`. |
-| `window(app)` | Like [`{window,…}`](#other-programs-window): `window('crm')`. |
+| `window(app)` | Like [`{window,…}`](#other-programs-window-and-start): `window('crm')`. |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
@@ -168,7 +168,7 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 | `{clear}` | `{ctrl+a}{del}`: empties a prefilled field before typing |
 | `{guard,off}` `{guard,on}` | Turns the window guard (below) off or on from here |
 
-Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and `{win+r}{wait,300}notepad{enter}` starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them), and Caps Lock and Num Lock are left out on purpose, since they would stay switched.
+Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and [`{start,notepad}`](#other-programs-window-and-start) starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them), and Caps Lock and Num Lock are left out on purpose, since they would stay switched.
 
 - **Line breaks** in the text are sent as Shift+Enter: a new line in a multi-line field or chat box that doesn't submit the form. Only `{enter}` submits. A single line break at the very end of the file is ignored.
 - **With scripts:** tags and `{{ … }}` blocks can be mixed freely, e.g. `{{ user }}{tab}{{ date() }}{enter}`, and variables carry over as usual. Inside a script, `key()` and `wait()` press keys, e.g. `{{ ['Max', 'Müller'].join(key('tab')) + key('enter') }}`. What a script returns or what comes from the clipboard is never read as a tag, so a copied `{enter}` can't submit anything. A literal tag is written as `{{ '{tab}' }}`.
@@ -206,7 +206,7 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 
 **Element picker:** "Pick element" in the snippet editor or "Pick element…" in the tray menu opens a small window that stays on top. Hold the mouse button on its crosshair, drag it onto a field, button or link (a red frame shows what is under the pointer, with its type, id, name, class and value) and let go. The picker then checks which selectors find exactly that element, the most stable first (a real id before the label, ids that web apps generate anew on every load, like `:r3:` or `mui-12345`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`. Another selector or action can be picked (their tooltips explain what each tag does), and the tag edited and copied again. **Test** runs the tag right away in the program the element was picked in, like a snippet would (so a click really clicks), and shows in the picker whether it worked or why not. With "Include the window" (remembered), the tag starts with `{window,process=…}` for the program it was picked in.
 
-### Other programs: window
+### Other programs: window and start
 
 `{window,…}` brings a program to the front, and the rest of the snippet goes there. So a snippet works wherever you start it from:
 
@@ -219,6 +219,19 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 - For a single tag, `window=` in the element does the same: `{set,name=Search;type=combobox;window=crm,"Müller"}`.
 - The window guard follows: it now watches that window instead of turning off. `{guard,off}` still keeps it off.
 
+`{start,…}` does the same, but starts the program first if it isn't running, and then waits for it:
+
+```
+{start,crm}{set,name=Search;type=combobox,"Müller"}{enter}
+{start,"C:\Program Files\Notepad++\notepad++.exe","C:\temp\log.txt"}{ctrl+end}
+```
+
+- `{start,notepad}`: a program name that Windows knows (as in Win+R, e.g. `notepad`, `excel`, `chrome`) or a full path, `.exe` can be left out. A second argument in quotes is passed to the program, e.g. a file to open.
+- If a window of the program is already open, it's brought to the front, and no second copy starts. Otherwise QuickHasteBot starts it the way Explorer does with a double-click, waits up to 30 seconds for its window and until it accepts input, then the snippet goes on. Holding Esc stops the wait.
+- The window is recognized by the program's name, like `{window,process=…}`. Programs that open their window under another name (launchers, Store apps such as `calc`) aren't found this way: start them by hand and use `{window,title=…}`.
+- Only programs (`.exe`) start, no scripts (`.bat`, `.ps1`, …) or shortcuts. And only a `{start,…}` written in the snippet itself starts anything: there is no script helper for it, and `{start,…}` in a script's result or on the clipboard stays text. Every start is written to the log.
+- A program that asks for administrator rights shows Windows' prompt. After that, Windows doesn't let QuickHasteBot send it keys (see below).
+
 **Programs running as administrator:** Windows doesn't let normal programs send keys to them or read their fields, and drops everything silently. QuickHasteBot doesn't need administrator rights and doesn't ask for them. Instead, it detects such a program before typing or pasting and says so, and the picker shows it while hovering. The fix is to start that program without administrator rights.
 
 ## Editor
@@ -226,9 +239,9 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 "Edit" and Ctrl+O open text snippets in a built-in editor, "New snippet…", Ctrl+N and the document icon right of the pin in the popup an empty one, in the folder that is open, e.g. to try something out with Test (F5) and keep it as a file only if it is worth it. One window per file; several can be open.
 
 - **Name** at the top: changing it renames the file when saving. The extension stays (`.txt` for new snippets).
-- **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element and window tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
+- **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set). Its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the script prompt window, which can insert its block the same way.
-- **Colors** show what will happen: key tags like `{tab}` in blue, element and window tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
+- **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
 - **Preview** below the text shows what the snippet turns into while you type: scripts evaluated, keys as readable tags, and script errors in red. Nothing is sent.
 - **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. While it waits for that click, a card next to the mouse pointer and a banner in the editor say what will run. Cancel or Esc stops the wait.
   - To debug one step at a time, select part of the snippet and only the selection runs. Tags and scripts cut off by the selection are included whole. Or put the cursor inside a tag or `{{ … }}` block and only that one runs.

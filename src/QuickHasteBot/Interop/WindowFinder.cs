@@ -1,10 +1,11 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using QuickHasteBot.Core;
 using static QuickHasteBot.Interop.NativeMethods;
 
 namespace QuickHasteBot.Interop;
 
-/// <summary>Sucht Programmfenster für {window,…} und window=, das zuletzt benutzte zuerst (Z-Reihenfolge).</summary>
+/// <summary>Sucht Programmfenster für {window,…}, {start,…} und window=, das zuletzt benutzte zuerst (Z-Reihenfolge).</summary>
 internal static class WindowFinder
 {
     public static nint Find(WindowSelector selector)
@@ -50,6 +51,57 @@ internal static class WindowFinder
         {
             return "";
         }
+    }
+
+    /// <summary>So lange wartet {start,…} auf das Fenster eines gerade gestarteten Programms.</summary>
+    public static readonly TimeSpan StartTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Startet ein Programm für {start,…} auf dem Weg, den QuickHasteBot auch für Dateien nimmt (ShellExecute wie ein
+    /// Doppelklick im Explorer): ohne cmd oder PowerShell dazwischen, sichtbar und mit den Rechten des Benutzers.
+    /// </summary>
+    /// <param name="process">Kann null sein, wenn Windows das Programm über eine laufende Instanz öffnet.</param>
+    public static bool TryStart(StartStep start, out Process? process, out string error)
+    {
+        Log.Info($"Starte Programm für {{start}}: {start.Program}" + (start.Arguments is null ? "" : $" mit \"{start.Arguments}\""));
+        try
+        {
+            process = Process.Start(new ProcessStartInfo(start.Program, start.Arguments ?? "") { UseShellExecute = true });
+            error = "";
+            return true;
+        }
+        catch (Win32Exception ex)
+        {
+            Log.Error($"Programm konnte nicht gestartet werden: {start.Program}", ex);
+            process = null;
+            // Nur der Windows-Text ("Das System kann die angegebene Datei nicht finden."), ohne .NETs Arbeitsverzeichnis
+            error = new Win32Exception(ex.NativeErrorCode).Message;
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Wartet, bis das gestartete Programm Eingaben annimmt (höchstens <paramref name="timeoutMilliseconds"/>).
+    /// False, wenn <paramref name="cancelled"/> vorher zuschlägt. Programme ohne Nachrichtenschleife oder solche, die
+    /// sich beenden und ein anderes weiterlaufen lassen, zählen als bereit.
+    /// </summary>
+    public static async Task<bool> WaitForInputIdleAsync(Process process, Func<bool> cancelled, int timeoutMilliseconds = 5000)
+    {
+        var deadline = Environment.TickCount64 + timeoutMilliseconds;
+        while (Environment.TickCount64 < deadline)
+        {
+            try
+            {
+                if (process.WaitForInputIdle(0)) return true;
+            }
+            catch (InvalidOperationException)
+            {
+                return true;
+            }
+            if (cancelled()) return false;
+            await Task.Delay(50);
+        }
+        return true;
     }
 
     /// <summary>Wiederherstellen, falls minimiert, und nach vorne holen.</summary>
