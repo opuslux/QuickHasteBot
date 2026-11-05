@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using QuickHasteBot.Core;
 using QuickHasteBot.Interop;
@@ -31,6 +32,8 @@ internal partial class SnippetEditorWindow : Window
     string _savedText;
     DateTime _savedWriteTime;
     bool _loading = true;
+
+    internal SnippetHighlighting Highlighting { get; }
     CancellationTokenSource? _test;
 
     SnippetEditorWindow(AppController app, string folder, string? path, string name, string text, TextEncoding encoding)
@@ -46,6 +49,8 @@ internal partial class SnippetEditorWindow : Window
         _savedWriteTime = path is null ? default : File.GetLastWriteTimeUtc(path);
         _previewTimer = new DispatcherTimer(PreviewDelay, DispatcherPriority.Background, (_, _) => UpdatePreview(), Dispatcher) { IsEnabled = false };
 
+        SetUpBody();
+        Highlighting = SnippetHighlighting.Attach(BodyInput, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts);
         NameInput.Text = name;
         BodyInput.Text = text;
         ExtensionText.Text = _extension;
@@ -64,7 +69,29 @@ internal partial class SnippetEditorWindow : Window
         {
             _previewTimer.Stop();
             _test?.Cancel();
+            Highlighting.Dispose();
         };
+    }
+
+    /// <summary>Verhalten und Farben des Textfelds an die Fluent-Textfelder angleichen.</summary>
+    void SetUpBody()
+    {
+        var options = BodyInput.Options;
+        options.EnableHyperlinks = false;
+        options.EnableEmailHyperlinks = false;
+        options.AllowScrollBelowDocument = false;
+        options.EnableRectangularSelection = false;
+        options.InheritWordWrapIndentation = false;
+
+        var area = BodyInput.TextArea;
+        var accent = TryFindResource("SystemAccentColor") is Color color ? color : SystemColors.HighlightColor;
+        var selection = new SolidColorBrush(Color.FromArgb(0x66, accent.R, accent.G, accent.B));
+        selection.Freeze();
+        area.SelectionBrush = selection;
+        area.SelectionForeground = null; // Farben der Tags bleiben auch markiert sichtbar
+        area.SelectionBorder = null;
+        area.SelectionCornerRadius = 0;
+        area.Caret.CaretBrush = null;
     }
 
     /// <exception cref="IOException">Datei nicht lesbar.</exception>
@@ -86,15 +113,17 @@ internal partial class SnippetEditorWindow : Window
 
     public bool IsDirty => NameInput.Text.Trim() != _savedName || BodyInput.Text != _savedText || _path is null && BodyInput.Text.Length > 0;
 
-    void OnChanged(object sender, TextChangedEventArgs e)
+    void OnNameChanged(object sender, TextChangedEventArgs e)
+    {
+        if (!_loading) UpdateTitle();
+    }
+
+    void OnBodyChanged(object? sender, EventArgs e)
     {
         if (_loading) return;
         UpdateTitle();
-        if (sender == BodyInput)
-        {
-            _previewTimer.Stop();
-            _previewTimer.Start();
-        }
+        _previewTimer.Stop();
+        _previewTimer.Start();
     }
 
     void UpdateTitle() => Title = (IsDirty ? "● " : "") + DisplayName + " – " + Strings.EditorTitle;

@@ -5,6 +5,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using ICSharpCode.AvalonEdit;
+using ICSharpCode.AvalonEdit.Rendering;
 using QuickHasteBot.Core;
 using QuickHasteBot.UI;
 
@@ -179,6 +181,9 @@ public class WindowSmokeTests
         viewModel.RememberFolder = true;
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);
         viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "03-MfG-EN");
+        // Das Popup schliesst sich selbst, sobald es nicht mehr aktiv ist. Je nach Desktop (ein anderes Fenster
+        // holt sich den Fokus) ist es hier schon zu, dann würde Hide() nichts auslösen.
+        popup.Show();
         popup.Hide();
         Assert.Contains(@"""LastFolder"": ""4-Grüsse""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
         viewModel.Reset();
@@ -267,6 +272,14 @@ public class WindowSmokeTests
         Assert.True(editor.IsDirty);
         Assert.StartsWith("● ", editor.Title);
         Snapshot(editor, "editor.png");
+
+        // Fehlerhaftes Tag: Tooltip-Text an der Stelle, kein Tooltip daneben
+        editor.BodyInput.Text = "Max{tab,x}";
+        var view = editor.BodyInput.TextArea.TextView;
+        view.EnsureVisualLines();
+        var at = view.GetVisualPosition(new TextViewPosition(1, 7), VisualYPosition.LineMiddle) - view.ScrollOffset;
+        Assert.Contains("{tab,3}", editor.Highlighting.ErrorAt(at));
+        Assert.Null(editor.Highlighting.ErrorAt(view.GetVisualPosition(new TextViewPosition(1, 2), VisualYPosition.LineMiddle) - view.ScrollOffset));
 
         editor.BodyInput.Text = "{{ 1 + }}";
         editor.UpdatePreview();
