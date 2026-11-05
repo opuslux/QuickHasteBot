@@ -243,6 +243,7 @@ The date of next Monday</value></data>
   <data name="AiPromptTestUseExample" xml:space="preserve"><value>Take over the example (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="MenuShowInExplorer" xml:space="preserve"><value>Show in Explorer</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Rename…</value></data>
   <data name="RenameTitle" xml:space="preserve"><value>Rename</value></data>
   <data name="RenamePromptFormat" xml:space="preserve"><value>New name for "{0}":</value></data>

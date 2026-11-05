@@ -425,7 +425,7 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
-    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: Umbenennen. Beide: Neuer Baustein.</summary>
+    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: Umbenennen. Beide: Im Explorer anzeigen, Neuer Baustein.</summary>
     void ShowItemMenu(Snippet snippet, UIElement target)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
@@ -444,6 +444,12 @@ internal partial class SearchPopup : Window
                     _app.Edit(snippet);
                 }));
         }
+        // Wie Strg+E, aber für den Eintrag unter der Maus: Dateien markiert im Ordner, Ordner selbst geöffnet
+        menu.Items.Add(MenuEntry(Strings.MenuShowInExplorer, () =>
+        {
+            Hide();
+            _app.RevealInExplorer(snippet);
+        }));
         // Neuer Baustein im Ordner bzw. neben der Datei
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, () =>
         {
