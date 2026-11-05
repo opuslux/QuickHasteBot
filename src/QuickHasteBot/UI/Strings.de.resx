@@ -143,7 +143,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="UseBuiltInEditorToolTip" xml:space="preserve"><value>Mit Tag-Palette, Element-Picker, Vorschau und Testlauf. Aus: «Bearbeiten» öffnet das Programm, das Windows für die Endung vorsieht. Das Rechtsklick-Menü bietet so oder so beides.</value></data>
   <data name="PickerInsert" xml:space="preserve"><value>In Editor einfügen</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Element erfassen…</value></data>
-  <data name="PickerTooltip" xml:space="preserve"><value>Formularfeld für Tasten-Tags erfassen (Fadenkreuz)</value></data>
+  <data name="TrayAiPrompt" xml:space="preserve"><value>Skriptblock mit KI schreiben…</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Element erfassen</value></data>
   <data name="PickerHint" xml:space="preserve"><value>Maustaste auf dem Fadenkreuz gedrückt halten, auf ein Feld, einen Button oder Link ziehen und loslassen. Der Tag dafür wird kopiert, z.B. {focus,#email}.</value></data>
   <data name="PickerTargetToolTip" xml:space="preserve"><value>Auf ein Element ziehen</value></data>
