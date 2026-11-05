@@ -22,6 +22,7 @@ public partial class App : Application
     EventWaitHandle? _searchSignal;
     readonly List<RegisteredWaitHandle> _signalWaits = [];
     AppController? _controller;
+    bool _reportingError;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -80,8 +81,24 @@ public partial class App : Application
     void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error("Unbehandelter Fehler im UI-Thread", e.Exception);
-        MessageBox.Show(string.Format(Strings.UnexpectedErrorFormat, e.Exception.Message),
-            "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
+        var message = string.Format(Strings.UnexpectedErrorFormat, e.Exception.Message);
+
+        // Scheitert das eigene Fenster selbst (oder kommt der nächste Fehler, während es offen ist),
+        // bleibt die Meldung von Windows, statt Fehler um Fehler aufzustapeln
+        if (_reportingError)
+        {
+            MessageBox.Show(message, "QuickHasteBot", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+        _reportingError = true;
+        try
+        {
+            MessageDialog.Show(message, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            _reportingError = false;
+        }
     }
 }

@@ -170,6 +170,13 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="ShowTray" xml:space="preserve"><value>Tray-Icon anzeigen</value></data>
   <data name="LanguageLabel" xml:space="preserve"><value>Sprache</value></data>
   <data name="LanguageAuto" xml:space="preserve"><value>Automatisch (Windows)</value></data>
+  <data name="ThemeLabel" xml:space="preserve"><value>Darstellung</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>Automatisch (Windows)</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Hell</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dunkel</value></data>
+  <data name="DialogYes" xml:space="preserve"><value>Ja</value></data>
+  <data name="DialogNo" xml:space="preserve"><value>Nein</value></data>
+  <data name="DialogOk" xml:space="preserve"><value>OK</value></data>
   <data name="ExitApp" xml:space="preserve"><value>QuickHasteBot beenden</value></data>
   <data name="Close" xml:space="preserve"><value>Schliessen</value></data>
   <data name="SearchPlaceholder" xml:space="preserve"><value>Textbaustein suchen…</value></data>
@@ -236,6 +243,7 @@ Das Datum vom nächsten Montag</value></data>
   <data name="AiPromptTestUseExample" xml:space="preserve"><value>Beispiel übernehmen (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="MenuShowInExplorer" xml:space="preserve"><value>Im Explorer anzeigen</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Umbenennen…</value></data>
   <data name="RenameTitle" xml:space="preserve"><value>Umbenennen</value></data>
   <data name="RenamePromptFormat" xml:space="preserve"><value>Neuer Name für «{0}»:</value></data>
