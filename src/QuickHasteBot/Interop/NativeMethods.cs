@@ -10,6 +10,7 @@ internal static partial class NativeMethods
     public const uint INPUT_KEYBOARD = 1;
     public const uint KEYEVENTF_KEYUP = 0x0002;
     public const uint KEYEVENTF_UNICODE = 0x0004;
+    public const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
 
     public const ushort VK_RETURN = 0x0D;
     public const ushort VK_SHIFT = 0x10;
@@ -18,6 +19,9 @@ internal static partial class NativeMethods
     public const ushort VK_LWIN = 0x5B;
     public const ushort VK_RWIN = 0x5C;
     public const ushort VK_V = 0x56;
+    public const ushort VK_ESCAPE = 0x1B;
+
+    public const uint GA_ROOTOWNER = 3;
 
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     public const uint SWP_NOSIZE = 0x0001;
@@ -149,6 +153,9 @@ internal static partial class NativeMethods
 
     [LibraryImport("user32.dll")]
     public static partial short GetAsyncKeyState(int vKey);
+
+    [LibraryImport("user32.dll")]
+    public static partial nint GetAncestor(nint hwnd, uint gaFlags);
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

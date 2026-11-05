@@ -44,6 +44,12 @@ public sealed class AppSettings
     /// <summary>{{ … }} in Textbausteinen beim Einfügen als JavaScript auswerten. Aus: wird wörtlich eingefügt (z.B. Mustache-Vorlagen).</summary>
     public bool EvaluateScripts { get; set; } = true;
 
+    /// <summary>Tasten-Tags wie {tab} und {enter} in Textbausteinen ausführen (Formulare ausfüllen). Aus: wird wörtlich eingefügt.</summary>
+    public bool EvaluateKeyTags { get; set; } = true;
+
+    /// <summary>Formular-Bausteine abbrechen, wenn ein anderes Fenster nach vorne kommt. Pro Baustein mit {guard,off} abschaltbar.</summary>
+    public bool KeyTagsWindowGuard { get; set; } = true;
+
     /// <summary>Wohin das KI-Icon im Popup den Prompt schickt, mit {prompt} und {lang}. Standard: ChatGPT.</summary>
     public string AiPromptUrl { get; set; } = ScriptPrompt.DefaultUrl;
 

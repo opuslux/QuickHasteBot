@@ -31,6 +31,8 @@ internal partial class SettingsWindow : Window
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
         ScriptsInput.IsChecked = app.Settings.EvaluateScripts;
+        KeyTagsInput.IsChecked = app.Settings.EvaluateKeyTags;
+        WindowGuardInput.IsChecked = app.Settings.KeyTagsWindowGuard;
         (AiServiceInput.ItemsSource, AiServiceInput.SelectedItem) = app.AiServiceChoices();
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
@@ -172,6 +174,13 @@ internal partial class SettingsWindow : Window
     void OnScriptsChanged(object sender, RoutedEventArgs e)
     {
         _app.Settings.EvaluateScripts = ScriptsInput.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnKeyTagsChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.EvaluateKeyTags = KeyTagsInput.IsChecked == true;
+        _app.Settings.KeyTagsWindowGuard = WindowGuardInput.IsChecked == true;
         _app.SaveSettings();
     }
 
