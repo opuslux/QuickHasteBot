@@ -10,10 +10,11 @@ internal sealed class SnippetItem
     ImageSource? _icon;
     bool _iconLoaded;
 
-    SnippetItem(Snippet snippet, bool showLocation, int matchStart, int matchLength)
+    SnippetItem(Snippet snippet, bool showLocation, int matchStart, int matchLength, string? hotkeyProblem)
     {
         Snippet = snippet;
         ShowLocation = showLocation && snippet.Location.Length > 0;
+        HotkeyProblem = hotkeyProblem;
 
         var name = snippet.Name;
         if (matchStart >= 0 && matchStart + matchLength <= name.Length)
@@ -42,6 +43,16 @@ internal sealed class SnippetItem
 
     public bool IsFolder => Snippet.IsFolder;
 
+    /// <summary>Der Hotkey aus dem Dateinamen als Badge, z.B. "Ctrl+Alt+G". Null ohne Hotkey.</summary>
+    public string? HotkeyText => Snippet.Hotkey?.ToString();
+
+    /// <summary>Warum der Hotkey nicht wirkt (doppelt, belegt), null wenn er wirkt.</summary>
+    public string? HotkeyProblem { get; }
+
+    public bool HasHotkeyProblem => HotkeyProblem is not null;
+
+    public string? HotkeyTooltip => HotkeyText is null ? null : HotkeyProblem ?? string.Format(Strings.FileHotkeyBadgeTooltipFormat, HotkeyText);
+
     /// <summary>
     /// Ziffer für Alt+1 bis Alt+9, nur bei den ersten neun Zeilen links. Leer bei den übrigen Zeilen links,
     /// damit die Pfeile der Ordner untereinander stehen; null in der rechten Spalte, dort gibt es keine Nummern.
@@ -64,7 +75,8 @@ internal sealed class SnippetItem
         }
     }
 
-    public static SnippetItem ForBrowsing(Snippet snippet) => new(snippet, showLocation: false, -1, 0);
+    public static SnippetItem ForBrowsing(Snippet snippet, string? hotkeyProblem = null) => new(snippet, showLocation: false, -1, 0, hotkeyProblem);
 
-    public static SnippetItem ForHit(SearchHit hit) => new(hit.Snippet, showLocation: true, hit.MatchStart, hit.MatchLength);
+    public static SnippetItem ForHit(SearchHit hit, string? hotkeyProblem = null) =>
+        new(hit.Snippet, showLocation: true, hit.MatchStart, hit.MatchLength, hotkeyProblem);
 }

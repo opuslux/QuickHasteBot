@@ -19,6 +19,28 @@ public class SnippetFilesTests
     }
 
     [Fact]
+    public void New_folder_name_counts_up_like_explorer()
+    {
+        using var dir = new TempDirectory();
+        Assert.Equal("Neuer Ordner", SnippetFiles.SuggestNewFolderName(dir.Path, "Neuer Ordner"));
+        Directory.CreateDirectory(Path.Combine(dir.Path, "Neuer Ordner"));
+        Assert.Equal("Neuer Ordner (2)", SnippetFiles.SuggestNewFolderName(dir.Path, "Neuer Ordner"));
+        // Auch eine Datei mit dem Namen zählt als belegt
+        dir.File("Neuer Ordner (2)", "");
+        Assert.Equal("Neuer Ordner (3)", SnippetFiles.SuggestNewFolderName(dir.Path, "Neuer Ordner"));
+    }
+
+    [Fact]
+    public void Creates_a_folder_but_never_reuses_one()
+    {
+        using var dir = new TempDirectory();
+        var created = SnippetFiles.CreateFolder(dir.Path, "3-SQL [Ctrl+Alt+S]");
+        Assert.True(Directory.Exists(created));
+        Assert.Equal(Path.Combine(dir.Path, "3-SQL [Ctrl+Alt+S]"), created);
+        Assert.Throws<IOException>(() => SnippetFiles.CreateFolder(dir.Path, "3-SQL [Ctrl+Alt+S]"));
+    }
+
+    [Fact]
     public void Copy_name_without_extension()
     {
         using var dir = new TempDirectory();

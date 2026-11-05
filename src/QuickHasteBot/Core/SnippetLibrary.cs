@@ -246,12 +246,14 @@ public sealed class SnippetLibrary : IDisposable
         // Ordinal sortieren: die Nummern-Präfixe ("1-Temp", "2-Adressen") bestimmen die Reihenfolge
         foreach (var sub in subDirectories.Where(IsVisible).OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
         {
+            var (folderName, folderHotkey) = FileHotkey.Split(sub.Name);
             var folder = new Snippet
             {
-                Name = sub.Name,
+                Name = folderName,
                 FullPath = sub.FullName,
                 RelativePath = Relative(parent, sub.Name),
                 Kind = SnippetKind.Folder,
+                Hotkey = folderHotkey,
                 Parent = parent,
             };
             parent.Children.Add(folder);
@@ -260,12 +262,14 @@ public sealed class SnippetLibrary : IDisposable
 
         foreach (var file in files.Where(f => IsVisible(f) && !IgnoredFiles.Contains(f.Name)).OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
         {
+            var (name, hotkey) = FileHotkey.Split(Path.GetFileNameWithoutExtension(file.Name));
             parent.Children.Add(new Snippet
             {
-                Name = Path.GetFileNameWithoutExtension(file.Name),
+                Name = name,
                 FullPath = file.FullName,
                 RelativePath = Relative(parent, file.Name),
                 Kind = _textExtensions.Contains(file.Extension) ? SnippetKind.Text : SnippetKind.File,
+                Hotkey = hotkey,
                 Parent = parent,
             });
         }

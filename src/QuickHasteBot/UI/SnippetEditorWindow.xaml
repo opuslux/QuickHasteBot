@@ -21,10 +21,11 @@
         <!-- Name der Datei, Endung fest dahinter. Umbenannt wird beim Speichern. -->
         <DockPanel Grid.Row="0">
             <TextBlock Text="{x:Static ui:Strings.EditorName}" VerticalAlignment="Center" Margin="0,0,10,0" />
-            <TextBlock x:Name="ExtensionText" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="4,0,12,0"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-            <TextBlock x:Name="FolderText" DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="260" Margin="8,0,0,0"
+            <!-- Ganz rechts und mit Abstand der Ordner, die Endung direkt am Namen: sonst liest es sich wie "Name Ordner.txt" -->
+            <TextBlock x:Name="FolderText" DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="300" Margin="20,0,0,0"
                        TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <TextBlock x:Name="ExtensionText" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="4,0,0,0"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             <TextBox x:Name="NameInput" TextChanged="OnNameChanged" />
         </DockPanel>
 

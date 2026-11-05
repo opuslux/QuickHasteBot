@@ -25,6 +25,12 @@ internal sealed class AppController : IDisposable
     ElementPickerWindow? _elementPicker;
     readonly List<SnippetEditorWindow> _editors = [];
 
+    // Datei-Hotkeys: was registriert ist, nach vollständigem Pfad, und was beim letzten Abgleich herauskam
+    readonly Dictionary<string, (int Id, HotkeyGesture Gesture)> _fileRegistrations = new(StringComparer.OrdinalIgnoreCase);
+    Dictionary<string, FileHotkeyEntry> _fileHotkeyByPath = new(StringComparer.OrdinalIgnoreCase);
+    HashSet<string> _knownConflicts = [];
+    bool _hotkeysSuspended;
+
     public AppController(AppPaths paths)
     {
         _paths = paths;
@@ -54,6 +60,7 @@ internal sealed class AppController : IDisposable
         UiTheme.Apply(Settings.Theme);
         _hotkey = new GlobalHotkey();
         _hotkey.Pressed += (_, _) => ShowSearch();
+        _hotkey.FilePressed += (_, id) => _ = OnFileHotkeyAsync(id);
         _popup = new SearchPopup(this);
 
         if (Settings.ShowTrayIcon)
@@ -67,7 +74,16 @@ internal sealed class AppController : IDisposable
                 string.Format(Strings.HotkeyTakenAtStartFormat, ConfiguredHotkey));
         }
 
-        Log.Info($"Gestartet, Hotkey {ConfiguredHotkey} {(HotkeyActive ? "aktiv" : "belegt")}, {Library.All.Count} Einträge in {StructureRoot}");
+        // Konflikte beim Start nicht als Meldung, sondern gleich dort, wo man sie sieht und beheben kann
+        SyncFileHotkeys(announce: false);
+        if (FileHotkeys.Any(e => e.Status != FileHotkeyStatus.Ok))
+        {
+            ShowSettings();
+            _settingsWindow?.ShowFileHotkeys();
+        }
+
+        Log.Info($"Gestartet, Hotkey {ConfiguredHotkey} {(HotkeyActive ? "aktiv" : "belegt")}, {Library.All.Count} Einträge in {StructureRoot}, " +
+                 $"{FileHotkeys.Count(e => e.Status == FileHotkeyStatus.Ok)} Datei-Hotkeys");
     }
 
     public void ShowSearch()
@@ -500,9 +516,173 @@ internal sealed class AppController : IDisposable
         // Registriert wird beim Verlassen des Feldes (ResumeHotkey), solange ist der Hotkey pausiert
     }
 
-    public void SuspendHotkey() => _hotkey?.Unregister();
+    /// <summary>Solange eine Tastenkombination aufgenommen wird, darf kein Hotkey auslösen, auch keiner einer Datei.</summary>
+    public void SuspendHotkey()
+    {
+        _hotkeysSuspended = true;
+        _hotkey?.Unregister();
+        foreach (var (id, _) in _fileRegistrations.Values)
+            _hotkey?.Unregister(id);
+        _fileRegistrations.Clear();
+    }
 
-    public void ResumeHotkey() => _hotkey?.Register(ConfiguredHotkey);
+    public void ResumeHotkey()
+    {
+        _hotkeysSuspended = false;
+        // Zuerst die Dateien: eine Datei mit dem neuen Popup-Hotkey gibt ihn so frei
+        SyncFileHotkeys();
+        _hotkey?.Register(ConfiguredHotkey);
+    }
+
+    /// <summary>Alle Einträge mit Hotkey aus dem letzten Abgleich, in Baum-Reihenfolge.</summary>
+    public IReadOnlyList<FileHotkeyEntry> FileHotkeys { get; private set; } = [];
+
+    /// <summary>Nach jedem Abgleich, für die Liste in den Einstellungen.</summary>
+    public event EventHandler? FileHotkeysChanged;
+
+    /// <summary>
+    /// Registriert die Hotkeys aus den Dateinamen neu: nach dem Einlesen, nach einer Änderung im Ordner und wenn sich
+    /// der Popup-Hotkey ändert. Nur was sich geändert hat, wird frei gegeben oder registriert.
+    /// </summary>
+    /// <param name="announce">Neu entstandene Konflikte melden, z.B. nach Umbenennen im Explorer.</param>
+    internal void SyncFileHotkeys(bool announce = true)
+    {
+        var entries = FileHotkeyMap.Build(Library.All, ConfiguredHotkey);
+        // Ohne Hotkey-Fenster (vor Start, in Tests) nur die Liste
+        if (_hotkey is not null && !_hotkeysSuspended)
+        {
+            var wanted = entries.Where(e => e.Status == FileHotkeyStatus.Ok)
+                .ToDictionary(e => e.Snippet.FullPath, e => e.Gesture, StringComparer.OrdinalIgnoreCase);
+
+            // Erst frei geben, damit ein Hotkey von einer Datei zur nächsten wandern kann
+            foreach (var (path, registration) in _fileRegistrations.ToList())
+            {
+                if (wanted.TryGetValue(path, out var gesture) && gesture == registration.Gesture) continue;
+                _hotkey.Unregister(registration.Id);
+                _fileRegistrations.Remove(path);
+            }
+
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var entry = entries[i];
+                if (entry.Status != FileHotkeyStatus.Ok || _fileRegistrations.ContainsKey(entry.Snippet.FullPath)) continue;
+
+                var id = FreeFileHotkeyId();
+                if (_hotkey.Register(id, entry.Gesture))
+                    _fileRegistrations[entry.Snippet.FullPath] = (id, entry.Gesture);
+                else
+                    entries[i] = entry with { Status = FileHotkeyStatus.Taken };
+            }
+        }
+
+        FileHotkeys = entries;
+        _fileHotkeyByPath = entries.ToDictionary(e => e.Snippet.FullPath, StringComparer.OrdinalIgnoreCase);
+
+        // Nur Konflikte melden, die es vorher nicht gab: sonst kommt bei jeder Änderung im Ordner dieselbe Meldung
+        var conflicts = entries.Where(e => e.Status != FileHotkeyStatus.Ok).ToList();
+        var fresh = conflicts.Where(e => !_knownConflicts.Contains(ConflictKey(e))).ToList();
+        _knownConflicts = conflicts.Select(ConflictKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        FileHotkeysChanged?.Invoke(this, EventArgs.Empty);
+
+        foreach (var entry in fresh)
+            Log.Info($"Datei-Hotkey {entry.Gesture} nicht aktiv ({entry.Status}): {entry.Snippet.FullPath}");
+        if (announce && fresh.Count > 0)
+            MessageDialog.Show(Strings.FileHotkeyConflictsFound + "\n\n" + string.Join("\n", fresh.Select(e => "• " + DescribeConflict(e))),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    static string ConflictKey(FileHotkeyEntry entry) => $"{entry.Snippet.FullPath}|{entry.Gesture}|{entry.Status}";
+
+    int FreeFileHotkeyId()
+    {
+        var used = _fileRegistrations.Values.Select(r => r.Id).ToHashSet();
+        var id = GlobalHotkey.FirstFileId;
+        while (used.Contains(id)) id++;
+        return id;
+    }
+
+    /// <summary>"Ctrl+Alt+G für «Gruss»: Schon vergeben an «Grüsse» (1-Grüsse)."</summary>
+    internal string DescribeConflict(FileHotkeyEntry entry) =>
+        string.Format(Strings.FileHotkeyConflictLineFormat, entry.Gesture, DescribeSnippet(entry.Snippet), ConflictReason(entry));
+
+    /// <summary>Warum der Hotkey nicht wirkt, null wenn er wirkt.</summary>
+    internal static string? ConflictReason(FileHotkeyEntry entry) => entry.Status switch
+    {
+        FileHotkeyStatus.Duplicate => string.Format(Strings.FileHotkeyUsedByFormat, DescribeSnippet(entry.Owner!)),
+        FileHotkeyStatus.MainHotkey => Strings.FileHotkeyIsMain,
+        FileHotkeyStatus.Taken => Strings.FileHotkeyTaken,
+        _ => null,
+    };
+
+    /// <summary>Für das Warnzeichen im Popup: warum der Hotkey dieses Eintrags nicht wirkt, null ohne Problem.</summary>
+    internal string? HotkeyProblem(Snippet snippet) =>
+        snippet.Hotkey is not null && _fileHotkeyByPath.TryGetValue(snippet.FullPath, out var entry) ? ConflictReason(entry) : null;
+
+    static string DescribeSnippet(Snippet snippet) => snippet.Location.Length == 0
+        ? string.Format(Strings.QuotedNameFormat, snippet.Name)
+        : string.Format(Strings.QuotedNameWithLocationFormat, snippet.Name, snippet.Location);
+
+    /// <summary>
+    /// Ob ein Eintrag diesen Hotkey bekommen darf, für den Hotkey-Dialog und beim Umbenennen. Null wenn ja,
+    /// sonst der Grund.
+    /// </summary>
+    /// <param name="selfPath">Der Eintrag selbst, sein bisheriger Hotkey ist natürlich kein Konflikt.</param>
+    internal string? HotkeyConflict(HotkeyGesture gesture, string? selfPath)
+    {
+        if (gesture == ConfiguredHotkey) return Strings.FileHotkeyIsMain;
+        if (FileHotkeyMap.FindOwner(Library.All, gesture, selfPath) is { } owner)
+            return string.Format(Strings.FileHotkeyUsedByFormat, DescribeSnippet(owner));
+        // Was wir selbst registriert haben, hält kein anderes Programm
+        if (_fileRegistrations.Values.Any(r => r.Gesture == gesture)) return null;
+        return _hotkey is not null && !_hotkey.IsFree(gesture) ? Strings.FileHotkeyTaken : null;
+    }
+
+    /// <summary>
+    /// Beim Umbenennen: ob der Hotkey im neuen Namen frei ist. Null ohne Tag, mit dem bisherigen Hotkey oder einem freien.
+    /// </summary>
+    /// <param name="selfPath">Bisheriger Pfad des Eintrags, null bei einem neuen.</param>
+    internal string? HotkeyConflictForName(string fileName, bool isFolder, string? selfPath, HotkeyGesture? currentHotkey)
+    {
+        if (FileHotkey.FromFileName(fileName, isFolder) is not { } gesture || gesture == currentHotkey) return null;
+        return HotkeyConflict(gesture, selfPath);
+    }
+
+    /// <summary>Der Hotkey einer Datei oder eines Ordners: einfügen bzw. öffnen, beim Ordner das Popup dort.</summary>
+    async Task OnFileHotkeyAsync(int id)
+    {
+        var path = _fileRegistrations.FirstOrDefault(r => r.Value.Id == id).Key;
+        if (path is null) return;
+
+        var target = NativeMethods.GetForegroundWindow();
+        // Bei offenem Popup dorthin, wohin es eingefügt hätte, nicht ins Popup selbst
+        if (_popup is { IsVisible: true } popup)
+        {
+            target = popup.TargetWindow;
+            popup.Hide();
+        }
+
+        var snippet = Library.All.FirstOrDefault(s => string.Equals(s.FullPath, path, StringComparison.OrdinalIgnoreCase));
+        _ = Library.VerifyAsync();
+        if (snippet is null)
+        {
+            Log.Info($"Datei-Hotkey für einen Eintrag, den es nicht mehr gibt: {path}");
+            return;
+        }
+
+        Log.Info($"Datei-Hotkey {snippet.Hotkey}: {snippet.RelativePath}");
+        try
+        {
+            if (snippet.IsFolder)
+                _popup?.ShowFor(target, snippet);
+            else
+                await ActivateAsync(snippet, alternate: false, target);
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"Datei-Hotkey fehlgeschlagen: {path}", ex);
+        }
+    }
 
     public void ChangeStructurePath(string path)
     {
@@ -512,6 +692,7 @@ internal sealed class AppController : IDisposable
         Library.Dispose();
         Library = CreateLibrary();
         _popup?.OnLibraryChanged();
+        SyncFileHotkeys();
     }
 
     public void SetTrayIconVisible(bool visible)
@@ -619,8 +800,9 @@ internal sealed class AppController : IDisposable
         var library = new SnippetLibrary(root, Settings.TextExtensions);
         library.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            if (ReferenceEquals(library, Library))
-                _popup?.OnLibraryChanged();
+            if (!ReferenceEquals(library, Library)) return;
+            SyncFileHotkeys();
+            _popup?.OnLibraryChanged();
         });
         library.StartWatching();
         _ = library.WarmUpAsync();

@@ -36,13 +36,13 @@
   <data name="PositionBottomLeft" xml:space="preserve"><value>Unten links</value></data>
   <data name="PositionBottom" xml:space="preserve"><value>Unten</value></data>
   <data name="PositionBottomRight" xml:space="preserve"><value>Unten rechts</value></data>
-  <data name="StructureHeading" xml:space="preserve"><value>Textbausteine</value></data>
+  <data name="StructureHeading" xml:space="preserve"><value>Bausteine</value></data>
   <data name="StructureChange" xml:space="preserve"><value>Ändern…</value></data>
   <data name="StructureOpen" xml:space="preserve"><value>Öffnen</value></data>
   <data name="StructureToolTip" xml:space="preserve"><value>Relativ zur exe oder absolut, Umgebungsvariablen wie %USERPROFILE% gehen auch</value></data>
   <data name="StructureFilesFormat" xml:space="preserve"><value>{0}  ({1} Dateien)</value></data>
   <data name="StructureMissingFormat" xml:space="preserve"><value>{0}  (existiert nicht)</value></data>
-  <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Textbausteinen wählen</value></data>
+  <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Bausteinen wählen</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Auch im Inhalt der Textbausteine suchen</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>{{ … }} in Textbausteinen als JavaScript ausführen</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>Beim Einfügen wird z.B. {{ date() }} zum heutigen Datum. Aus: {{ … }} wird unverändert eingefügt.</value></data>
@@ -78,6 +78,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="PickerTestNoTag" xml:space="preserve"><value>Das ist kein gültiger Tag, z.B. {focus,#email}.</value></data>
   <data name="EditorTitle" xml:space="preserve"><value>Baustein bearbeiten</value></data>
   <data name="EditorName" xml:space="preserve"><value>Name</value></data>
+  <data name="EditorFolderFormat" xml:space="preserve"><value>in {0}</value></data>
   <data name="EditorNewSnippet" xml:space="preserve"><value>Neuer Baustein</value></data>
   <data name="EditorInsertTag" xml:space="preserve"><value>Tag einfügen ▾</value></data>
   <data name="EditorInsertTagToolTip" xml:space="preserve"><value>Tasten, Pausen, Formular-Elemente, Fenster und Skript-Helfer, an der Schreibmarke eingefügt</value></data>
@@ -179,7 +180,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="DialogOk" xml:space="preserve"><value>OK</value></data>
   <data name="ExitApp" xml:space="preserve"><value>QuickHasteBot beenden</value></data>
   <data name="Close" xml:space="preserve"><value>Schliessen</value></data>
-  <data name="SearchPlaceholder" xml:space="preserve"><value>Textbaustein suchen…</value></data>
+  <data name="SearchPlaceholder" xml:space="preserve"><value>Baustein suchen…</value></data>
   <data name="HintsClipboard" xml:space="preserve"><value>↵ Einfügen   ⇧↵ Tippen</value></data>
   <data name="HintsTyping" xml:space="preserve"><value>↵ Tippen   ⇧↵ Einfügen</value></data>
   <data name="HintEdit" xml:space="preserve"><value>Strg+O Bearbeiten</value></data>
@@ -188,7 +189,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Beim nächsten Öffnen wieder in diesem Ordner beginnen</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
   <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – wie ein Klick auf diesen Eintrag</value></data>
-  <data name="BreadcrumbRoot" xml:space="preserve"><value>Textbausteine</value></data>
+  <data name="BreadcrumbRoot" xml:space="preserve"><value>Bausteine</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 Treffer</value></data>
   <data name="MatchesFormat" xml:space="preserve"><value>{0} Treffer</value></data>
   <data name="NoMatches" xml:space="preserve"><value>Keine Treffer</value></data>
@@ -198,7 +199,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="OpensUrlFormat" xml:space="preserve"><value>Öffnet {0}</value></data>
   <data name="OpensWithApp" xml:space="preserve"><value>Öffnet mit der zugeordneten Anwendung</value></data>
   <data name="TraySettings" xml:space="preserve"><value>Einstellungen</value></data>
-  <data name="TrayOpenStructure" xml:space="preserve"><value>Textbausteine öffnen</value></data>
+  <data name="TrayOpenStructure" xml:space="preserve"><value>Bausteine öffnen</value></data>
   <data name="TrayExit" xml:space="preserve"><value>Beenden</value></data>
   <data name="ScriptErrorFormat" xml:space="preserve"><value>Das Skript in Block {0} von «{1}» ist fehlgeschlagen, nichts wurde eingefügt:
 {2}</value></data>
@@ -270,6 +271,43 @@ Das Datum vom nächsten Montag</value></data>
 {0}
 
 Details stehen in QuickHasteBot.log.</value></data>
+  <!-- Hotkeys für Dateien und Ordner -->
+  <data name="MenuSetHotkey" xml:space="preserve"><value>Hotkey festlegen…</value></data>
+  <data name="FileHotkeyTitle" xml:space="preserve"><value>Hotkey</value></data>
+  <data name="FileHotkeyPromptFormat" xml:space="preserve"><value>Tastenkombination für «{0}», gilt in jedem Programm:</value></data>
+  <data name="FileHotkeyFolderPromptFormat" xml:space="preserve"><value>Tastenkombination, die das Popup im Ordner «{0}» öffnet, aus jedem Programm:</value></data>
+  <data name="FileHotkeyConfirm" xml:space="preserve"><value>Übernehmen</value></data>
+  <data name="FileHotkeyRemove" xml:space="preserve"><value>Hotkey entfernen</value></data>
+  <data name="FileHotkeyFileNameFormat" xml:space="preserve"><value>Dateiname: {0}</value></data>
+  <data name="FileHotkeyGlobalHint" xml:space="preserve"><value>Ohne Ctrl, Alt oder Win fehlt diese Taste in allen anderen Programmen, solange QuickHasteBot läuft.</value></data>
+  <data name="FileHotkeyUsedByFormat" xml:space="preserve"><value>Schon vergeben an {0}.</value></data>
+  <data name="FileHotkeyIsMain" xml:space="preserve"><value>Das ist der Hotkey, der das Popup öffnet.</value></data>
+  <data name="FileHotkeyTaken" xml:space="preserve"><value>Ein anderes Programm verwendet diese Tastenkombination schon.</value></data>
+  <data name="FileHotkeyConflictsFound" xml:space="preserve"><value>Einige Hotkeys in Dateinamen wirken nicht:</value></data>
+  <data name="FileHotkeyConflictLineFormat" xml:space="preserve"><value>{0} für {1}: {2}</value></data>
+  <data name="FileHotkeyBadgeTooltipFormat" xml:space="preserve"><value>Hotkey {0}, gilt in jedem Programm</value></data>
+  <data name="EditorHotkeyConflictFormat" xml:space="preserve"><value>Hotkey {0}: {1}</value></data>
+  <data name="QuotedNameFormat" xml:space="preserve"><value>«{0}»</value></data>
+  <data name="QuotedNameWithLocationFormat" xml:space="preserve"><value>«{0}» ({1})</value></data>
+  <data name="FileHotkeysTab" xml:space="preserve"><value>Hotkeys</value></data>
+  <data name="FileHotkeysIntro" xml:space="preserve"><value>Jede Datei und jeder Ordner kann einen eigenen Hotkey haben, er steht im Namen: «Freundliche Grüsse [Ctrl+Alt+G].txt» fügt den Baustein aus jedem Programm ein, «3-SQL [Ctrl+Alt+S]» öffnet das Popup in diesem Ordner. Festlegen mit «Hotkey festlegen…» im Rechtsklick-Menü des Popups, durch Umbenennen oder hier per Doppelklick.</value></data>
+  <data name="FileHotkeysNone" xml:space="preserve"><value>Noch keine Datei und kein Ordner hat einen Hotkey.</value></data>
+  <data name="FileHotkeysSummaryFormat" xml:space="preserve"><value>{0} aktiv</value></data>
+  <data name="FileHotkeysProblemsFormat" xml:space="preserve"><value>{0} aktiv, {1} wirken nicht</value></data>
+  <data name="FileHotkeyColumnHotkey" xml:space="preserve"><value>Hotkey</value></data>
+  <data name="FileHotkeyColumnName" xml:space="preserve"><value>Name</value></data>
+  <data name="FileHotkeyColumnFolder" xml:space="preserve"><value>Ordner</value></data>
+  <data name="FileHotkeyColumnStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="FileHotkeyStatusOk" xml:space="preserve"><value>Aktiv</value></data>
+  <!-- Neuer Ordner -->
+  <data name="MenuNewFolder" xml:space="preserve"><value>Neuer Ordner…</value></data>
+  <data name="NewFolderTitle" xml:space="preserve"><value>Neuer Ordner</value></data>
+  <data name="NewFolderPrompt" xml:space="preserve"><value>Name des neuen Ordners:</value></data>
+  <data name="NewFolderHintFormat" xml:space="preserve"><value>Neue Ordner entstehen immer im Ordner, der im Popup gerade offen ist: {0}</value></data>
+  <data name="NewFolderName" xml:space="preserve"><value>Neuer Ordner</value></data>
+  <data name="NewFolderConfirm" xml:space="preserve"><value>Erstellen</value></data>
+  <data name="NewFolderErrorFormat" xml:space="preserve"><value>Der Ordner konnte nicht erstellt werden:
+{0}</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>de</value></data>
 </root>

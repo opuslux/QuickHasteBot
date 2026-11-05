@@ -73,11 +73,15 @@ internal partial class SearchPopup : Window
         };
     }
 
+    /// <summary>Wohin das offene Popup einfügen würde. Ein Datei-Hotkey bei offenem Popup fügt auch dort ein.</summary>
+    public nint TargetWindow => _targetWindow;
+
     /// <param name="targetWindow">Fenster, das beim Drücken des Hotkeys vorne war, dorthin wird eingefügt.</param>
-    public void ShowFor(nint targetWindow)
+    /// <param name="folder">Mit dem Hotkey eines Ordners: in diesem Ordner öffnen statt wie eingestellt.</param>
+    public void ShowFor(nint targetWindow, Snippet? folder = null)
     {
         _targetWindow = targetWindow;
-        _viewModel.Reset();
+        _viewModel.Reset(folder?.RelativePath);
         ApplyWidth();
 
         _anchor = null;
@@ -400,19 +404,25 @@ internal partial class SearchPopup : Window
     }
 
     // Rechtsklick auf einen Eintrag, links wie rechts. Links wird er dabei markiert, rechts bleibt der Ordner markiert.
+    // Auf die freie Fläche: neuer Baustein oder Ordner im offenen Ordner, sonst käme man in einem leeren Ordner nicht dazu.
     void OnListRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         var list = (ListBox)sender;
-        if (ItemAt(list, e.OriginalSource) is not { } item) return;
-
         _hoverTimer.Stop();
+        if (ItemAt(list, e.OriginalSource) is not { } item)
+        {
+            ShowFolderMenu(list);
+            e.Handled = true;
+            return;
+        }
+
         if (list == Results)
             _viewModel.Selected = item;
         ShowItemMenu(item.Snippet, list);
         e.Handled = true;
     }
 
-    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: Umbenennen. Beide: Im Explorer anzeigen, Neuer Baustein.</summary>
+    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: Umbenennen. Beide: Hotkey festlegen. Beide: Im Explorer anzeigen, Neuer Baustein.</summary>
     void ShowItemMenu(Snippet snippet, UIElement target)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
@@ -443,13 +453,43 @@ internal partial class SearchPopup : Window
             Hide();
             _app.NewSnippet(snippet);
         }));
+        // Immer im offenen Ordner, nicht im Ordner unter der Maus: der Dialog sagt das
+        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, NewFolder));
         menu.Items.Add(MenuEntry(Strings.MenuRename, () => Rename(snippet)));
+        menu.Items.Add(MenuEntry(Strings.MenuSetHotkey, () => SetHotkey(snippet)));
         if (!snippet.IsFolder)
         {
             menu.Items.Add(MenuEntry(Strings.MenuClone, () => Clone(snippet)));
             menu.Items.Add(MenuEntry(Strings.MenuDelete, () => Delete(snippet)));
         }
         menu.IsOpen = true;
+    }
+
+    /// <summary>Rechtsklick neben die Einträge: was im offenen Ordner neu entstehen kann.</summary>
+    void ShowFolderMenu(UIElement target)
+    {
+        var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
+        menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, () =>
+        {
+            Hide();
+            _app.NewSnippet(_viewModel.CurrentFolder);
+        }));
+        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, NewFolder));
+        menu.IsOpen = true;
+    }
+
+    /// <summary>Neuer Ordner im Ordner, der im Popup offen ist, danach markiert.</summary>
+    void NewFolder()
+    {
+        var parent = _viewModel.CurrentFolder;
+        var display = string.Join(" › ", new[] { Strings.BreadcrumbRoot }
+            .Concat(parent.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
+                .Select(folder => FileHotkey.Split(folder).Name)));
+        var dialog = NameDialog.ForNewFolder(parent.FullPath, display,
+            name => _app.HotkeyConflictForName(name, isFolder: true, selfPath: null, currentHotkey: null));
+        dialog.Owner = this;
+        if (WithDialog(dialog.ShowDialog) == true)
+            ChangeFile(parent, Strings.NewFolderErrorFormat, () => SnippetFiles.CreateFolder(parent.FullPath, dialog.FileName));
     }
 
     // Erst ausführen, wenn das Menü zu ist, sonst steht es hinter dem Dialog noch offen
@@ -462,7 +502,8 @@ internal partial class SearchPopup : Window
 
     void Clone(Snippet snippet)
     {
-        var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix));
+        var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix),
+            name => _app.HotkeyConflictForName(name, isFolder: false, selfPath: null, currentHotkey: null));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(snippet, Strings.CloneErrorFormat, () => SnippetFiles.Clone(snippet.FullPath, dialog.FileName));
@@ -470,10 +511,19 @@ internal partial class SearchPopup : Window
 
     void Rename(Snippet snippet)
     {
-        var dialog = NameDialog.ForRename(snippet);
+        var dialog = NameDialog.ForRename(snippet,
+            name => _app.HotkeyConflictForName(name, snippet.IsFolder, snippet.FullPath, snippet.Hotkey));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(snippet, Strings.RenameErrorFormat, () => SnippetFiles.Rename(snippet.FullPath, dialog.FileName));
+    }
+
+    /// <summary>Der Hotkey steht im Namen, festlegen heisst also umbenennen.</summary>
+    void SetHotkey(Snippet snippet)
+    {
+        var dialog = new HotkeyDialog(_app, snippet) { Owner = this };
+        if (WithDialog(dialog.ShowDialog) == true)
+            ChangeFile(snippet, Strings.RenameErrorFormat, () => SnippetFiles.Rename(snippet.FullPath, dialog.NewFileName));
     }
 
     /// <summary>Kopie anlegen oder umbenennen, danach ist das Ergebnis markiert, sofern es in der Liste steht.</summary>

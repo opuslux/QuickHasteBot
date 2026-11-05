@@ -77,7 +77,27 @@ By default the popup opens to the bottom left of the mouse pointer, with the poi
 
 The pin next to the folder path makes the popup open where it was closed last time, in the same folder with the same entry selected, even after a restart. The same option is in the settings under "When opening".
 
-With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". Right-clicking an entry, in either column, offers **Edit** (snippets only; like Ctrl+O, opens the [built-in editor](#editor)), **Open with default program** (the program Windows uses for the file type, e.g. Notepad++), **Show in Explorer** (like Ctrl+E for the entry under the pointer: a file is selected in its folder, a folder opens), **New snippet…** (in that folder, or next to that file), **Rename…** (also for folders, or F2 on the selected entry), **Clone…** (a copy in the same folder, with an editable name suggested like Explorer does: `Name - Copy.txt`) and **Delete…** (asks first, then moves the file to the Recycle Bin; where there is none, e.g. on a network drive, Windows asks whether to delete it permanently). The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
+With the mouse, the selection follows the pointer as soon as it rests on an entry for a moment, like in a menu. A click pastes the snippet or opens the folder; hold Shift for the other paste method. Entries in the right column can be clicked directly: a snippet is pasted right away, a folder opens. This way, hovering over a folder and clicking a snippet next to it pastes with a single click. The settings can switch clicking to "Click selects, double-click pastes". Right-clicking an entry, in either column, offers **Edit** (snippets only; like Ctrl+O, opens the [built-in editor](#editor)), **Open with default program** (the program Windows uses for the file type, e.g. Notepad++), **Show in Explorer** (like Ctrl+E for the entry under the pointer: a file is selected in its folder, a folder opens), **New snippet…** (in that folder, or next to that file), **New folder…** (always in the folder that is open in the popup, whichever entry was right-clicked; the dialog says where), **Rename…** (also for folders, or F2 on the selected entry), **Set hotkey…** (see [Hotkeys for files and folders](#hotkeys-for-files-and-folders)), **Clone…** (a copy in the same folder, with an editable name suggested like Explorer does: `Name - Copy.txt`) and **Delete…** (asks first, then moves the file to the Recycle Bin; where there is none, e.g. on a network drive, Windows asks whether to delete it permanently). Right-clicking the empty space next to the entries offers **New snippet…** and **New folder…** for the open folder, which also works in an empty folder. The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable too, and the popup can be dragged anywhere outside the search box.
+
+## Hotkeys for files and folders
+
+Every snippet, file or folder can have a global hotkey of its own. It is part of the name, in square brackets at the end:
+
+```
+structure  3-SQL [Ctrl+Alt+S]    Audit insert [Ctrl+Alt+A].txt
+  Kind regards [Ctrl+Alt+G].txt
+  Intranet [Ctrl+Alt+I].url
+```
+
+- **A text snippet** is pasted right away into the window in front, without the popup, just like Enter in the popup (key tags and scripts included).
+- **Any other file** opens with its associated application.
+- **A folder** opens the popup in that folder.
+
+Since the hotkey lives in the name, there is nothing else to maintain: it moves along when a file is copied, zipped, synced or put under version control, and renaming the file changes it. The popup shows the name without the brackets, with the hotkey as a small badge on the right, and the search ignores it. Only a valid combination in brackets counts: `Report [draft].txt` stays a name. The key names are those of the popup hotkey (`Ctrl`, `Shift`, `Alt`, `Win`, also `Strg`); a single function key like `[F9]` works too, but is then missing in every other program.
+
+**Setting a hotkey:** right-click an entry and choose **Set hotkey…**, then press the combination. The dialog says right away if it is already used by another entry, is the popup hotkey, or belongs to another program, and only applies a free one. "Remove hotkey" takes it out of the name again. Renaming (F2, the name field in the editor, or Explorer) works as well; QuickHasteBot checks the hotkey there too, and the editor keeps it when the name changes. A clone gets no hotkey.
+
+**Conflicts** that come in from outside, e.g. a file renamed in Explorer, are reported once with a message. The entry then shows a warning sign next to its badge, with the reason in the tooltip. If two entries have the same hotkey, the one further up in the popup gets it. The settings list every hotkey under **Hotkeys**, conflicts in red; a double-click changes one. If there are conflicts at startup, the settings open on that tab.
 
 ## Pasting: two methods
 
