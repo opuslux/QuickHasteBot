@@ -79,6 +79,8 @@
         <DockPanel x:Name="CopyRow" Margin="0,8,0,0" Visibility="Collapsed">
             <Button x:Name="CopyButton" DockPanel.Dock="Right" Content="{x:Static ui:Strings.AiPromptCopyBlock}" MinWidth="100"
                     Click="OnCopyBlock" />
+            <Button x:Name="InsertButton" DockPanel.Dock="Right" Content="{x:Static ui:Strings.PickerInsert}" MinWidth="100"
+                    Margin="0,0,8,0" Visibility="Collapsed" Click="OnInsertBlock" />
             <TextBlock x:Name="WrappedHint" Text="{x:Static ui:Strings.AiPromptWrapped}" FontSize="12" TextWrapping="Wrap"
                        VerticalAlignment="Center" Margin="0,0,12,0"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

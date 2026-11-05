@@ -76,6 +76,72 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="PickerTestDone" xml:space="preserve"><value>Test geklappt: Das Element wurde gefunden und der Tag ausgeführt.</value></data>
   <data name="PickerTestStopped" xml:space="preserve"><value>Test mit Esc abgebrochen.</value></data>
   <data name="PickerTestNoTag" xml:space="preserve"><value>Das ist kein gültiger Tag, z.B. {focus,#email}.</value></data>
+  <data name="EditorTitle" xml:space="preserve"><value>Baustein bearbeiten</value></data>
+  <data name="EditorName" xml:space="preserve"><value>Name</value></data>
+  <data name="EditorNewSnippet" xml:space="preserve"><value>Neuer Baustein</value></data>
+  <data name="EditorInsertTag" xml:space="preserve"><value>Tag einfügen ▾</value></data>
+  <data name="EditorInsertTagToolTip" xml:space="preserve"><value>Tasten, Pausen, Formular-Elemente, Fenster und Skript-Helfer, an der Schreibmarke eingefügt</value></data>
+  <data name="EditorPicker" xml:space="preserve"><value>Element erfassen</value></data>
+  <data name="EditorPickerToolTip" xml:space="preserve"><value>Öffnet den Fadenkreuz-Picker; «In Editor einfügen» setzt den Tag hier an die Schreibmarke</value></data>
+  <data name="EditorPickerMenu" xml:space="preserve"><value>Mit dem Fadenkreuz erfassen…</value></data>
+  <data name="EditorAi" xml:space="preserve"><value>KI</value></data>
+  <data name="EditorPreviewError" xml:space="preserve"><value>Vorschau: Skriptfehler, es würde nichts eingefügt</value></data>
+  <data name="EditorPreviewForm" xml:space="preserve"><value>Vorschau: ein Formular-Baustein, wird mit diesen Tasten getippt</value></data>
+  <data name="EditorPreviewPaste" xml:space="preserve"><value>Vorschau: wird so eingefügt</value></data>
+  <data name="EditorPreviewEmpty" xml:space="preserve"><value>(leer)</value></data>
+  <data name="EditorTest" xml:space="preserve"><value>Testen</value></data>
+  <data name="EditorTestToolTip" xml:space="preserve"><value>Danach ins Zielfeld klicken: Der Baustein läuft dort wie beim Einfügen, mit dem Text, wie er jetzt dasteht. Ist etwas markiert, läuft nur die Markierung, steht die Schreibmarke in einem Tag oder Skript, nur dieses (F5)</value></data>
+  <data name="EditorTestSelection" xml:space="preserve"><value>Auswahl testen</value></data>
+  <data name="EditorTestTag" xml:space="preserve"><value>Tag testen</value></data>
+  <data name="EditorTestScript" xml:space="preserve"><value>Skript testen</value></data>
+  <data name="EditorTestRunsAllFormat" xml:space="preserve"><value>Dort läuft der ganze Baustein „{0}“. </value></data>
+  <data name="EditorTestRunsPart" xml:space="preserve"><value>Dort läuft nur: </value></data>
+  <data name="EditorTestStops" xml:space="preserve"><value>Esc oder Abbrechen stoppt.</value></data>
+  <data name="CursorHintTitle" xml:space="preserve"><value>Ins Zielfeld klicken</value></data>
+  <data name="CursorHintAllFormat" xml:space="preserve"><value>Ganzer Baustein „{0}“ · Esc bricht ab</value></data>
+  <data name="CursorHintEsc" xml:space="preserve"><value>Esc bricht ab</value></data>
+  <data name="EditorTestCancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="EditorTestClickTarget" xml:space="preserve"><value>Jetzt ins Zielfeld klicken</value></data>
+  <data name="EditorTestCancelled" xml:space="preserve"><value>Test abgebrochen.</value></data>
+  <data name="EditorTestRunning" xml:space="preserve"><value>Läuft… (Esc gedrückt halten stoppt)</value></data>
+  <data name="EditorTestDone" xml:space="preserve"><value>Test gelaufen.</value></data>
+  <data name="EditorSave" xml:space="preserve"><value>Speichern</value></data>
+  <data name="EditorSaved" xml:space="preserve"><value>Gespeichert.</value></data>
+  <data name="EditorSaveErrorFormat" xml:space="preserve"><value>Konnte nicht speichern: {0}</value></data>
+  <data name="EditorChangedOnDiskFormat" xml:space="preserve"><value>«{0}» wurde inzwischen in einem anderen Programm geändert. Trotzdem überschreiben?</value></data>
+  <data name="EditorSaveChangesFormat" xml:space="preserve"><value>Änderungen an «{0}» speichern?</value></data>
+  <data name="EditorNameEmpty" xml:space="preserve"><value>Der Baustein braucht einen Namen.</value></data>
+  <data name="EditorTagsKeys" xml:space="preserve"><value>Tasten</value></data>
+  <data name="EditorTagsFlow" xml:space="preserve"><value>Ablauf</value></data>
+  <data name="EditorTagsElements" xml:space="preserve"><value>Elemente und Fenster</value></data>
+  <data name="EditorTagsScripts" xml:space="preserve"><value>Skript</value></data>
+  <data name="TagNextField" xml:space="preserve"><value>nächstes Feld</value></data>
+  <data name="TagPreviousField" xml:space="preserve"><value>Feld zurück</value></data>
+  <data name="TagSubmit" xml:space="preserve"><value>absenden</value></data>
+  <data name="TagCheckbox" xml:space="preserve"><value>Checkbox anhaken</value></data>
+  <data name="TagRepeat" xml:space="preserve"><value>3-mal</value></data>
+  <data name="TagSelectAll" xml:space="preserve"><value>alles markieren</value></data>
+  <data name="TagOpenDropdown" xml:space="preserve"><value>Dropdown öffnen</value></data>
+  <data name="TagSendChat" xml:space="preserve"><value>senden (Outlook, Teams)</value></data>
+  <data name="TagWait" xml:space="preserve"><value>Pause in ms</value></data>
+  <data name="TagDelay" xml:space="preserve"><value>langsamer tippen</value></data>
+  <data name="TagClear" xml:space="preserve"><value>Feld leeren</value></data>
+  <data name="TagGuardOff" xml:space="preserve"><value>Fensterschutz aus</value></data>
+  <data name="TagGuardOn" xml:space="preserve"><value>Fensterschutz ein</value></data>
+  <data name="TagFocus" xml:space="preserve"><value>Cursor ins Feld</value></data>
+  <data name="TagClick" xml:space="preserve"><value>Button oder Link klicken</value></data>
+  <data name="TagSet" xml:space="preserve"><value>Feld oder Dropdown füllen</value></data>
+  <data name="TagWindow" xml:space="preserve"><value>Programm nach vorne holen</value></data>
+  <data name="TagDate" xml:space="preserve"><value>heute</value></data>
+  <data name="TagDateIn" xml:space="preserve"><value>in 14 Tagen</value></data>
+  <data name="TagWeek" xml:space="preserve"><value>Kalenderwoche</value></data>
+  <data name="TagClipboard" xml:space="preserve"><value>Text der Zwischenablage</value></data>
+  <data name="TagUser" xml:space="preserve"><value>Windows-Benutzer</value></data>
+  <data name="MenuEditExternal" xml:space="preserve"><value>Mit Standardprogramm öffnen</value></data>
+  <data name="MenuNewSnippet" xml:space="preserve"><value>Neuer Baustein…</value></data>
+  <data name="UseBuiltInEditor" xml:space="preserve"><value>Bausteine im eingebauten Editor bearbeiten</value></data>
+  <data name="UseBuiltInEditorToolTip" xml:space="preserve"><value>Mit Tag-Palette, Element-Picker, Vorschau und Testlauf. Aus: «Bearbeiten» öffnet das Programm, das Windows für die Endung vorsieht. Das Rechtsklick-Menü bietet so oder so beides.</value></data>
+  <data name="PickerInsert" xml:space="preserve"><value>In Editor einfügen</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Element erfassen…</value></data>
   <data name="PickerTooltip" xml:space="preserve"><value>Formularfeld für Tasten-Tags erfassen (Fadenkreuz)</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Element erfassen</value></data>

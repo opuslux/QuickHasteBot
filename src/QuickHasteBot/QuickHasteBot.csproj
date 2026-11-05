@@ -28,6 +28,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Editor mit Farben für Tags und Skripte (SnippetHighlighting) -->
+    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
     <PackageReference Include="Jint" Version="4.17.0" />
   </ItemGroup>

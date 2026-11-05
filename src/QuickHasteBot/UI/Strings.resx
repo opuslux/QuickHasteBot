@@ -76,6 +76,72 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerTestDone" xml:space="preserve"><value>Test passed: the element was found and the tag ran.</value></data>
   <data name="PickerTestStopped" xml:space="preserve"><value>Test stopped with Esc.</value></data>
   <data name="PickerTestNoTag" xml:space="preserve"><value>That isn't a valid tag, e.g. {focus,#email}.</value></data>
+  <data name="EditorTitle" xml:space="preserve"><value>Edit snippet</value></data>
+  <data name="EditorName" xml:space="preserve"><value>Name</value></data>
+  <data name="EditorNewSnippet" xml:space="preserve"><value>New snippet</value></data>
+  <data name="EditorInsertTag" xml:space="preserve"><value>Insert tag ▾</value></data>
+  <data name="EditorInsertTagToolTip" xml:space="preserve"><value>Keys, pauses, form elements, windows and script helpers, inserted at the cursor</value></data>
+  <data name="EditorPicker" xml:space="preserve"><value>Pick element</value></data>
+  <data name="EditorPickerToolTip" xml:space="preserve"><value>Opens the crosshair picker; "Insert into editor" puts the tag at the cursor here</value></data>
+  <data name="EditorPickerMenu" xml:space="preserve"><value>Pick with the crosshair…</value></data>
+  <data name="EditorAi" xml:space="preserve"><value>AI</value></data>
+  <data name="EditorPreviewError" xml:space="preserve"><value>Preview: script error, nothing would be pasted</value></data>
+  <data name="EditorPreviewForm" xml:space="preserve"><value>Preview: a form snippet, typed with these keys</value></data>
+  <data name="EditorPreviewPaste" xml:space="preserve"><value>Preview: pasted like this</value></data>
+  <data name="EditorPreviewEmpty" xml:space="preserve"><value>(empty)</value></data>
+  <data name="EditorTest" xml:space="preserve"><value>Test</value></data>
+  <data name="EditorTestToolTip" xml:space="preserve"><value>Then click into the target field: the snippet runs there as if pasted, with the text as it is now. With a selection only the selection runs, with the cursor in a tag or script only that one (F5)</value></data>
+  <data name="EditorTestSelection" xml:space="preserve"><value>Test selection</value></data>
+  <data name="EditorTestTag" xml:space="preserve"><value>Test tag</value></data>
+  <data name="EditorTestScript" xml:space="preserve"><value>Test script</value></data>
+  <data name="EditorTestRunsAllFormat" xml:space="preserve"><value>The whole snippet “{0}” runs there. </value></data>
+  <data name="EditorTestRunsPart" xml:space="preserve"><value>Only this runs there: </value></data>
+  <data name="EditorTestStops" xml:space="preserve"><value>Esc or Cancel stops.</value></data>
+  <data name="CursorHintTitle" xml:space="preserve"><value>Click into the target field</value></data>
+  <data name="CursorHintAllFormat" xml:space="preserve"><value>Whole snippet “{0}” · Esc cancels</value></data>
+  <data name="CursorHintEsc" xml:space="preserve"><value>Esc cancels</value></data>
+  <data name="EditorTestCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="EditorTestClickTarget" xml:space="preserve"><value>Now click into the target field</value></data>
+  <data name="EditorTestCancelled" xml:space="preserve"><value>Test cancelled.</value></data>
+  <data name="EditorTestRunning" xml:space="preserve"><value>Running… (hold Esc to stop)</value></data>
+  <data name="EditorTestDone" xml:space="preserve"><value>Test ran.</value></data>
+  <data name="EditorSave" xml:space="preserve"><value>Save</value></data>
+  <data name="EditorSaved" xml:space="preserve"><value>Saved.</value></data>
+  <data name="EditorSaveErrorFormat" xml:space="preserve"><value>Couldn't save: {0}</value></data>
+  <data name="EditorChangedOnDiskFormat" xml:space="preserve"><value>"{0}" was changed in another program in the meantime. Overwrite it anyway?</value></data>
+  <data name="EditorSaveChangesFormat" xml:space="preserve"><value>Save the changes to "{0}"?</value></data>
+  <data name="EditorNameEmpty" xml:space="preserve"><value>The snippet needs a name.</value></data>
+  <data name="EditorTagsKeys" xml:space="preserve"><value>Keys</value></data>
+  <data name="EditorTagsFlow" xml:space="preserve"><value>Flow</value></data>
+  <data name="EditorTagsElements" xml:space="preserve"><value>Elements and windows</value></data>
+  <data name="EditorTagsScripts" xml:space="preserve"><value>Script</value></data>
+  <data name="TagNextField" xml:space="preserve"><value>next field</value></data>
+  <data name="TagPreviousField" xml:space="preserve"><value>previous field</value></data>
+  <data name="TagSubmit" xml:space="preserve"><value>submit</value></data>
+  <data name="TagCheckbox" xml:space="preserve"><value>tick a checkbox</value></data>
+  <data name="TagRepeat" xml:space="preserve"><value>3 times</value></data>
+  <data name="TagSelectAll" xml:space="preserve"><value>select all</value></data>
+  <data name="TagOpenDropdown" xml:space="preserve"><value>open a dropdown</value></data>
+  <data name="TagSendChat" xml:space="preserve"><value>send (Outlook, Teams)</value></data>
+  <data name="TagWait" xml:space="preserve"><value>pause in ms</value></data>
+  <data name="TagDelay" xml:space="preserve"><value>type slower</value></data>
+  <data name="TagClear" xml:space="preserve"><value>empty the field</value></data>
+  <data name="TagGuardOff" xml:space="preserve"><value>window guard off</value></data>
+  <data name="TagGuardOn" xml:space="preserve"><value>window guard on</value></data>
+  <data name="TagFocus" xml:space="preserve"><value>cursor into the field</value></data>
+  <data name="TagClick" xml:space="preserve"><value>click a button or link</value></data>
+  <data name="TagSet" xml:space="preserve"><value>fill a field or dropdown</value></data>
+  <data name="TagWindow" xml:space="preserve"><value>bring a program to the front</value></data>
+  <data name="TagDate" xml:space="preserve"><value>today</value></data>
+  <data name="TagDateIn" xml:space="preserve"><value>in 14 days</value></data>
+  <data name="TagWeek" xml:space="preserve"><value>calendar week</value></data>
+  <data name="TagClipboard" xml:space="preserve"><value>clipboard text</value></data>
+  <data name="TagUser" xml:space="preserve"><value>Windows user</value></data>
+  <data name="MenuEditExternal" xml:space="preserve"><value>Open with default program</value></data>
+  <data name="MenuNewSnippet" xml:space="preserve"><value>New snippet…</value></data>
+  <data name="UseBuiltInEditor" xml:space="preserve"><value>Edit snippets in the built-in editor</value></data>
+  <data name="UseBuiltInEditorToolTip" xml:space="preserve"><value>With tag palette, element picker, preview and test run. Off: "Edit" opens the program Windows uses for the file type. Either way, the right-click menu offers both.</value></data>
+  <data name="PickerInsert" xml:space="preserve"><value>Insert into editor</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Pick element…</value></data>
   <data name="PickerTooltip" xml:space="preserve"><value>Pick a form field for key tags (crosshair)</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Pick element</value></data>

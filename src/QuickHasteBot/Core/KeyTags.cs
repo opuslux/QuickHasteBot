@@ -105,10 +105,25 @@ public static partial class KeyTags
 
     // Ein {{ … }}-Block (bleibt unangetastet) oder ein Tag-Kandidat. Argumente in "…" dürfen } und , enthalten.
     [GeneratedRegex("""\{\{.*?\}\}|\{((?:"[^"]*"|[^{}"\r\n])+)\}""", RegexOptions.Singleline)]
-    private static partial Regex Candidate();
+    internal static partial Regex Candidate();
 
     [GeneratedRegex(@"^((?:(?:ctrl|alt|shift|win)\+)*[a-z0-9]+)(?:\s*,\s*|\s+|$)", RegexOptions.IgnoreCase)]
-    private static partial Regex NamePart();
+    internal static partial Regex NamePart();
+
+    static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "window" };
+
+    /// <summary>
+    /// Ein Name, den es als Tag gibt ("tab", "shift+tab", "ctrl+a", "wait" …), egal ob die Argumente stimmen.
+    /// So lässt sich {tab,x} als fehlerhaftes Tag erkennen, während {name} einfach Text ist.
+    /// </summary>
+    internal static bool IsTagName(string spec)
+    {
+        if (Commands.Contains(spec)) return true;
+        var parts = spec.Split('+');
+        var key = parts[^1];
+        return Keys.ContainsKey(key) || parts.Length > 1 && key.Length == 1 && char.IsAsciiLetterOrDigit(key[0]);
+    }
 
     /// <summary>Ersetzt die Tags ausserhalb von {{ … }} durch Marker für <paramref name="form"/>.</summary>
     public static string MarkTags(string text, FormBuilder form) =>
@@ -174,7 +189,11 @@ public static partial class KeyTags
                 return true;
             }
             case "clear":
-                if (arg is not null) return false;
+                if (arg is not null)
+                {
+                    error = "\"clear\" takes no arguments";
+                    return false;
+                }
                 steps = [Key("ctrl+a", 0x41, [VK_CONTROL], 1), Key("del", VK_DELETE, [], 1)];
                 return true;
         }
@@ -183,8 +202,12 @@ public static partial class KeyTags
         if (count is { } c)
             repeat = c;
         else if (arg is not null && !int.TryParse(arg, NumberStyles.None, CultureInfo.InvariantCulture, out repeat))
+            repeat = 0;
+        if (repeat < 1)
+        {
+            error = $"the number after \"{spec}\" is how often to press it, e.g. {{{spec},3}}";
             return false;
-        if (repeat < 1) return false;
+        }
         repeat = Math.Min(repeat, MaxRepeat);
 
         var parts = spec.Split('+');
