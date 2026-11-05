@@ -430,38 +430,38 @@ internal partial class SearchPopup : Window
         // Alles andere öffnet schon per Klick die zugeordnete Anwendung
         if (snippet.Kind == SnippetKind.Text)
         {
-            menu.Items.Add(MenuEntry(Strings.MenuEdit, () =>
+            menu.Items.Add(MenuEntry(Strings.MenuEdit, MenuIcons.Edit, () =>
             {
                 Hide();
                 _app.EditSnippet(snippet);
             }));
             if (_app.Settings.UseBuiltInEditor)
-                menu.Items.Add(MenuEntry(Strings.MenuEditExternal, () =>
+                menu.Items.Add(MenuEntry(Strings.MenuEditExternal, MenuIcons.OpenExternal, () =>
                 {
                     Hide();
                     _app.Edit(snippet);
                 }));
         }
         // Wie Strg+E, aber für den Eintrag unter der Maus: Dateien markiert im Ordner, Ordner selbst geöffnet
-        menu.Items.Add(MenuEntry(Strings.MenuShowInExplorer, () =>
+        menu.Items.Add(MenuEntry(Strings.MenuShowInExplorer, MenuIcons.Explorer, () =>
         {
             Hide();
             _app.RevealInExplorer(snippet);
         }));
         // Neuer Baustein im Ordner bzw. neben der Datei
-        menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, () =>
+        menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
             Hide();
             _app.NewSnippet(snippet);
         }));
         // Immer im offenen Ordner, nicht im Ordner unter der Maus: der Dialog sagt das
-        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, NewFolder));
-        menu.Items.Add(MenuEntry(Strings.MenuRename, () => Rename(snippet)));
-        menu.Items.Add(MenuEntry(Strings.MenuSetHotkey, () => SetHotkey(snippet)));
+        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, NewFolder));
+        menu.Items.Add(MenuEntry(Strings.MenuRename, MenuIcons.Rename, () => Rename(snippet)));
+        menu.Items.Add(MenuEntry(Strings.MenuSetHotkey, MenuIcons.Hotkey, () => SetHotkey(snippet)));
         if (!snippet.IsFolder)
         {
-            menu.Items.Add(MenuEntry(Strings.MenuClone, () => Clone(snippet)));
-            menu.Items.Add(MenuEntry(Strings.MenuDelete, () => Delete(snippet)));
+            menu.Items.Add(MenuEntry(Strings.MenuClone, MenuIcons.Clone, () => Clone(snippet)));
+            menu.Items.Add(MenuEntry(Strings.MenuDelete, MenuIcons.Delete, () => Delete(snippet)));
         }
         menu.IsOpen = true;
     }
@@ -470,12 +470,12 @@ internal partial class SearchPopup : Window
     void ShowFolderMenu(UIElement target)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
-        menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, () =>
+        menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
             Hide();
             _app.NewSnippet(_viewModel.CurrentFolder);
         }));
-        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, NewFolder));
+        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, NewFolder));
         menu.IsOpen = true;
     }
 
@@ -494,9 +494,9 @@ internal partial class SearchPopup : Window
     }
 
     // Erst ausführen, wenn das Menü zu ist, sonst steht es hinter dem Dialog noch offen
-    MenuItem MenuEntry(string header, Action action)
+    MenuItem MenuEntry(string header, string glyph, Action action)
     {
-        var item = new MenuItem { Header = header };
+        var item = new MenuItem { Header = header, Icon = MenuIcons.Glyph(glyph) };
         item.Click += (_, _) => Dispatcher.BeginInvoke(action, DispatcherPriority.Input);
         return item;
     }

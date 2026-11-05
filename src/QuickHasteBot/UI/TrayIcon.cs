@@ -11,12 +11,12 @@ internal sealed class TrayIcon : IDisposable
     public TrayIcon(AppController app)
     {
         var menu = new ContextMenu();
-        menu.Items.Add(MenuItem(Strings.TraySettings, app.ShowSettings));
-        menu.Items.Add(MenuItem(Strings.TrayOpenStructure, app.OpenStructureFolder));
-        menu.Items.Add(MenuItem(Strings.TrayElementPicker, app.ShowElementPicker));
-        menu.Items.Add(MenuItem(Strings.TrayAiPrompt, app.ShowAiPrompt));
+        menu.Items.Add(MenuIcons.Item(Strings.TraySettings, MenuIcons.Glyph(MenuIcons.Settings), app.ShowSettings));
+        menu.Items.Add(MenuIcons.Item(Strings.TrayOpenStructure, MenuIcons.Glyph(MenuIcons.Explorer), app.OpenStructureFolder));
+        menu.Items.Add(MenuIcons.Item(Strings.TrayElementPicker, MenuIcons.Crosshair(), app.ShowElementPicker));
+        menu.Items.Add(MenuIcons.Item(Strings.TrayAiPrompt, MenuIcons.Sparkle(), app.ShowAiPrompt));
         menu.Items.Add(new Separator());
-        menu.Items.Add(MenuItem(Strings.TrayExit, app.Exit));
+        menu.Items.Add(MenuIcons.Item(Strings.TrayExit, MenuIcons.Glyph(MenuIcons.Exit), app.Exit));
 
         _icon = new TaskbarIcon
         {
@@ -33,11 +33,4 @@ internal sealed class TrayIcon : IDisposable
     public void UpdateToolTip(string text) => _icon.ToolTipText = text;
 
     public void Dispose() => _icon.Dispose();
-
-    static MenuItem MenuItem(string header, Action action)
-    {
-        var item = new MenuItem { Header = header };
-        item.Click += (_, _) => action();
-        return item;
-    }
 }

@@ -200,33 +200,31 @@ internal partial class SnippetEditorWindow : Window
     ContextMenu TagMenu()
     {
         var menu = new ContextMenu();
-        menu.Items.Add(Group(Strings.EditorTagsKeys,
+        menu.Items.Add(Group(Strings.EditorTagsKeys, MenuIcons.Glyph(MenuIcons.Keys),
             Tag("{tab}", Strings.TagNextField), Tag("{shift+tab}", Strings.TagPreviousField), Tag("{enter}", Strings.TagSubmit),
             Tag("{space}", Strings.TagCheckbox), Tag("{esc}"), null,
             Tag("{up}"), Tag("{down}"), Tag("{down,3}", Strings.TagRepeat), Tag("{left}"), Tag("{right}"), Tag("{home}"), Tag("{end}"), null,
             Tag("{bs}"), Tag("{del}"), Tag("{ctrl+a}", Strings.TagSelectAll), Tag("{alt+down}", Strings.TagOpenDropdown),
             Tag("{ctrl+enter}", Strings.TagSendChat), Tag("{f5}")));
-        menu.Items.Add(Group(Strings.EditorTagsFlow,
+        menu.Items.Add(Group(Strings.EditorTagsFlow, MenuIcons.Glyph(MenuIcons.Flow),
             Tag("{wait,500}", Strings.TagWait, "500"), Tag("{delay,50}", Strings.TagDelay, "50"), Tag("{clear}", Strings.TagClear), null,
             Tag("{guard,off}", Strings.TagGuardOff), Tag("{guard,on}", Strings.TagGuardOn)));
-        var elements = Group(Strings.EditorTagsElements,
+        var elements = Group(Strings.EditorTagsElements, MenuIcons.Crosshair(),
             Tag("{focus,#id}", Strings.TagFocus, "id"), Tag("{click,name=Label}", Strings.TagClick, "Label"),
             Tag("{set,#id,\"\"}", Strings.TagSet, "id"), null,
             Tag("{window,program}", Strings.TagWindow, "program"));
         elements.Items.Add(new Separator());
-        var pick = new MenuItem { Header = Strings.EditorPickerMenu };
-        pick.Click += (_, _) => _app.ShowElementPicker();
-        elements.Items.Add(pick);
+        elements.Items.Add(MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker));
         menu.Items.Add(elements);
-        menu.Items.Add(Group(Strings.EditorTagsScripts,
+        menu.Items.Add(Group(Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
             Tag("{{ date() }}", Strings.TagDate), Tag("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), Tag("{{ time() }}"),
             Tag("{{ isoweek() }}", Strings.TagWeek), Tag("{{ clipboard }}", Strings.TagClipboard), Tag("{{ user }}", Strings.TagUser),
             Tag("{{ guid() }}")));
         return menu;
 
-        MenuItem Group(string header, params MenuItem?[] items)
+        MenuItem Group(string header, UIElement icon, params MenuItem?[] items)
         {
-            var group = new MenuItem { Header = header };
+            var group = new MenuItem { Header = header, Icon = icon };
             foreach (var item in items)
                 group.Items.Add(item is null ? new Separator() : item);
             return group;
