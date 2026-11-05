@@ -199,6 +199,18 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="AiPromptTitle" xml:space="preserve"><value>Script block with AI</value></data>
   <data name="AiPromptLabel" xml:space="preserve"><value>What should the script insert?</value></data>
   <data name="AiPromptPlaceholder" xml:space="preserve"><value>e.g. the date in 14 days with the weekday, or the clipboard in capital letters</value></data>
+  <!-- Eins davon steht im leeren Feld, solange kein eigener Text gespeichert ist. Eine Zeile pro Beispiel. -->
+  <data name="AiPromptExamples" xml:space="preserve"><value>The date in 14 days with the weekday
+The current calendar week as "CW 45"
+Good morning, Good afternoon or Good evening depending on the time of day
+The clipboard in capital letters
+The last day of the current month
+A random password with 16 characters
+The number of days until Christmas
+A timestamp for file names, like 2026-11-04_1530
+Every line of the clipboard as a bullet point with "- " in front
+The date of next Monday</value></data>
+  <data name="AiPromptNextExample" xml:space="preserve"><value>Next example</value></data>
   <data name="AiPromptPreview" xml:space="preserve"><value>Full prompt</value></data>
   <data name="AiPromptHint" xml:space="preserve"><value>The browser opens with the prompt. The answer comes as a code block: copy it with its copy button and test it below.</value></data>
   <data name="AiPromptOpen" xml:space="preserve"><value>Open in browser</value></data>
@@ -218,6 +230,10 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="AiPromptCopyBlock" xml:space="preserve"><value>Copy block</value></data>
   <data name="AiPromptWrapped" xml:space="preserve"><value>The answer had no {{ … }}, "Copy block" adds it.</value></data>
   <data name="AiPromptTestEmpty" xml:space="preserve"><value>The result is empty.</value></data>
+  <data name="AiPromptTestRerun" xml:space="preserve"><value>Run again (F5), e.g. for the time or the clipboard</value></data>
+  <data name="AiPromptTestExampleLabel" xml:space="preserve"><value>Example, ↻ takes it over: a decision die</value></data>
+  <data name="AiPromptTestExample" xml:space="preserve"><value>{{ ['Yes', 'No', 'Maybe', 'Tomorrow'][Math.random() * 4 | 0] }}</value></data>
+  <data name="AiPromptTestUseExample" xml:space="preserve"><value>Take over the example (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Edit</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Rename…</value></data>
@@ -246,6 +262,6 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
 {0}
 
 Details are in QuickHasteBot.log.</value></data>
-  <data name="WelcomeFileName" xml:space="preserve"><value>Welcome.txt</value></data>
-  <data name="WelcomeText" xml:space="preserve"><value>Hello from QuickHasteBot! Create .txt files and subfolders in the structure folder, they show up in the popup right away.</value></data>
+  <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
+  <data name="SampleLanguage" xml:space="preserve"><value>en</value></data>
 </root>

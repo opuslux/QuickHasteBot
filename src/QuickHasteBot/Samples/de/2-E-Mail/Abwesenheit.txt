@@ -1,0 +1,1 @@
+Vielen Dank für Ihre Nachricht. Ich bin bis und mit {{ date('dddd, d. MMMM', 7) }} abwesend und lese meine E-Mails nur unregelmässig. In dringenden Fällen wenden Sie sich bitte an Vorname Nachname.

@@ -16,7 +16,8 @@ namespace QuickHasteBot.UI;
 /// stehen, damit man den Prompt anpassen und erneut schicken kann. Eigenes Fenster in der Taskleiste, nicht am
 /// Popup: das liegt immer im Vordergrund und würde den Browser verdecken.
 /// Unten lässt sich die Antwort einfügen und gleich ausführen.
-/// Enter macht eine neue Zeile, Strg+Enter öffnet den Browser, Esc schliesst. Der Dienst wird sofort gespeichert,
+/// Enter macht eine neue Zeile, Strg+Enter öffnet den Browser, F5 führt die Antwort erneut aus (leer: übernimmt das Beispiel),
+/// Esc schliesst. Der Dienst wird sofort gespeichert,
 /// der Text beim Senden und Schliessen, damit er auch nach einem Neustart wieder dasteht.
 /// </summary>
 internal partial class AiPromptWindow : Window
@@ -28,6 +29,7 @@ internal partial class AiPromptWindow : Window
     readonly DispatcherTimer _testTimer;
     readonly bool _loading;
     string? _template;
+    int _example;
 
     public AiPromptWindow(AppController app)
     {
@@ -37,7 +39,12 @@ internal partial class AiPromptWindow : Window
         _testTimer = new DispatcherTimer(TestDelay, DispatcherPriority.Background, (_, _) => TestAnswer(), Dispatcher) { IsEnabled = false };
         (ServiceInput.ItemsSource, ServiceInput.SelectedItem) = app.AiServiceChoices();
         UpdateOpenButton();
-        RequirementInput.Text = app.Settings.AiPromptText;
+        // Noch nichts Eigenes gespeichert: ein zufälliges Beispiel, markiert, also mit dem ersten Zeichen ersetzt.
+        // Gespeichert wird es erst beim Ändern oder Senden, sonst kommt nächstes Mal ein anderes.
+        _example = Random.Shared.Next(Examples.Count);
+        RequirementInput.Text = string.IsNullOrWhiteSpace(app.Settings.AiPromptText)
+            ? Examples[_example]
+            : app.Settings.AiPromptText;
         OnRequirementChanged(this, null);
         RefreshTemplate();
         _loading = false;
@@ -59,14 +66,30 @@ internal partial class AiPromptWindow : Window
 
     public string Requirement => RequirementInput.Text.Trim();
 
+    /// <summary>Vorgefertigte Aufgaben für das leere Feld, in der Sprache der Oberfläche.</summary>
+    internal static IReadOnlyList<string> Examples =>
+        Strings.AiPromptExamples.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
     void OnRequirementChanged(object sender, TextChangedEventArgs? e)
     {
-        if (!_loading)
+        // Ein unverändertes Beispiel überschreibt den eigenen Text nicht, der kommt beim nächsten Öffnen wieder
+        if (!_loading && !Examples.Contains(RequirementInput.Text))
             _app.Settings.AiPromptText = RequirementInput.Text;
         Placeholder.Visibility = RequirementInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         UpdatePreview();
         OpenButton.IsEnabled = Requirement.Length > 0;
     }
+
+    /// <summary>Das nächste Beispiel aus der Liste, reihum, markiert zum Überschreiben.</summary>
+    internal void NextExample()
+    {
+        _example = (_example + 1) % Examples.Count;
+        RequirementInput.Text = Examples[_example];
+        RequirementInput.Focus();
+        RequirementInput.SelectAll();
+    }
+
+    void OnNextExample(object sender, RoutedEventArgs e) => NextExample();
 
     void UpdatePreview() => PromptPreview.Text = ScriptPrompt.Build(Requirement, _template);
 
@@ -109,10 +132,28 @@ internal partial class AiPromptWindow : Window
 
     void OnAnswerChanged(object sender, TextChangedEventArgs e)
     {
-        AnswerPlaceholder.Visibility = AnswerInput.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        var empty = AnswerInput.Text.Length == 0;
+        AnswerPlaceholder.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+        RerunButton.ToolTip = empty ? Strings.AiPromptTestUseExample : Strings.AiPromptTestRerun;
         _testTimer.Stop();
         _testTimer.Start();
     }
+
+    /// <summary>
+    /// Leeres Feld: das Beispiel aus dem Platzhalter übernehmen. Sonst erneut ausführen, denn die Antwort läuft
+    /// nur beim Tippen, und Uhrzeit, Zufall oder Zwischenablage blieben auf dem Stand vom Einfügen.
+    /// </summary>
+    internal void Rerun()
+    {
+        if (AnswerInput.Text.Length == 0)
+        {
+            AnswerInput.Text = Strings.AiPromptTestExample;
+            AnswerInput.CaretIndex = AnswerInput.Text.Length;
+        }
+        TestAnswer();
+    }
+
+    void OnRerun(object sender, RoutedEventArgs e) => Rerun();
 
     /// <summary>
     /// Führt die eingefügte Antwort aus wie beim Einfügen eines Bausteins und zeigt Ergebnis oder Fehler.
@@ -187,6 +228,11 @@ internal partial class AiPromptWindow : Window
             Close();
             e.Handled = true;
         }
+        else if (e.Key == Key.F5)
+        {
+            Rerun();
+            e.Handled = true;
+        }
         else if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
         {
             if (OpenButton.IsEnabled)
@@ -197,6 +243,8 @@ internal partial class AiPromptWindow : Window
 
     void OnOpen(object sender, RoutedEventArgs e)
     {
+        // Auch ein unverändert geschicktes Beispiel ist jetzt das eigene
+        _app.Settings.AiPromptText = RequirementInput.Text;
         _app.SaveSettings();
         _app.OpenAiPrompt(Requirement);
     }

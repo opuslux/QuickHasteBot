@@ -73,6 +73,9 @@ internal sealed class AppController : IDisposable
     {
         // Merken, wohin eingefügt werden soll, bevor das Popup den Fokus übernimmt
         var target = NativeMethods.GetForegroundWindow();
+        // structure lässt sich jederzeit im Explorer umbauen: im Hintergrund prüfen, ein geänderter Baum
+        // aktualisiert das offene Popup (Library.Changed)
+        _ = Library.VerifyAsync();
         _popup?.ShowFor(target);
     }
 
@@ -615,7 +618,10 @@ internal sealed class AppController : IDisposable
         return library;
     }
 
-    /// <summary>Nur der Standardordner wird angelegt, ein konfigurierter Pfad (z.B. Netzlaufwerk) nicht.</summary>
+    /// <summary>
+    /// Nur der Standardordner wird angelegt, ein konfigurierter Pfad (z.B. Netzlaufwerk) nicht.
+    /// Neu angelegt kommen die Beispiele hinein, in der Sprache der Oberfläche.
+    /// </summary>
     void EnsureStructureFolder(string root)
     {
         if (Directory.Exists(root) || Settings.StructurePath != AppSettings.DefaultStructurePath) return;
@@ -623,7 +629,7 @@ internal sealed class AppController : IDisposable
         try
         {
             Directory.CreateDirectory(root);
-            File.WriteAllText(Path.Combine(root, Strings.WelcomeFileName), Strings.WelcomeText);
+            SampleStructure.Extract(root, Strings.SampleLanguage);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

@@ -101,4 +101,76 @@ public class SnippetLibraryTests
         Assert.True(changed.Wait(TimeSpan.FromSeconds(5)), "Changed wurde nicht ausgelöst");
         Assert.Contains(library.All, s => s.Name == "b");
     }
+
+    [Fact]
+    public void Verify_picks_up_what_the_watcher_missed_and_stays_quiet_otherwise()
+    {
+        using var dir = new TempDirectory();
+        dir.File("a.txt");
+        using var library = Create(dir);
+        var changes = 0;
+        library.Changed += (_, _) => changes++;
+
+        // Ohne Watcher, wie bei verlorenen Events
+        dir.File(@"Neu\b.txt", "b");
+        Assert.True(library.Verify());
+        Assert.Contains(library.All, s => s.Name == "b");
+        Assert.Equal(1, changes);
+
+        // Nichts geändert: kein Changed, sonst flackert das Popup bei jedem Hotkey
+        Assert.False(library.Verify());
+        Assert.Equal(1, changes);
+
+        // Auch eine Umbenennung nur in der Gross-/Kleinschreibung zählt
+        Directory.Move(Path.Combine(dir.Path, "Neu"), Path.Combine(dir.Path, "neu"));
+        Assert.True(library.Verify());
+        Assert.Contains(library.All, s => s.Name == "neu");
+    }
+
+    [Fact]
+    public void Verify_watches_again_after_structure_was_replaced_in_explorer()
+    {
+        using var dir = new TempDirectory();
+        var root = Path.Combine(dir.Path, "structure");
+        dir.File(@"structure\alt.txt");
+        using var library = new SnippetLibrary(root, [".txt"]);
+        using var changed = new ManualResetEventSlim();
+        library.Changed += (_, _) => changed.Set();
+        library.StartWatching();
+
+        // Im Explorer weggeschoben und durch einen anderen Ordner ersetzt: der Watcher hängt noch am alten
+        Directory.Move(root, Path.Combine(dir.Path, "structure-alt"));
+        dir.File(@"structure\1-Neu\neu.txt");
+        Directory.SetCreationTimeUtc(root, DateTime.UtcNow.AddMinutes(1));
+
+        Assert.True(library.Verify());
+        Assert.Equal(["1-Neu", "neu"], library.All.Select(s => s.Name));
+
+        // Und er beobachtet wieder den richtigen Ordner
+        changed.Reset();
+        dir.File(@"structure\danach.txt");
+        Assert.True(changed.Wait(TimeSpan.FromSeconds(5)), "Changed wurde nicht ausgelöst");
+        Assert.Contains(library.All, s => s.Name == "danach");
+    }
+
+    [Fact]
+    public void Verify_starts_watching_once_a_missing_structure_appears()
+    {
+        using var dir = new TempDirectory();
+        var root = Path.Combine(dir.Path, "structure");
+        using var library = new SnippetLibrary(root, [".txt"]);
+        using var changed = new ManualResetEventSlim();
+        library.Changed += (_, _) => changed.Set();
+        library.StartWatching();
+        Assert.Empty(library.All);
+
+        // Z.B. ein Netzlaufwerk, das beim Start noch nicht da war
+        dir.File(@"structure\da.txt");
+        Assert.True(library.Verify());
+
+        changed.Reset();
+        dir.File(@"structure\auch.txt");
+        Assert.True(changed.Wait(TimeSpan.FromSeconds(5)), "Changed wurde nicht ausgelöst");
+        Assert.Equal(["auch", "da"], library.All.Select(s => s.Name));
+    }
 }

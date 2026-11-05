@@ -210,11 +210,29 @@ public class WindowSmokeTests
         viewModel.WrapPreview = false;
         viewModel.Query = "";
 
-        // KI-Prompt: ohne Text gesperrt, die Vorschau zeigt den ganzen Prompt mit der Eingabe am Anfang
+        // KI-Prompt: ohne eigenen Text steht ein zufälliges Beispiel da, gespeichert wird es dabei nicht
+        Assert.Equal(10, AiPromptWindow.Examples.Count);
+        Assert.Contains("Das Datum in 14 Tagen mit Wochentag", AiPromptWindow.Examples);
         var ai = new AiPromptWindow(controller);
+        Assert.Contains(ai.RequirementInput.Text, AiPromptWindow.Examples);
+        Assert.Equal("", controller.Settings.AiPromptText);
+        Assert.True(ai.OpenButton.IsEnabled);
+        Assert.Equal(Visibility.Collapsed, ai.Placeholder.Visibility);
         Assert.Equal("In ChatGPT öffnen", ai.OpenButton.Content);
         Assert.Equal("ChatGPT", ai.ServiceInput.SelectedItem?.ToString());
         Assert.Equal(Visibility.Collapsed, ai.ResetTemplateLink.Visibility);
+        // Die Glühbirne geht reihum zum nächsten Beispiel, auch das wird nicht gespeichert
+        var index = AiPromptWindow.Examples.ToList().IndexOf(ai.RequirementInput.Text);
+        ai.NextExample();
+        Assert.Equal(AiPromptWindow.Examples[(index + 1) % 10], ai.RequirementInput.Text);
+        Assert.Equal("", controller.Settings.AiPromptText);
+        // Ein eigener Text bleibt gespeichert, auch wenn danach ein Beispiel im Feld steht
+        ai.RequirementInput.Text = "Mein eigener Text";
+        ai.NextExample();
+        Assert.Contains(ai.RequirementInput.Text, AiPromptWindow.Examples);
+        Assert.Equal("Mein eigener Text", controller.Settings.AiPromptText);
+        // Leer gelöscht: gesperrt, mit Platzhalter, die Vorschau zeigt den ganzen Prompt mit der Eingabe am Anfang
+        ai.RequirementInput.Text = "";
         Assert.False(ai.OpenButton.IsEnabled);
         Assert.Equal(Visibility.Visible, ai.Placeholder.Visibility);
         ai.RequirementInput.Text = "Datum in 14 Tagen mit Wochentag";
@@ -222,8 +240,22 @@ public class WindowSmokeTests
         Assert.Equal(Visibility.Collapsed, ai.Placeholder.Visibility);
         Assert.StartsWith("Write JavaScript code for this task: Datum in 14 Tagen mit Wochentag", ai.PromptPreview.Text);
 
-        // Antwort testen: läuft wie beim Einfügen, Codeblock-Zäune stören nicht
+        // Antwort testen, leer: Platzhalter mit Beispiel, der Knopf übernimmt es, jeder weitere Klick würfelt neu
         Assert.Equal(Visibility.Collapsed, ai.TestResultBox.Visibility);
+        Assert.Equal(Visibility.Visible, ai.AnswerPlaceholder.Visibility);
+        Assert.Equal("Beispiel übernehmen (F5)", ai.RerunButton.ToolTip);
+        Snapshot(ai, "ai-prompt-empty.png");
+        string[] faces = ["Ja", "Nein", "Vielleicht", "Morgen"];
+        ai.Rerun();
+        Assert.StartsWith("{{ ['Ja', 'Nein'", ai.AnswerInput.Text);
+        Assert.Equal(Visibility.Collapsed, ai.AnswerPlaceholder.Visibility);
+        Assert.StartsWith("Erneut ausführen (F5)", (string)ai.RerunButton.ToolTip);
+        Assert.Contains(ai.TestResult.Text, faces);
+        var rolled = Enumerable.Range(0, 50).Select(_ => { ai.Rerun(); return ai.TestResult.Text; }).ToHashSet();
+        Assert.Subset(faces.ToHashSet(), rolled);
+        Assert.True(rolled.Count > 1);
+
+        // Läuft wie beim Einfügen, Codeblock-Zäune stören nicht
         ai.AnswerInput.Text = "```js\n{{ (() => { const w = ['So', 'Mo']; return w.at(1) + ' ' + 6 * 7; })() }}\n```";
         ai.TestAnswer();
         Assert.Equal(Visibility.Visible, ai.TestResultBox.Visibility);
@@ -346,6 +378,7 @@ public class WindowSmokeTests
         ai.AnswerInput.Text = "";
         ai.TestAnswer();
         Assert.Equal(Visibility.Collapsed, ai.TestResultBox.Visibility);
+        Assert.Equal(Visibility.Visible, ai.AnswerPlaceholder.Visibility);
         // Der Dienst lässt sich hier wählen, gilt sofort und wird gespeichert
         ai.ServiceInput.SelectedItem = ScriptPrompt.Services.Single(s => s.Name == "Perplexity");
         Assert.Equal("In Perplexity öffnen", ai.OpenButton.Content);
@@ -464,6 +497,11 @@ public class WindowSmokeTests
         using var dir = new TempDirectory();
         using var controller = new AppController(new AppPaths(dir.Path));
         SettingsWindow Current() => Application.Current.Windows.OfType<SettingsWindow>().Single();
+
+        // Erster Start: structure mit den Beispielen in der Sprache der Oberfläche
+        Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Willkommen.txt")));
+        Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Script-Samples.txt")));
+        Assert.True(Directory.Exists(Path.Combine(dir.Path, "structure", "1-Grüsse")));
 
         controller.ShowSettings(new Point(-20000, -20000));
         Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);
