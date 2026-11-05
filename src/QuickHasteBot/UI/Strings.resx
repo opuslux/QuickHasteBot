@@ -143,7 +143,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="UseBuiltInEditorToolTip" xml:space="preserve"><value>With tag palette, element picker, preview and test run. Off: "Edit" opens the program Windows uses for the file type. Either way, the right-click menu offers both.</value></data>
   <data name="PickerInsert" xml:space="preserve"><value>Insert into editor</value></data>
   <data name="TrayElementPicker" xml:space="preserve"><value>Pick element…</value></data>
-  <data name="PickerTooltip" xml:space="preserve"><value>Pick a form field for key tags (crosshair)</value></data>
+  <data name="TrayAiPrompt" xml:space="preserve"><value>Write a script block with AI…</value></data>
   <data name="PickerTitle" xml:space="preserve"><value>QuickHasteBot – Pick element</value></data>
   <data name="PickerHint" xml:space="preserve"><value>Hold the mouse button on the crosshair, drag it onto a field, button or link and let go. The tag for it is then copied, e.g. {focus,#email}.</value></data>
   <data name="PickerTargetToolTip" xml:space="preserve"><value>Drag onto an element</value></data>
