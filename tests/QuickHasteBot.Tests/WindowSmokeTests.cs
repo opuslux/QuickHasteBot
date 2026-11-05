@@ -32,6 +32,7 @@ public class WindowSmokeTests
             English();
             SwitchLanguage();
             ThemeAndDialogs();
+            FileHotkeys();
         }
         finally
         {
@@ -76,7 +77,7 @@ public class WindowSmokeTests
 
         // Ein Ordner von rechts öffnet sich direkt
         viewModel.EnterFolder(viewModel.DetailItems.Single(i => i.Snippet.Name == "Intern").Snippet);
-        Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
         Assert.Equal(["01-Gruss"], viewModel.Items.Select(i => i.Snippet.Name));
         Assert.Equal("Gruss", viewModel.DetailText);
         viewModel.GoTo("");
@@ -85,7 +86,7 @@ public class WindowSmokeTests
         viewModel.Query = "m";
         Assert.False(viewModel.IsSearching);
         Assert.Equal(["1-Temp", "4-Grüsse", "6-Weblinks", "ascii-table"], viewModel.Items.Select(i => i.Snippet.Name));
-        Assert.Equal("Textbausteine", viewModel.Breadcrumbs[0].Name);
+        Assert.Equal("Bausteine", viewModel.Breadcrumbs[0].Name);
 
         viewModel.Query = "mfg";
         Assert.Equal(2, viewModel.Items.Count);
@@ -99,12 +100,12 @@ public class WindowSmokeTests
         viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse");
         viewModel.EnterFolder(viewModel.DetailItems.Single(i => i.Snippet.Name == "Intern").Snippet);
         Assert.Equal("", viewModel.Query);
-        Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
         viewModel.GoTo("");
 
         viewModel.Query = "";
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
-        Assert.Equal(["Textbausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));
         Assert.Equal(["", null], viewModel.Breadcrumbs.Select(c => c.Target));
         Assert.Equal("Öffnet https://www.google.com", viewModel.DetailText);
         Assert.False(viewModel.DetailIsText);
@@ -114,7 +115,7 @@ public class WindowSmokeTests
         // Über die Kopfzeile zurück, der Ordner auf dem Weg bleibt ausgewählt
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse").Snippet);
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "Intern").Snippet);
-        Assert.Equal(["Textbausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
         Snapshot(popup, "popup-breadcrumbs.png");
         viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
@@ -188,17 +189,17 @@ public class WindowSmokeTests
         popup.Hide();
         Assert.Contains(@"""LastFolder"": ""4-Grüsse""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
         viewModel.Reset();
-        Assert.Equal(["Textbausteine", "4-Grüsse"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine", "4-Grüsse"], viewModel.Breadcrumbs.Select(c => c.Name));
         Assert.Equal("03-MfG-EN", viewModel.Selected?.Snippet.Name);
 
         // Ohne Stecknadel geht es wieder oben los, ein verschwundener Ordner ebenso
         viewModel.RememberFolder = false;
         viewModel.Reset();
-        Assert.Equal(["Textbausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
         controller.Settings.RememberFolder = true;
         controller.Settings.LastFolder = "Gibt-es-nicht";
         viewModel.Reset();
-        Assert.Equal(["Textbausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Bausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
         Assert.True(viewModel.RememberFolder);
         controller.Settings.RememberFolder = false;
 
@@ -288,6 +289,7 @@ public class WindowSmokeTests
         Assert.Equal("Gruss", editor.NameInput.Text);
         Assert.Equal("Grüsse", editor.BodyInput.Text);
         Assert.Equal(".txt", editor.ExtensionText.Text);
+        Assert.Equal("in Bausteine › Editor", editor.FolderText.Text);
         Assert.False(editor.IsDirty);
         Assert.Equal("Gruss – Baustein bearbeiten", editor.Title);
         Assert.Equal("Vorschau: wird so eingefügt", editor.PreviewLabel.Text);
@@ -583,6 +585,93 @@ public class WindowSmokeTests
             // Die übrigen Tests rechnen mit dem hellen Theme
             UiTheme.Apply(AppTheme.Light);
         }
+    }
+
+    /// <summary>Hotkeys im Dateinamen: Badge im Popup, Konflikte im Dialog, beim Umbenennen und in den Einstellungen.</summary>
+    static void FileHotkeys()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        dir.File(@"structure\3-SQL [Ctrl+Alt+S]\Audit [Ctrl+Alt+A].txt", "insert");
+        dir.File(@"structure\Gruss [Ctrl+Alt+G].txt", "Gruss");
+        dir.File(@"structure\Gutschein [Ctrl+Alt+G].txt", "Gutschein");
+        dir.File(@"structure\Popup [Ctrl+Shift+Y].txt", "Popup");
+        dir.File(@"structure\Notiz.txt", "Notiz");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        controller.SyncFileHotkeys(announce: false);
+
+        var popup = new SearchPopup(controller);
+        var viewModel = (SearchPopupViewModel)popup.DataContext;
+        viewModel.Reset();
+        Assert.Equal(["3-SQL", "Gruss", "Gutschein", "Notiz", "Popup"], viewModel.Items.Select(i => i.Snippet.Name));
+        Assert.Equal(["Ctrl+Alt+S", "Ctrl+Alt+G", "Ctrl+Alt+G", null, "Ctrl+Shift+Y"], viewModel.Items.Select(i => i.HotkeyText));
+        Assert.Equal([false, false, true, false, true], viewModel.Items.Select(i => i.HasHotkeyProblem));
+        Assert.Equal("Schon vergeben an «Gruss».", viewModel.Items[2].HotkeyTooltip);
+        Assert.Equal("Hotkey Ctrl+Alt+S, gilt in jedem Programm", viewModel.Items[0].HotkeyTooltip);
+        Snapshot(popup, "popup-hotkeys.png");
+
+        // Hotkey eines Ordners: das Popup beginnt dort, die Kopfzeile ohne Tag
+        viewModel.Reset(controller.Library.All.Single(s => s.Name == "3-SQL").RelativePath);
+        Assert.Equal(["Bausteine", "3-SQL"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal(["Audit"], viewModel.Items.Select(i => i.Snippet.Name));
+        popup.Close();
+
+        // Dialog: vergebene Kombinationen sperren, eine freie zeigt den neuen Dateinamen
+        var notiz = controller.Library.All.Single(s => s.Name == "Notiz");
+        var dialog = new HotkeyDialog(controller, notiz);
+        Assert.False(dialog.RemoveButton.IsEnabled);
+        Assert.False(dialog.ConfirmButton.IsEnabled);
+        dialog.HotkeyInput.Gesture = new HotkeyGesture(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.A);
+        dialog.HotkeyInput.RaiseCaptured();
+        Assert.Equal("Schon vergeben an «Audit» (3-SQL).", dialog.Problem.Text);
+        Assert.False(dialog.ConfirmButton.IsEnabled);
+        dialog.HotkeyInput.Gesture = HotkeyGesture.Default;
+        dialog.HotkeyInput.RaiseCaptured();
+        Assert.Equal(Strings.FileHotkeyIsMain, dialog.Problem.Text);
+        dialog.HotkeyInput.Gesture = new HotkeyGesture(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.N);
+        dialog.HotkeyInput.RaiseCaptured();
+        Assert.Equal("", dialog.Problem.Text);
+        Assert.True(dialog.ConfirmButton.IsEnabled);
+        Assert.Equal("Dateiname: Notiz [Ctrl+Alt+N].txt", dialog.FileNameText.Text);
+        Snapshot(dialog, "hotkey-dialog.png");
+        dialog.Close();
+
+        // Umbenennen mit einem vergebenen Hotkey im Namen ist gesperrt, mit dem eigenen nicht
+        var gruss = controller.Library.All.Single(s => s.Name == "Gruss");
+        var rename = NameDialog.ForRename(gruss, name => controller.HotkeyConflictForName(name, false, gruss.FullPath, gruss.Hotkey));
+        rename.NameInput.Text = "Grüsse [Ctrl+Alt+G].txt";
+        Assert.Equal("", rename.Problem.Text);
+        Assert.True(rename.ConfirmButton.IsEnabled);
+        rename.NameInput.Text = "Gruss [Ctrl+Alt+S].txt";
+        Assert.Equal("Schon vergeben an «3-SQL».", rename.Problem.Text);
+        Assert.False(rename.ConfirmButton.IsEnabled);
+        rename.Close();
+
+        // Neuer Ordner: der Hinweis nennt den offenen Ordner, vergebene Namen und Hotkeys sperren
+        var sql = controller.Library.All.Single(s => s.Name == "3-SQL");
+        var newFolder = NameDialog.ForNewFolder(sql.FullPath, "Bausteine › 3-SQL",
+            name => controller.HotkeyConflictForName(name, true, null, null));
+        Assert.Equal("Neuer Ordner", newFolder.FileName);
+        Assert.Equal("Neue Ordner entstehen immer im Ordner, der im Popup gerade offen ist: Bausteine › 3-SQL", newFolder.Hint.Text);
+        Assert.Equal(Visibility.Visible, newFolder.Hint.Visibility);
+        Assert.True(newFolder.ConfirmButton.IsEnabled);
+        Snapshot(newFolder, "new-folder.png");
+        newFolder.NameInput.Text = "Audit [Ctrl+Alt+A].txt";
+        Assert.Equal(Strings.NameExists, newFolder.Problem.Text);
+        newFolder.NameInput.Text = "Archiv [Ctrl+Alt+G]";
+        Assert.Equal("Schon vergeben an «Gruss».", newFolder.Problem.Text);
+        Assert.False(newFolder.ConfirmButton.IsEnabled);
+        newFolder.Close();
+
+        // Einstellungen: alle Hotkeys, die zwei Konflikte rot
+        var settings = new SettingsWindow(controller);
+        settings.ShowFileHotkeys();
+        var rows = settings.FileHotkeysList.Items.Cast<SettingsWindow.FileHotkeyRow>().ToList();
+        Assert.Equal(["Ctrl+Alt+S", "Ctrl+Alt+A", "Ctrl+Alt+G", "Ctrl+Alt+G", "Ctrl+Shift+Y"], rows.Select(r => r.Hotkey));
+        Assert.Equal(2, rows.Count(r => r.IsProblem));
+        Assert.Equal("3 aktiv, 2 wirken nicht", settings.FileHotkeysSummary.Text);
+        Snapshot(settings, "settings-hotkeys.png");
+        settings.Close();
     }
 
     static void Snapshot(Window window, string fileName)

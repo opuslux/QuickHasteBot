@@ -33,15 +33,21 @@ internal sealed class HotkeyBox : TextBox
     /// <summary>Kommt nur für gültige Kombinationen.</summary>
     public event EventHandler<HotkeyGesture>? GestureCaptured;
 
+    /// <summary>Für Tests: wie ein Tastendruck mit der gesetzten <see cref="Gesture"/>.</summary>
+    internal void RaiseCaptured() => GestureCaptured?.Invoke(this, _gesture);
+
     public HotkeyGesture Gesture
     {
         get => _gesture;
         set
         {
             _gesture = value;
-            Text = value.ToString();
+            Text = Display;
         }
     }
+
+    // Ohne Hotkey (z.B. eine Datei, die noch keinen hat) leer statt "None"
+    string Display => _gesture.IsValid ? _gesture.ToString() : "";
 
     protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
     {
@@ -52,7 +58,7 @@ internal sealed class HotkeyBox : TextBox
     protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
     {
         base.OnLostKeyboardFocus(e);
-        Text = _gesture.ToString();
+        Text = Display;
     }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)

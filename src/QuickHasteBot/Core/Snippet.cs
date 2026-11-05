@@ -23,6 +23,9 @@ public sealed class Snippet
 
     public required SnippetKind Kind { get; init; }
 
+    /// <summary>Globaler Hotkey aus dem Tag im Namen, z.B. "Gruss [Ctrl+Alt+G].txt". <see cref="Name"/> ist ohne Tag.</summary>
+    public HotkeyGesture? Hotkey { get; init; }
+
     public Snippet? Parent { get; init; }
 
     public List<Snippet> Children { get; } = [];
@@ -35,7 +38,10 @@ public sealed class Snippet
         get
         {
             var parent = Path.GetDirectoryName(RelativePath);
-            return string.IsNullOrEmpty(parent) ? "" : parent.Replace(Path.DirectorySeparatorChar.ToString(), " › ");
+            // Ohne die Hotkey-Tags der Ordner, wie in der Liste
+            return string.IsNullOrEmpty(parent)
+                ? ""
+                : string.Join(" › ", parent.Split(Path.DirectorySeparatorChar).Select(folder => FileHotkey.Split(folder).Name));
         }
     }
 

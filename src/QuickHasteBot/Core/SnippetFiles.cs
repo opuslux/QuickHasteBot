@@ -20,12 +20,14 @@ public static class SnippetFiles
 {
     /// <summary>
     /// Wie im Explorer: "Gruss.txt" wird zu "Gruss - Kopie.txt", gibt es die schon, zu "Gruss - Kopie (2).txt" usw.
+    /// Ein Hotkey-Tag wird nicht mitkopiert.
     /// </summary>
     /// <param name="copySuffix">" - Kopie" bzw. " - Copy", je nach Sprache.</param>
     public static string SuggestCopyName(string path, string copySuffix)
     {
         var folder = Path.GetDirectoryName(path) ?? "";
-        var stem = Path.GetFileNameWithoutExtension(path);
+        // Ohne den Hotkey: zwei Dateien mit demselben wären ein Konflikt
+        var stem = FileHotkey.Split(Path.GetFileNameWithoutExtension(path)).Name;
         var extension = Path.GetExtension(path);
 
         var name = stem + copySuffix + extension;
@@ -54,6 +56,27 @@ public static class SnippetFiles
             Directory.Move(path, target);
         else
             File.Move(path, target, overwrite: false);
+        return target;
+    }
+
+    /// <summary>Wie im Explorer: "Neuer Ordner", gibt es den schon, "Neuer Ordner (2)" usw.</summary>
+    /// <param name="baseName">"Neuer Ordner" bzw. "New folder", je nach Sprache.</param>
+    public static string SuggestNewFolderName(string parent, string baseName)
+    {
+        var name = baseName;
+        for (var n = 2; Exists(Path.Combine(parent, name)); n++)
+            name = $"{baseName} ({n})";
+        return name;
+    }
+
+    /// <summary>Neuer, leerer Ordner. Gibt es den Namen schon (auch als Datei), schlägt es fehl, statt ihn mitzubenutzen.</summary>
+    /// <returns>Vollständiger Pfad des neuen Ordners.</returns>
+    public static string CreateFolder(string parent, string name)
+    {
+        var target = Path.Combine(parent, name);
+        if (Exists(target))
+            throw new IOException($"Existiert schon: {target}");
+        Directory.CreateDirectory(target);
         return target;
     }
 

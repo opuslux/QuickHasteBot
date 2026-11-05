@@ -78,6 +78,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerTestNoTag" xml:space="preserve"><value>That isn't a valid tag, e.g. {focus,#email}.</value></data>
   <data name="EditorTitle" xml:space="preserve"><value>Edit snippet</value></data>
   <data name="EditorName" xml:space="preserve"><value>Name</value></data>
+  <data name="EditorFolderFormat" xml:space="preserve"><value>in {0}</value></data>
   <data name="EditorNewSnippet" xml:space="preserve"><value>New snippet</value></data>
   <data name="EditorInsertTag" xml:space="preserve"><value>Insert tag ▾</value></data>
   <data name="EditorInsertTagToolTip" xml:space="preserve"><value>Keys, pauses, form elements, windows and script helpers, inserted at the cursor</value></data>
@@ -270,6 +271,43 @@ The date of next Monday</value></data>
 {0}
 
 Details are in QuickHasteBot.log.</value></data>
+  <!-- Hotkeys für Dateien und Ordner -->
+  <data name="MenuSetHotkey" xml:space="preserve"><value>Set hotkey…</value></data>
+  <data name="FileHotkeyTitle" xml:space="preserve"><value>Hotkey</value></data>
+  <data name="FileHotkeyPromptFormat" xml:space="preserve"><value>Key combination for "{0}", works in every program:</value></data>
+  <data name="FileHotkeyFolderPromptFormat" xml:space="preserve"><value>Key combination that opens the popup in the folder "{0}", from any program:</value></data>
+  <data name="FileHotkeyConfirm" xml:space="preserve"><value>Apply</value></data>
+  <data name="FileHotkeyRemove" xml:space="preserve"><value>Remove hotkey</value></data>
+  <data name="FileHotkeyFileNameFormat" xml:space="preserve"><value>File name: {0}</value></data>
+  <data name="FileHotkeyGlobalHint" xml:space="preserve"><value>Without Ctrl, Alt or Win, this key is no longer available in other programs while QuickHasteBot is running.</value></data>
+  <data name="FileHotkeyUsedByFormat" xml:space="preserve"><value>Already used by {0}.</value></data>
+  <data name="FileHotkeyIsMain" xml:space="preserve"><value>This is the hotkey that opens the popup.</value></data>
+  <data name="FileHotkeyTaken" xml:space="preserve"><value>Another program is already using this key combination.</value></data>
+  <data name="FileHotkeyConflictsFound" xml:space="preserve"><value>Some hotkeys in file names don't work:</value></data>
+  <data name="FileHotkeyConflictLineFormat" xml:space="preserve"><value>{0} for {1}: {2}</value></data>
+  <data name="FileHotkeyBadgeTooltipFormat" xml:space="preserve"><value>Hotkey {0}, works in every program</value></data>
+  <data name="EditorHotkeyConflictFormat" xml:space="preserve"><value>Hotkey {0}: {1}</value></data>
+  <data name="QuotedNameFormat" xml:space="preserve"><value>"{0}"</value></data>
+  <data name="QuotedNameWithLocationFormat" xml:space="preserve"><value>"{0}" ({1})</value></data>
+  <data name="FileHotkeysTab" xml:space="preserve"><value>Hotkeys</value></data>
+  <data name="FileHotkeysIntro" xml:space="preserve"><value>Every file and folder can have a hotkey of its own, written in its name: "Kind regards [Ctrl+Alt+G].txt" pastes the snippet from any program, "3-SQL [Ctrl+Alt+S]" opens the popup in that folder. Set it with "Set hotkey…" in the popup's right-click menu, by renaming, or here with a double-click.</value></data>
+  <data name="FileHotkeysNone" xml:space="preserve"><value>No file or folder has a hotkey yet.</value></data>
+  <data name="FileHotkeysSummaryFormat" xml:space="preserve"><value>{0} active</value></data>
+  <data name="FileHotkeysProblemsFormat" xml:space="preserve"><value>{0} active, {1} not working</value></data>
+  <data name="FileHotkeyColumnHotkey" xml:space="preserve"><value>Hotkey</value></data>
+  <data name="FileHotkeyColumnName" xml:space="preserve"><value>Name</value></data>
+  <data name="FileHotkeyColumnFolder" xml:space="preserve"><value>Folder</value></data>
+  <data name="FileHotkeyColumnStatus" xml:space="preserve"><value>Status</value></data>
+  <data name="FileHotkeyStatusOk" xml:space="preserve"><value>Active</value></data>
+  <!-- Neuer Ordner -->
+  <data name="MenuNewFolder" xml:space="preserve"><value>New folder…</value></data>
+  <data name="NewFolderTitle" xml:space="preserve"><value>New folder</value></data>
+  <data name="NewFolderPrompt" xml:space="preserve"><value>Name of the new folder:</value></data>
+  <data name="NewFolderHintFormat" xml:space="preserve"><value>New folders are always created in the folder that is open in the popup: {0}</value></data>
+  <data name="NewFolderName" xml:space="preserve"><value>New folder</value></data>
+  <data name="NewFolderConfirm" xml:space="preserve"><value>Create</value></data>
+  <data name="NewFolderErrorFormat" xml:space="preserve"><value>The folder could not be created:
+{0}</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>en</value></data>
 </root>

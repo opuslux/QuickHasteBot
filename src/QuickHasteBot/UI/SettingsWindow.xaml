@@ -161,6 +161,59 @@
                     </StackPanel>
                 </Grid>
             </TabItem>
+
+            <!-- Hotkeys aus den Dateinamen: Übersicht, Konflikte rot, Doppelklick ändert -->
+            <TabItem x:Name="FileHotkeysTab" Header="{x:Static ui:Strings.FileHotkeysTab}">
+                <StackPanel Margin="0,16,0,0">
+                    <TextBlock Text="{x:Static ui:Strings.FileHotkeysIntro}" TextWrapping="Wrap" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="FileHotkeysSummary" Margin="0,8,0,8" FontSize="12" TextWrapping="Wrap" />
+                    <!-- Kopf und Zeilen mit denselben festen Spalten. Kein ListView mit GridView: das Fluent-Theme zeigt dort nur ToString(). -->
+                    <Grid Margin="12,0,12,4" TextElement.FontSize="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="140" />
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{x:Static ui:Strings.FileHotkeyColumnHotkey}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="{x:Static ui:Strings.FileHotkeyColumnName}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="2" Text="{x:Static ui:Strings.FileHotkeyColumnFolder}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Grid.Column="3" Text="{x:Static ui:Strings.FileHotkeyColumnStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                    <ListBox x:Name="FileHotkeysList" Height="190" MouseDoubleClick="OnFileHotkeyDoubleClick" KeyDown="OnFileHotkeyKeyDown"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ToolTip="{Binding Status}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="170" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Hotkey}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Location}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="3" Text="{Binding Status}" TextTrimming="CharacterEllipsis">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsProblem}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </TabItem>
         </TabControl>
 
         <DockPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="0,24,0,0" LastChildFill="False">

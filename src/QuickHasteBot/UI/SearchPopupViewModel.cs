@@ -117,10 +117,11 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     /// Jedes Öffnen beginnt wie das alte Menü oben im Wurzelordner, oder auf Wunsch dort, wo man aufgehört hat.
     /// Gibt es den Ordner nicht mehr, geht es oben los.
     /// </summary>
-    public void Reset()
+    /// <param name="startFolder">Ordner relativ zum structure-Ordner, z.B. vom Hotkey eines Ordners. Übersteuert das Merken.</param>
+    public void Reset(string? startFolder = null)
     {
         var settings = app.Settings;
-        _folderPath = settings.RememberFolder ? settings.LastFolder : "";
+        _folderPath = startFolder ?? (settings.RememberFolder ? settings.LastFolder : "");
         _query = "";
         OnPropertyChanged(nameof(Query));
         OnPropertyChanged(nameof(ShowPlaceholder));
@@ -128,7 +129,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         OnPropertyChanged(nameof(PasteHints));
         OnPropertyChanged(nameof(RememberFolder));
         OnPropertyChanged(nameof(WrapPreview));
-        Refresh(selectRelativePath: settings.RememberFolder ? settings.LastSelected : null);
+        Refresh(selectRelativePath: startFolder is null && settings.RememberFolder ? settings.LastSelected : null);
     }
 
     /// <summary>Beim Schliessen Ordner und markierten Eintrag für das nächste Öffnen speichern.</summary>
@@ -174,7 +175,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         if (IsSearching)
         {
             var contentProvider = app.Settings.SearchContent ? library.GetSearchableText : (Func<Snippet, string?>?)null;
-            items = SnippetSearch.Search(library.All, _query, contentProvider).Select(SnippetItem.ForHit).ToList();
+            items = SnippetSearch.Search(library.All, _query, contentProvider).Select(hit => SnippetItem.ForHit(hit, app.HotkeyProblem(hit.Snippet))).ToList();
             Breadcrumbs = [new(items.Count == 1 ? Strings.MatchesOne : string.Format(Strings.MatchesFormat, items.Count), Target: null, ShowSeparator: false)];
             EmptyText = items.Count == 0 ? Strings.NoMatches : "";
         }
@@ -187,7 +188,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
                 _folderPath = "";
             }
 
-            items = folder.Children.Select(SnippetItem.ForBrowsing).ToList();
+            items = folder.Children.Select(child => SnippetItem.ForBrowsing(child, app.HotkeyProblem(child))).ToList();
             Breadcrumbs = BuildBreadcrumbs(folder.RelativePath);
             EmptyText = items.Count > 0 ? ""
                 : !Directory.Exists(library.RootPath) ? string.Format(Strings.FolderNotFoundFormat, library.RootPath)
@@ -271,7 +272,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         for (var i = 0; i < parts.Length; i++)
         {
             var isCurrent = i == parts.Length - 1;
-            crumbs.Add(new(parts[i], isCurrent ? null : Path.Combine(parts[..(i + 1)]), ShowSeparator: true));
+            crumbs.Add(new(FileHotkey.Split(parts[i]).Name, isCurrent ? null : Path.Combine(parts[..(i + 1)]), ShowSeparator: true));
         }
         return crumbs;
     }
@@ -287,7 +288,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         if (snippet is { IsFolder: true })
         {
             foreach (var child in snippet.Children)
-                DetailItems.Add(SnippetItem.ForBrowsing(child));
+                DetailItems.Add(SnippetItem.ForBrowsing(child, app.HotkeyProblem(child)));
         }
         OnPropertyChanged(nameof(ShowDetailItems));
 

@@ -44,6 +44,9 @@ internal partial class SettingsWindow : Window
         _loading = false;
 
         UpdateHotkeyStatus();
+        UpdateFileHotkeys();
+        app.FileHotkeysChanged += OnFileHotkeysChanged;
+        Closed += (_, _) => app.FileHotkeysChanged -= OnFileHotkeysChanged;
         UpdateStructureResolved();
         UpdateLegacyHint();
         StartClip();
@@ -65,6 +68,60 @@ internal partial class SettingsWindow : Window
         HotkeyStatus.Text = message;
         // Als Referenz: folgt einem Wechsel zwischen hell und dunkel, solange das Fenster offen ist
         HotkeyStatus.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCriticalBrush");
+    }
+
+    /// <summary>Beim Start mit Konflikten: gleich den Tab mit der Übersicht zeigen.</summary>
+    public void ShowFileHotkeys() => FileHotkeysTab.IsSelected = true;
+
+    /// <summary>Eine Zeile der Übersicht.</summary>
+    internal sealed record FileHotkeyRow(Snippet Snippet, string Hotkey, string Name, string Location, string Status, bool IsProblem);
+
+    void OnFileHotkeysChanged(object? sender, EventArgs e) => UpdateFileHotkeys();
+
+    void UpdateFileHotkeys()
+    {
+        var rows = _app.FileHotkeys.Select(entry =>
+        {
+            var problem = AppController.ConflictReason(entry);
+            return new FileHotkeyRow(entry.Snippet, entry.Gesture.ToString(), entry.Snippet.Name, entry.Snippet.Location,
+                problem ?? Strings.FileHotkeyStatusOk, problem is not null);
+        }).ToList();
+        FileHotkeysList.ItemsSource = rows;
+
+        var problems = rows.Count(r => r.IsProblem);
+        FileHotkeysSummary.Text = rows.Count == 0 ? Strings.FileHotkeysNone
+            : problems == 0 ? string.Format(Strings.FileHotkeysSummaryFormat, rows.Count)
+            : string.Format(Strings.FileHotkeysProblemsFormat, rows.Count - problems, problems);
+        FileHotkeysSummary.SetResourceReference(TextBlock.ForegroundProperty,
+            problems > 0 ? "SystemFillColorCriticalBrush" : "TextFillColorSecondaryBrush");
+    }
+
+    void OnFileHotkeyDoubleClick(object sender, MouseButtonEventArgs e) => EditSelectedFileHotkey();
+
+    void OnFileHotkeyKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        EditSelectedFileHotkey();
+        e.Handled = true;
+    }
+
+    /// <summary>Wie "Hotkey festlegen…" im Popup: der Dialog liefert den neuen Namen, hier wird umbenannt.</summary>
+    void EditSelectedFileHotkey()
+    {
+        if (FileHotkeysList.SelectedItem is not FileHotkeyRow row) return;
+
+        var dialog = new HotkeyDialog(_app, row.Snippet) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            SnippetFiles.Rename(row.Snippet.FullPath, dialog.NewFileName);
+            _app.Library.Reload();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"Konnte nicht umbenannt werden: {row.Snippet.FullPath}", ex);
+            MessageDialog.Show(this, string.Format(Strings.RenameErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     // Ein Klick auf einen Tab schiebt in WPF die Tastatur ins erste Feld des Tabs. Im ersten Tab ist das der Hotkey,

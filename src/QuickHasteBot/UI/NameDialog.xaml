@@ -8,6 +8,9 @@
 
     <StackPanel Margin="20,16,20,20">
         <TextBlock x:Name="Prompt" TextWrapping="Wrap" Margin="0,0,0,8" />
+        <!-- Nur beim neuen Ordner: wo er entsteht -->
+        <TextBlock x:Name="Hint" TextWrapping="Wrap" FontSize="12" Margin="0,-4,0,8" Visibility="Collapsed"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         <TextBox x:Name="NameInput" TextChanged="OnNameChanged" />
         <!-- Leer, solange der Name passt. Die Höhe bleibt, damit die Knöpfe beim Tippen nicht springen. -->
         <TextBlock x:Name="Problem" FontSize="12" Margin="0,4,0,0" MinHeight="16" TextWrapping="Wrap"
