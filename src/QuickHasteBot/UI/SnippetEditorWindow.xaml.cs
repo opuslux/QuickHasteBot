@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -35,6 +36,7 @@ internal partial class SnippetEditorWindow : Window
 
     internal SnippetHighlighting Highlighting { get; }
     CancellationTokenSource? _test;
+    CursorHint? _hint;
 
     SnippetEditorWindow(AppController app, string folder, string? path, string name, string text, TextEncoding encoding)
     {
@@ -323,10 +325,11 @@ internal partial class SnippetEditorWindow : Window
 
         using var test = _test = new CancellationTokenSource(TargetTimeout);
         TestButton.Content = Strings.EditorTestCancel;
-        ShowStatus(scope == TestScope.All ? Strings.EditorTestClickTarget : string.Format(Strings.EditorTestPartClickTargetFormat, Shorten(text)));
+        ShowWaiting(scope == TestScope.All ? null : Shorten(text));
         try
         {
             var target = await WaitForTargetAsync(test.Token);
+            HideWaiting();
             if (target == 0)
             {
                 ShowStatus(Strings.EditorTestCancelled);
@@ -338,9 +341,50 @@ internal partial class SnippetEditorWindow : Window
         }
         finally
         {
+            HideWaiting();
             _test = null;
             UpdateTestButton();
         }
+    }
+
+    /// <summary>
+    /// Wartet auf den Klick ins Zielfeld: Banner in der Akzentfarbe statt der Statuszeile, und ein Kärtchen am
+    /// Mauszeiger, weil man beim Hinüberfahren dorthin schaut. <paramref name="part"/>: was läuft, null für alles.
+    /// </summary>
+    void ShowWaiting(string? part)
+    {
+        var inlines = TestBannerText.Inlines;
+        inlines.Clear();
+        inlines.Add(new Run(Strings.EditorTestClickTarget) { FontWeight = FontWeights.SemiBold, FontSize = 13 });
+        inlines.Add(new LineBreak());
+        if (part is null)
+            inlines.Add(new Run(string.Format(Strings.EditorTestRunsAllFormat, DisplayName)));
+        else
+        {
+            inlines.Add(new Run(Strings.EditorTestRunsPart));
+            inlines.Add(new Run(" " + part + " ")
+            {
+                FontFamily = BodyInput.FontFamily,
+                Background = new SolidColorBrush(Color.FromArgb(0x40, 0, 0, 0)),
+            });
+            inlines.Add(new Run(" "));
+        }
+        inlines.Add(new Run(Strings.EditorTestStops) { FontStyle = FontStyles.Italic });
+        StatusText.Visibility = Visibility.Collapsed;
+        TestBanner.Visibility = Visibility.Visible;
+
+        _hint?.Close();
+        _hint = new CursorHint(Strings.CursorHintTitle, part,
+            part is null ? string.Format(Strings.CursorHintAllFormat, DisplayName) : Strings.CursorHintEsc);
+        _hint.ShowAtCursor();
+    }
+
+    void HideWaiting()
+    {
+        _hint?.Close();
+        _hint = null;
+        TestBanner.Visibility = Visibility.Collapsed;
+        StatusText.Visibility = Visibility.Visible;
     }
 
     /// <summary>Für die Statuszeile: eine Zeile, höchstens 60 Zeichen.</summary>

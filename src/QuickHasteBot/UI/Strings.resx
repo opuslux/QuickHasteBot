@@ -94,9 +94,14 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="EditorTestSelection" xml:space="preserve"><value>Test selection</value></data>
   <data name="EditorTestTag" xml:space="preserve"><value>Test tag</value></data>
   <data name="EditorTestScript" xml:space="preserve"><value>Test script</value></data>
-  <data name="EditorTestPartClickTargetFormat" xml:space="preserve"><value>Now click into the target field, only “{0}” runs there. Esc or Cancel stops.</value></data>
+  <data name="EditorTestRunsAllFormat" xml:space="preserve"><value>The whole snippet “{0}” runs there. </value></data>
+  <data name="EditorTestRunsPart" xml:space="preserve"><value>Only this runs there: </value></data>
+  <data name="EditorTestStops" xml:space="preserve"><value>Esc or Cancel stops.</value></data>
+  <data name="CursorHintTitle" xml:space="preserve"><value>Click into the target field</value></data>
+  <data name="CursorHintAllFormat" xml:space="preserve"><value>Whole snippet “{0}” · Esc cancels</value></data>
+  <data name="CursorHintEsc" xml:space="preserve"><value>Esc cancels</value></data>
   <data name="EditorTestCancel" xml:space="preserve"><value>Cancel</value></data>
-  <data name="EditorTestClickTarget" xml:space="preserve"><value>Now click into the target field, the snippet runs there. Esc or Cancel stops.</value></data>
+  <data name="EditorTestClickTarget" xml:space="preserve"><value>Now click into the target field</value></data>
   <data name="EditorTestCancelled" xml:space="preserve"><value>Test cancelled.</value></data>
   <data name="EditorTestRunning" xml:space="preserve"><value>Running… (hold Esc to stop)</value></data>
   <data name="EditorTestDone" xml:space="preserve"><value>Test ran.</value></data>

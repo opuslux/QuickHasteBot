@@ -90,8 +90,16 @@
                         Style="{DynamicResource AccentButtonStyle}" ToolTip="Ctrl+S" Click="OnSave" />
                 <Button Content="{x:Static ui:Strings.Close}" MinWidth="100" Margin="8,0,0,0" Click="OnCloseClick" />
             </StackPanel>
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12" Margin="0,0,12,0"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Grid Margin="0,0,12,0" VerticalAlignment="Center">
+                <TextBlock x:Name="StatusText" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <!-- Während des Wartens auf den Klick ins Zielfeld: nicht zu übersehen, in der Akzentfarbe -->
+                <Border x:Name="TestBanner" Visibility="Collapsed" CornerRadius="4" Padding="10,6"
+                        Background="{DynamicResource AccentFillColorDefaultBrush}">
+                    <TextBlock x:Name="TestBannerText" TextWrapping="Wrap" FontSize="12"
+                               Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                </Border>
+            </Grid>
         </DockPanel>
     </Grid>
 </Window>

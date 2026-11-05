@@ -94,9 +94,14 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="EditorTestSelection" xml:space="preserve"><value>Auswahl testen</value></data>
   <data name="EditorTestTag" xml:space="preserve"><value>Tag testen</value></data>
   <data name="EditorTestScript" xml:space="preserve"><value>Skript testen</value></data>
-  <data name="EditorTestPartClickTargetFormat" xml:space="preserve"><value>Jetzt ins Zielfeld klicken, dort läuft nur „{0}“. Esc oder Abbrechen stoppt.</value></data>
+  <data name="EditorTestRunsAllFormat" xml:space="preserve"><value>Dort läuft der ganze Baustein „{0}“. </value></data>
+  <data name="EditorTestRunsPart" xml:space="preserve"><value>Dort läuft nur: </value></data>
+  <data name="EditorTestStops" xml:space="preserve"><value>Esc oder Abbrechen stoppt.</value></data>
+  <data name="CursorHintTitle" xml:space="preserve"><value>Ins Zielfeld klicken</value></data>
+  <data name="CursorHintAllFormat" xml:space="preserve"><value>Ganzer Baustein „{0}“ · Esc bricht ab</value></data>
+  <data name="CursorHintEsc" xml:space="preserve"><value>Esc bricht ab</value></data>
   <data name="EditorTestCancel" xml:space="preserve"><value>Abbrechen</value></data>
-  <data name="EditorTestClickTarget" xml:space="preserve"><value>Jetzt ins Zielfeld klicken, der Baustein läuft dort. Esc oder Abbrechen stoppt.</value></data>
+  <data name="EditorTestClickTarget" xml:space="preserve"><value>Jetzt ins Zielfeld klicken</value></data>
   <data name="EditorTestCancelled" xml:space="preserve"><value>Test abgebrochen.</value></data>
   <data name="EditorTestRunning" xml:space="preserve"><value>Läuft… (Esc gedrückt halten stoppt)</value></data>
   <data name="EditorTestDone" xml:space="preserve"><value>Test gelaufen.</value></data>
