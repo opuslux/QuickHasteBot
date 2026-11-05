@@ -90,7 +90,11 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="EditorPreviewPaste" xml:space="preserve"><value>Vorschau: wird so eingefügt</value></data>
   <data name="EditorPreviewEmpty" xml:space="preserve"><value>(leer)</value></data>
   <data name="EditorTest" xml:space="preserve"><value>Testen</value></data>
-  <data name="EditorTestToolTip" xml:space="preserve"><value>Danach ins Zielfeld klicken: Der Baustein läuft dort wie beim Einfügen, mit dem Text, wie er jetzt dasteht (F5)</value></data>
+  <data name="EditorTestToolTip" xml:space="preserve"><value>Danach ins Zielfeld klicken: Der Baustein läuft dort wie beim Einfügen, mit dem Text, wie er jetzt dasteht. Ist etwas markiert, läuft nur die Markierung, steht die Schreibmarke in einem Tag oder Skript, nur dieses (F5)</value></data>
+  <data name="EditorTestSelection" xml:space="preserve"><value>Auswahl testen</value></data>
+  <data name="EditorTestTag" xml:space="preserve"><value>Tag testen</value></data>
+  <data name="EditorTestScript" xml:space="preserve"><value>Skript testen</value></data>
+  <data name="EditorTestPartClickTargetFormat" xml:space="preserve"><value>Jetzt ins Zielfeld klicken, dort läuft nur „{0}“. Esc oder Abbrechen stoppt.</value></data>
   <data name="EditorTestCancel" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="EditorTestClickTarget" xml:space="preserve"><value>Jetzt ins Zielfeld klicken, der Baustein läuft dort. Esc oder Abbrechen stoppt.</value></data>
   <data name="EditorTestCancelled" xml:space="preserve"><value>Test abgebrochen.</value></data>

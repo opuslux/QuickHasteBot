@@ -281,6 +281,17 @@ public class WindowSmokeTests
         Assert.Contains("{tab,3}", editor.Highlighting.ErrorAt(at));
         Assert.Null(editor.Highlighting.ErrorAt(view.GetVisualPosition(new TextViewPosition(1, 2), VisualYPosition.LineMiddle) - view.ScrollOffset));
 
+        // Die Test-Taste zeigt, was läuft: alles, die Auswahl, das Tag oder das Skript an der Schreibmarke
+        editor.BodyInput.Text = "Max{tab}{{ 6 * 7 }}";
+        editor.BodyInput.Select(0, 0);
+        Assert.Equal("Testen", editor.TestButton.Content);
+        editor.BodyInput.Select(5, 0);
+        Assert.Equal("Tag testen", editor.TestButton.Content);
+        editor.BodyInput.Select(12, 0);
+        Assert.Equal("Skript testen", editor.TestButton.Content);
+        editor.BodyInput.Select(0, 2);
+        Assert.Equal("Auswahl testen", editor.TestButton.Content);
+
         editor.BodyInput.Text = "{{ 1 + }}";
         editor.UpdatePreview();
         Assert.Equal("Vorschau: Skriptfehler, es würde nichts eingefügt", editor.PreviewLabel.Text);

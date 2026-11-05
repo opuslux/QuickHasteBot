@@ -92,6 +92,25 @@ internal partial class SnippetEditorWindow : Window
         area.SelectionBorder = null;
         area.SelectionCornerRadius = 0;
         area.Caret.CaretBrush = null;
+
+        // Die Test-Taste sagt, was gleich läuft: alles, die Auswahl oder das Tag an der Schreibmarke
+        area.SelectionChanged += (_, _) => UpdateTestButton();
+        area.Caret.PositionChanged += (_, _) => UpdateTestButton();
+    }
+
+    (int Start, int Length, TestScope Scope) TestRange() =>
+        SnippetSyntax.TestRange(BodyInput.Text, BodyInput.SelectionStart, BodyInput.SelectionLength);
+
+    void UpdateTestButton()
+    {
+        if (_test is not null) return; // zeigt gerade "Abbrechen"
+        TestButton.Content = TestRange().Scope switch
+        {
+            TestScope.Selection => Strings.EditorTestSelection,
+            TestScope.Tag => Strings.EditorTestTag,
+            TestScope.Script => Strings.EditorTestScript,
+            _ => Strings.EditorTest,
+        };
     }
 
     /// <exception cref="IOException">Datei nicht lesbar.</exception>
@@ -296,9 +315,15 @@ internal partial class SnippetEditorWindow : Window
             return;
         }
 
+        // Was läuft, wird festgehalten, bevor man wegklickt. Ein einzelnes Tag wird markiert, damit man es sieht.
+        var (start, length, scope) = TestRange();
+        var text = BodyInput.Text.Substring(start, length);
+        if (scope is TestScope.Tag or TestScope.Script)
+            BodyInput.Select(start, length);
+
         using var test = _test = new CancellationTokenSource(TargetTimeout);
         TestButton.Content = Strings.EditorTestCancel;
-        ShowStatus(Strings.EditorTestClickTarget);
+        ShowStatus(scope == TestScope.All ? Strings.EditorTestClickTarget : string.Format(Strings.EditorTestPartClickTargetFormat, Shorten(text)));
         try
         {
             var target = await WaitForTargetAsync(test.Token);
@@ -308,14 +333,21 @@ internal partial class SnippetEditorWindow : Window
                 return;
             }
             ShowStatus(Strings.EditorTestRunning);
-            var problem = await _app.RunTextAsync(BodyInput.Text, DisplayName, alternate: false, target);
+            var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target);
             ShowStatus(problem?.Message ?? Strings.EditorTestDone, error: problem is not null);
         }
         finally
         {
             _test = null;
-            TestButton.Content = Strings.EditorTest;
+            UpdateTestButton();
         }
+    }
+
+    /// <summary>Für die Statuszeile: eine Zeile, höchstens 60 Zeichen.</summary>
+    static string Shorten(string text)
+    {
+        var line = text.ReplaceLineEndings("⏎");
+        return line.Length <= 60 ? line : line[..59] + "…";
     }
 
     /// <summary>Das Fenster, das als Nächstes vorne ist und nicht zu QuickHasteBot gehört, sobald die Maustaste los ist.</summary>

@@ -58,6 +58,27 @@ public class SnippetSyntaxTests
             Spans("{{ [a, b].join(key(\"tab\")).set }}"));
     }
 
+    [Theory]
+    [InlineData(0, 0, "Max{tab}{{ 6 * 7 }}{name}", TestScope.All)]
+    [InlineData(3, 0, "Max{tab}{{ 6 * 7 }}{name}", TestScope.All)] // vor "{"
+    [InlineData(4, 0, "{tab}", TestScope.Tag)]
+    [InlineData(7, 0, "{tab}", TestScope.Tag)]
+    [InlineData(8, 0, "Max{tab}{{ 6 * 7 }}{name}", TestScope.All)] // nach "}"
+    [InlineData(13, 0, "{{ 6 * 7 }}", TestScope.Script)]
+    [InlineData(21, 0, "Max{tab}{{ 6 * 7 }}{name}", TestScope.All)] // {name} ist Text
+    [InlineData(1, 4, "ax{tab}", TestScope.Selection)] // angeschnittenes Tag ganz
+    [InlineData(6, 7, "{tab}{{ 6 * 7 }}", TestScope.Selection)]
+    [InlineData(0, 3, "Max", TestScope.Selection)]
+    [InlineData(3, 5, "{tab}", TestScope.Tag)] // genau ein Tag markiert
+    [InlineData(8, 11, "{{ 6 * 7 }}", TestScope.Script)]
+    [InlineData(19, 6, "{name}", TestScope.Selection)]
+    public void Test_runs_the_selection_or_the_tag_at_the_caret(int start, int length, string expected, TestScope scope)
+    {
+        const string text = "Max{tab}{{ 6 * 7 }}{name}";
+        var range = SnippetSyntax.TestRange(text, start, length);
+        Assert.Equal((expected, scope), (text.Substring(range.Start, range.Length), range.Scope));
+    }
+
     [Fact]
     public void Unclosed_script_and_switched_off_settings_stay_text()
     {

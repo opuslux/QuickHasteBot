@@ -208,7 +208,11 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set). Its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the script prompt window, which can insert its block the same way.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element and window tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
 - **Preview** below the text shows what the snippet turns into while you type: scripts evaluated, keys as readable tags, and script errors in red. Nothing is sent.
-- **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. Cancel or Esc stops the wait. Holding Esc stops a running snippet.
+- **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. Cancel or Esc stops the wait.
+  - To debug one step at a time, select part of the snippet and only the selection runs. Tags and scripts cut off by the selection are included whole. Or put the cursor inside a tag or `{{ … }}` block and only that one runs.
+  - The button says which: "Test", "Test selection", "Test tag" or "Test script".
+  - A part that uses variables from an earlier script block fails, because that block doesn't run.
+  - Holding Esc stops a running snippet.
 - **Save** (Ctrl+S) keeps the file's encoding: ANSI (Windows-1252) stays ANSI, UTF-8 and UTF-16 stay as they were. Only text that ANSI can't hold (e.g. an emoji) turns an ANSI file into UTF-8 with BOM, so that nothing is lost. If the file was changed in another program in the meantime, the editor asks before overwriting. Closing with unsaved changes asks too.
 - To keep using another editor, turn off "Edit snippets in the built-in editor" (`UseBuiltInEditor` in `settings.json`). The right-click menu offers both either way.
 

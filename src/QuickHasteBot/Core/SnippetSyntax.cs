@@ -23,6 +23,19 @@ public enum SyntaxKind
     Comment,
 }
 
+/// <summary>Was die Test-Taste im Editor laufen lässt.</summary>
+public enum TestScope
+{
+    /// <summary>Den ganzen Baustein.</summary>
+    All,
+    /// <summary>Die Markierung, auf angeschnittene Tags und Skriptblöcke erweitert.</summary>
+    Selection,
+    /// <summary>Das Tag, in dem die Schreibmarke steht.</summary>
+    Tag,
+    /// <summary>Den {{ … }}-Block, in dem die Schreibmarke steht.</summary>
+    Script,
+}
+
 /// <param name="Error">Bei <see cref="SyntaxKind.Error"/>: warum das Tag nicht gilt.</param>
 public readonly record struct SyntaxSpan(int Start, int Length, SyntaxKind Kind, string? Error = null)
 {
@@ -65,6 +78,50 @@ public static partial class SnippetSyntax
                 Tag(spans, match.Index, match.Groups[1].Value);
         }
         return spans;
+    }
+
+    /// <summary>
+    /// Welcher Teil von <paramref name="text"/> beim Testen läuft, zum Debuggen einzelner Schritte:
+    /// eine Markierung (angeschnittene Tags und Skriptblöcke ganz), sonst das Tag oder der Skriptblock, in dem die
+    /// Schreibmarke steht, sonst alles. Direkt vor "{" oder nach "}" zählt nicht als im Tag.
+    /// </summary>
+    public static (int Start, int Length, TestScope Scope) TestRange(string text, int selectionStart, int selectionLength)
+    {
+        if (selectionLength > 0)
+        {
+            var start = selectionStart;
+            var end = selectionStart + selectionLength;
+            foreach (Match match in KeyTags.Candidate().Matches(text))
+            {
+                if (match.Index >= end) break;
+                if (match.Index + match.Length <= start) continue;
+                start = Math.Min(start, match.Index);
+                end = Math.Max(end, match.Index + match.Length);
+            }
+            // Genau ein Tag markiert (z.B. nach "Tag testen"): weiter ein Tag
+            foreach (Match match in KeyTags.Candidate().Matches(text))
+                if (match.Index == start && match.Length == end - start && Single(match) is { } single)
+                    return (start, end - start, single);
+            return (start, end - start, TestScope.Selection);
+        }
+
+        var caret = selectionStart;
+        foreach (Match match in KeyTags.Candidate().Matches(text))
+        {
+            if (match.Index >= caret) break;
+            if (caret >= match.Index + match.Length) continue;
+            if (Single(match) is { } single)
+                return (match.Index, match.Length, single);
+            break; // {name}: Text, also alles
+        }
+        return (0, text.Length, TestScope.All);
+
+        static TestScope? Single(Match match)
+        {
+            if (!match.Groups[1].Success) return TestScope.Script;
+            var name = KeyTags.NamePart().Match(match.Groups[1].Value);
+            return name.Success && KeyTags.IsTagName(name.Groups[1].Value) ? TestScope.Tag : null;
+        }
     }
 
     static void Tag(List<SyntaxSpan> spans, int start, string content)

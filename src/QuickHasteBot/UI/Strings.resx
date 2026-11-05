@@ -90,7 +90,11 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="EditorPreviewPaste" xml:space="preserve"><value>Preview: pasted like this</value></data>
   <data name="EditorPreviewEmpty" xml:space="preserve"><value>(empty)</value></data>
   <data name="EditorTest" xml:space="preserve"><value>Test</value></data>
-  <data name="EditorTestToolTip" xml:space="preserve"><value>Then click into the target field: the snippet runs there as if pasted, with the text as it is now (F5)</value></data>
+  <data name="EditorTestToolTip" xml:space="preserve"><value>Then click into the target field: the snippet runs there as if pasted, with the text as it is now. With a selection only the selection runs, with the cursor in a tag or script only that one (F5)</value></data>
+  <data name="EditorTestSelection" xml:space="preserve"><value>Test selection</value></data>
+  <data name="EditorTestTag" xml:space="preserve"><value>Test tag</value></data>
+  <data name="EditorTestScript" xml:space="preserve"><value>Test script</value></data>
+  <data name="EditorTestPartClickTargetFormat" xml:space="preserve"><value>Now click into the target field, only “{0}” runs there. Esc or Cancel stops.</value></data>
   <data name="EditorTestCancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="EditorTestClickTarget" xml:space="preserve"><value>Now click into the target field, the snippet runs there. Esc or Cancel stops.</value></data>
   <data name="EditorTestCancelled" xml:space="preserve"><value>Test cancelled.</value></data>
