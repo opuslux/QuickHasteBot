@@ -372,6 +372,13 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
+    // Neben der Stecknadel: leerer Editor im offenen Ordner, wie Strg+N
+    void OnNewSnippetClick(object sender, RoutedEventArgs e)
+    {
+        Hide();
+        _app.NewSnippet(_viewModel.CurrentFolder);
+    }
+
     void OnEditClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, EditSelected);
 
     void OnExplorerClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, RevealSelected);
