@@ -11,8 +11,9 @@ internal static class PopupPlacement
     /// Punkt des Popups, beim Öffnen festgelegt, als Anteil von Breite und Höhe (0 links/oben, 1 rechts/unten).
     /// Dort bleibt es, egal wie Liste und Breite sich ändern: Ist der Punkt oben, wächst die Höhe nach unten,
     /// ist er unten, nach oben. Höchstens bis zum Bildschirmrand, danach scrollt die Liste.
+    /// Liegt der Punkt in der Mitte der Höhe, zählt er nur beim Öffnen, danach bleibt die Oberkante <paramref name="Top"/>.
     /// </summary>
-    public readonly record struct Anchor(POINT Point, RECT Work, double FractionX, double FractionY);
+    public readonly record struct Anchor(POINT Point, RECT Work, double FractionX, double FractionY, int Top);
 
     /// <summary>
     /// Zeigt das Fenster so, dass der Mauszeiger an der gewünschten Stelle im Popup sitzt, begrenzt auf den
@@ -51,11 +52,12 @@ internal static class PopupPlacement
         var anchor = AnchorAt(x, y, width, height, work, fractionX, fractionY);
         LimitHeight(window, hwnd, anchor);
         window.UpdateLayout();
-        KeepAnchored(window, anchor);
+        PlaceAt(window, anchor, keepTop: false);
+        GetWindowRect(hwnd, out rect);
 
         // Nach dem Zeichnen aufdecken
         window.Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, () => SetCloaked(hwnd, false));
-        return anchor;
+        return anchor with { Top = rect.Top };
     }
 
     static void SetCloaked(nint hwnd, bool cloaked)
@@ -73,13 +75,19 @@ internal static class PopupPlacement
 
     static Anchor AnchorAt(int left, int top, int width, int height, RECT work, double fractionX, double fractionY) =>
         new(new POINT { X = left + (int)Math.Round(width * fractionX), Y = top + (int)Math.Round(height * fractionY) },
-            work, fractionX, fractionY);
+            work, fractionX, fractionY, top);
 
     /// <summary>
     /// Nach einer Größenänderung (Liste, Breite) bleibt der Anker, wo er ist.
     /// Nur wenn das Fenster sonst über den Bildschirmrand hinausginge, wird es hineingeschoben.
+    /// Liegt der Anker in der Mitte der Höhe, gilt er nur beim Öffnen: Danach bleibt die Oberkante stehen,
+    /// sonst würde das Suchfeld beim Tippen um die halbe Höhenänderung springen, z.B. sobald die Suche beginnt.
+    /// Wurde es unten hineingeschoben, geht es beim Schrumpfen wieder an diese Oberkante zurück.
     /// </summary>
-    public static void KeepAnchored(Window window, Anchor anchor)
+    public static void KeepAnchored(Window window, Anchor anchor) =>
+        PlaceAt(window, anchor, keepTop: anchor.FractionY is > 0 and < 1);
+
+    static void PlaceAt(Window window, Anchor anchor, bool keepTop)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
         var (point, work) = (anchor.Point, anchor.Work);
@@ -89,7 +97,8 @@ internal static class PopupPlacement
         var height = rect.Bottom - rect.Top;
 
         var x = Math.Clamp(point.X - (int)Math.Round(width * anchor.FractionX), work.Left, Math.Max(work.Left, work.Right - width));
-        var y = Math.Clamp(point.Y - (int)Math.Round(height * anchor.FractionY), work.Top, Math.Max(work.Top, work.Bottom - height));
+        var top = keepTop ? anchor.Top : point.Y - (int)Math.Round(height * anchor.FractionY);
+        var y = Math.Clamp(top, work.Top, Math.Max(work.Top, work.Bottom - height));
 
         if (x != rect.Left || y != rect.Top)
             SetWindowPos(hwnd, 0, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
