@@ -308,6 +308,32 @@ public class WindowSmokeTests
         Assert.StartsWith("● ", editor.Title);
         Snapshot(editor, "editor.png");
 
+        // Tag-Menü: ohne Filter die Gruppen, mit Filter eine flache Trefferliste, Enter fügt den ersten Treffer ein
+        var menu = editor.TagMenu();
+        menu.PlacementTarget = editor.TagsButton;
+        menu.IsOpen = true;
+        menu.UpdateLayout();
+        var filter = (System.Windows.Controls.TextBox)((System.Windows.Controls.Grid)((System.Windows.Controls.MenuItem)menu.Items[0]).Header).Children[0];
+        List<string> Visible() => menu.Items.OfType<System.Windows.Controls.MenuItem>().Skip(1)
+            .Where(i => i.Visibility == Visibility.Visible).Select(i => i.Header as string ?? "").ToList();
+        Assert.Equal(["Tasten", "Ablauf", "Elemente und Fenster", "Skript"], Visible());
+        SnapshotElement(menu, "editor-tag-menu.png");
+        filter.Text = "feld";
+        Assert.Equal(["{tab}", "{shift+tab}", "{clear}", "{focus,#id}", "{set,#id,\"\"}"], Visible());
+        SnapshotElement(menu, "editor-tag-filter.png");
+        filter.Text = "feld cursor";
+        Assert.Equal(["{focus,#id}"], Visible());
+        filter.Text = "gibtsnicht";
+        Assert.Equal(["Kein passendes Tag"], Visible());
+        filter.Text = "guid";
+        editor.BodyInput.Text = "Ref ";
+        editor.BodyInput.Select(4, 0);
+        filter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(filter)!, 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal("Ref {{ guid() }}", editor.BodyInput.Text);
+        Assert.False(menu.IsOpen);
+        filter.Text = "";
+        Assert.Equal(["Tasten", "Ablauf", "Elemente und Fenster", "Skript"], Visible());
+
         // Fehlerhaftes Tag: Tooltip-Text an der Stelle, kein Tooltip daneben
         editor.BodyInput.Text = "Max{tab,x}";
         var view = editor.BodyInput.TextArea.TextView;
@@ -701,6 +727,32 @@ public class WindowSmokeTests
                 : window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
             context.DrawRectangle(background, null, new Rect(0, 0, width, height));
             context.DrawRectangle(new VisualBrush(content), null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+        }
+        bitmap.Render(visual);
+
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        Directory.CreateDirectory(folder);
+        using var stream = File.Create(Path.Combine(folder, fileName));
+        encoder.Save(stream);
+    }
+
+    /// <summary>Ein offenes Menü oder Popup-Inhalt, ohne eigenes Fenster.</summary>
+    static void SnapshotElement(FrameworkElement element, string fileName)
+    {
+        var folder = Environment.GetEnvironmentVariable("QHB_SNAPSHOTS");
+        if (string.IsNullOrEmpty(folder)) return;
+
+        element.UpdateLayout();
+        var width = (int)Math.Ceiling(element.ActualWidth);
+        var height = (int)Math.Ceiling(element.ActualHeight);
+        var bitmap = new RenderTargetBitmap(width * 2, height * 2, 192, 192, PixelFormats.Pbgra32);
+        var visual = new DrawingVisual();
+        using (var context = visual.RenderOpen())
+        {
+            var background = element.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
+            context.DrawRectangle(background, null, new Rect(0, 0, width, height));
+            context.DrawRectangle(new VisualBrush(element), null, new Rect(0, 0, width, height));
         }
         bitmap.Render(visual);
 

@@ -116,6 +116,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="EditorTagsFlow" xml:space="preserve"><value>Flow</value></data>
   <data name="EditorTagsElements" xml:space="preserve"><value>Elements and windows</value></data>
   <data name="EditorTagsScripts" xml:space="preserve"><value>Script</value></data>
+  <data name="EditorTagsFilter" xml:space="preserve"><value>Filter, e.g. wait or field</value></data>
+  <data name="EditorTagsNoMatch" xml:space="preserve"><value>No matching tag</value></data>
   <data name="TagNextField" xml:space="preserve"><value>next field</value></data>
   <data name="TagPreviousField" xml:space="preserve"><value>previous field</value></data>
   <data name="TagSubmit" xml:space="preserve"><value>submit</value></data>

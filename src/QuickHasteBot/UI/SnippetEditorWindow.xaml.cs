@@ -197,43 +197,133 @@ internal partial class SnippetEditorWindow : Window
         menu.IsOpen = true;
     }
 
-    ContextMenu TagMenu()
-    {
-        var menu = new ContextMenu();
-        menu.Items.Add(Group(Strings.EditorTagsKeys, MenuIcons.Glyph(MenuIcons.Keys),
-            Tag("{tab}", Strings.TagNextField), Tag("{shift+tab}", Strings.TagPreviousField), Tag("{enter}", Strings.TagSubmit),
-            Tag("{space}", Strings.TagCheckbox), Tag("{esc}"), null,
-            Tag("{up}"), Tag("{down}"), Tag("{down,3}", Strings.TagRepeat), Tag("{left}"), Tag("{right}"), Tag("{home}"), Tag("{end}"), null,
-            Tag("{bs}"), Tag("{del}"), Tag("{ctrl+a}", Strings.TagSelectAll), Tag("{alt+down}", Strings.TagOpenDropdown),
-            Tag("{ctrl+enter}", Strings.TagSendChat), Tag("{f5}")));
-        menu.Items.Add(Group(Strings.EditorTagsFlow, MenuIcons.Glyph(MenuIcons.Flow),
-            Tag("{wait,500}", Strings.TagWait, "500"), Tag("{delay,50}", Strings.TagDelay, "50"), Tag("{clear}", Strings.TagClear), null,
-            Tag("{guard,off}", Strings.TagGuardOff), Tag("{guard,on}", Strings.TagGuardOn)));
-        var elements = Group(Strings.EditorTagsElements, MenuIcons.Crosshair(),
-            Tag("{focus,#id}", Strings.TagFocus, "id"), Tag("{click,name=Label}", Strings.TagClick, "Label"),
-            Tag("{set,#id,\"\"}", Strings.TagSet, "id"), null,
-            Tag("{window,program}", Strings.TagWindow, "program"));
-        elements.Items.Add(new Separator());
-        elements.Items.Add(MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker));
-        menu.Items.Add(elements);
-        menu.Items.Add(Group(Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
-            Tag("{{ date() }}", Strings.TagDate), Tag("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), Tag("{{ time() }}"),
-            Tag("{{ isoweek() }}", Strings.TagWeek), Tag("{{ clipboard }}", Strings.TagClipboard), Tag("{{ user }}", Strings.TagUser),
-            Tag("{{ guid() }}")));
-        return menu;
+    /// <summary>Ein Eintrag im Tag-Menü. <see cref="Select"/>: was nach dem Einfügen markiert wird, zum Überschreiben.</summary>
+    sealed record TagEntry(string Tag, string? Description = null, string? Select = null);
 
-        MenuItem Group(string header, UIElement icon, params MenuItem?[] items)
+    /// <summary>
+    /// "Tag einfügen ▾": oben eine Filterzeile, darunter die Gruppen. Sobald gefiltert wird, stehen statt der Gruppen alle
+    /// passenden Tags in einer Liste (gesucht in Tag, Beschreibung und Gruppe, wie die Suche im Popup). Enter fügt den
+    /// ersten Treffer ein, ↓ geht in die Liste.
+    /// </summary>
+    internal ContextMenu TagMenu()
+    {
+        (string Header, UIElement Icon, TagEntry?[] Entries)[] groups =
+        [
+            (Strings.EditorTagsKeys, MenuIcons.Glyph(MenuIcons.Keys),
+            [
+                new("{tab}", Strings.TagNextField), new("{shift+tab}", Strings.TagPreviousField), new("{enter}", Strings.TagSubmit),
+                new("{space}", Strings.TagCheckbox), new("{esc}"), null,
+                new("{up}"), new("{down}"), new("{down,3}", Strings.TagRepeat), new("{left}"), new("{right}"), new("{home}"), new("{end}"), null,
+                new("{bs}"), new("{del}"), new("{ctrl+a}", Strings.TagSelectAll), new("{alt+down}", Strings.TagOpenDropdown),
+                new("{ctrl+enter}", Strings.TagSendChat), new("{f5}"),
+            ]),
+            (Strings.EditorTagsFlow, MenuIcons.Glyph(MenuIcons.Flow),
+            [
+                new("{wait,500}", Strings.TagWait, "500"), new("{delay,50}", Strings.TagDelay, "50"), new("{clear}", Strings.TagClear), null,
+                new("{guard,off}", Strings.TagGuardOff), new("{guard,on}", Strings.TagGuardOn),
+            ]),
+            (Strings.EditorTagsElements, MenuIcons.Crosshair(),
+            [
+                new("{focus,#id}", Strings.TagFocus, "id"), new("{click,name=Label}", Strings.TagClick, "Label"),
+                new("{set,#id,\"\"}", Strings.TagSet, "id"), null,
+                new("{window,program}", Strings.TagWindow, "program"),
+            ]),
+            (Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
+            [
+                new("{{ date() }}", Strings.TagDate), new("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), new("{{ time() }}"),
+                new("{{ isoweek() }}", Strings.TagWeek), new("{{ clipboard }}", Strings.TagClipboard), new("{{ user }}", Strings.TagUser),
+                new("{{ guid() }}"),
+            ]),
+        ];
+
+        var menu = new ContextMenu();
+        var filter = new TextBox { MinWidth = 220, VerticalContentAlignment = VerticalAlignment.Center };
+        System.Windows.Automation.AutomationProperties.SetName(filter, Strings.EditorTagsFilter);
+        var placeholder = new TextBlock
+        {
+            Text = Strings.EditorTagsFilter, IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(13, 0, 0, 0),
+            Foreground = (Brush)FindResource("TextFillColorTertiaryBrush"),
+        };
+        // Klicks ins Feld sollen das Menü nicht schliessen, und die Zeile selbst ist kein Ziel für die Pfeiltasten
+        menu.Items.Add(new MenuItem
+        {
+            Header = new Grid { Children = { filter, placeholder } }, Icon = MenuIcons.Glyph(MenuIcons.Search),
+            StaysOpenOnClick = true, Focusable = false,
+        });
+        menu.Items.Add(new Separator());
+
+        var groupItems = new List<MenuItem>();
+        foreach (var (header, icon, entries) in groups)
         {
             var group = new MenuItem { Header = header, Icon = icon };
-            foreach (var item in items)
-                group.Items.Add(item is null ? new Separator() : item);
-            return group;
+            foreach (var entry in entries)
+                group.Items.Add(entry is null ? new Separator() : Tag(entry));
+            if (header == Strings.EditorTagsElements)
+            {
+                group.Items.Add(new Separator());
+                group.Items.Add(MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker));
+            }
+            groupItems.Add(group);
+            menu.Items.Add(group);
         }
 
-        MenuItem Tag(string tag, string? description = null, string? select = null)
+        // Die flache Trefferliste, versteckt bis gefiltert wird
+        var results = new List<(MenuItem Item, string Text)>();
+        foreach (var (header, _, entries) in groups)
+            foreach (var entry in entries.OfType<TagEntry>())
+                results.Add((Tag(entry), $"{entry.Tag} {entry.Description} {header}"));
+        results.Add((MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker),
+            $"{Strings.EditorPickerMenu} {Strings.EditorTagsElements}"));
+        var noMatch = new MenuItem { Header = Strings.EditorTagsNoMatch, IsEnabled = false };
+        foreach (var (item, _) in results)
         {
-            var item = new MenuItem { Header = tag, InputGestureText = description ?? "", FontFamily = BodyInput.FontFamily };
-            item.Click += (_, _) => Insert(tag, select);
+            item.Visibility = Visibility.Collapsed;
+            menu.Items.Add(item);
+        }
+        noMatch.Visibility = Visibility.Collapsed;
+        menu.Items.Add(noMatch);
+
+        filter.TextChanged += (_, _) =>
+        {
+            var query = filter.Text.Trim();
+            var filtering = query.Length > 0;
+            placeholder.Visibility = filter.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var group in groupItems)
+                group.Visibility = filtering ? Visibility.Collapsed : Visibility.Visible;
+            var any = false;
+            foreach (var (item, text) in results)
+            {
+                var match = filtering && SnippetSearch.MatchesAll(text, query);
+                item.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
+                any |= match;
+            }
+            noMatch.Visibility = filtering && !any ? Visibility.Visible : Visibility.Collapsed;
+        };
+        filter.PreviewKeyDown += (_, e) =>
+        {
+            var first = menu.Items.OfType<MenuItem>().FirstOrDefault(i => i.Focusable && i.IsEnabled && i.Visibility == Visibility.Visible);
+            switch (e.Key)
+            {
+                case Key.Down when first is not null:
+                    first.Focus();
+                    e.Handled = true;
+                    break;
+                case Key.Enter when filter.Text.Trim().Length > 0:
+                    // Wie ein Klick auf den ersten Treffer
+                    first?.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent, first));
+                    menu.IsOpen = false;
+                    e.Handled = true;
+                    break;
+            }
+        };
+        // Das Menü holt sich beim Öffnen selbst den Fokus, danach gleich ins Filterfeld
+        menu.Opened += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Input, () => Keyboard.Focus(filter));
+        return menu;
+
+        MenuItem Tag(TagEntry entry)
+        {
+            var item = new MenuItem { Header = entry.Tag, InputGestureText = entry.Description ?? "", FontFamily = BodyInput.FontFamily };
+            item.Click += (_, _) => Insert(entry.Tag, entry.Select);
             return item;
         }
     }
