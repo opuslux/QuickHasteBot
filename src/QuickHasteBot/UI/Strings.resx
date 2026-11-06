@@ -181,11 +181,12 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="ExitApp" xml:space="preserve"><value>Quit QuickHasteBot</value></data>
   <data name="Close" xml:space="preserve"><value>Close</value></data>
   <data name="SearchPlaceholder" xml:space="preserve"><value>Search snippets…</value></data>
-  <data name="HintsClipboard" xml:space="preserve"><value>↵ Paste   ⇧↵ Type</value></data>
-  <data name="HintsTyping" xml:space="preserve"><value>↵ Type   ⇧↵ Paste</value></data>
-  <data name="HintEdit" xml:space="preserve"><value>Ctrl+O Edit</value></data>
-  <data name="HintExplorer" xml:space="preserve"><value>Ctrl+E Explorer</value></data>
-  <data name="HintSettings" xml:space="preserve"><value>Ctrl+, Settings</value></data>
+  <data name="HintPaste" xml:space="preserve"><value>Paste</value></data>
+  <data name="HintType" xml:space="preserve"><value>Type</value></data>
+  <data name="HintEdit" xml:space="preserve"><value>Edit</value></data>
+  <data name="HintExplorer" xml:space="preserve"><value>Explorer</value></data>
+  <data name="HintSettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="KeyCtrl" xml:space="preserve"><value>Ctrl</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Start in this folder next time</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Wrap long lines</value></data>
   <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – like clicking this entry</value></data>

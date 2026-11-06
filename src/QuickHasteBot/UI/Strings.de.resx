@@ -181,11 +181,12 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="ExitApp" xml:space="preserve"><value>QuickHasteBot beenden</value></data>
   <data name="Close" xml:space="preserve"><value>Schliessen</value></data>
   <data name="SearchPlaceholder" xml:space="preserve"><value>Baustein suchen…</value></data>
-  <data name="HintsClipboard" xml:space="preserve"><value>↵ Einfügen   ⇧↵ Tippen</value></data>
-  <data name="HintsTyping" xml:space="preserve"><value>↵ Tippen   ⇧↵ Einfügen</value></data>
-  <data name="HintEdit" xml:space="preserve"><value>Strg+O Bearbeiten</value></data>
-  <data name="HintExplorer" xml:space="preserve"><value>Strg+E Explorer</value></data>
-  <data name="HintSettings" xml:space="preserve"><value>Strg+, Einstellungen</value></data>
+  <data name="HintPaste" xml:space="preserve"><value>Einfügen</value></data>
+  <data name="HintType" xml:space="preserve"><value>Tippen</value></data>
+  <data name="HintEdit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="HintExplorer" xml:space="preserve"><value>Explorer</value></data>
+  <data name="HintSettings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="KeyCtrl" xml:space="preserve"><value>Strg</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Beim nächsten Öffnen wieder in diesem Ordner beginnen</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
   <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – wie ein Klick auf diesen Eintrag</value></data>
