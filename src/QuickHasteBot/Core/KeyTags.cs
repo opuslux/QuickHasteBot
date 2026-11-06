@@ -26,6 +26,14 @@ public sealed record GuardStep(bool On) : FormStep;
 /// <summary>{window,…}: dieses Programmfenster nach vorne holen, die folgenden Schritte gehen dorthin.</summary>
 public sealed record WindowStep(WindowSelector Window) : FormStep;
 
+/// <summary>
+/// {start,programm} und {start,programm,"argumente"}: läuft das Programm schon, wie {window,process=…}, sonst starten und
+/// auf sein Fenster warten. Nur als Tag im Baustein, nicht aus Skripten, damit nie Skript-Ausgabe oder Zwischenablage
+/// ein Programm startet.
+/// </summary>
+/// <param name="Program">Name oder Pfad, immer mit ".exe", z.B. "notepad.exe".</param>
+public sealed record StartStep(string Program, string? Arguments, WindowSelector Window) : FormStep;
+
 public enum ElementAction { Focus, Click, Set }
 
 /// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
@@ -111,7 +119,7 @@ public static partial class KeyTags
     internal static partial Regex NamePart();
 
     static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
-        { "wait", "delay", "guard", "clear", "focus", "click", "set", "window" };
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "window", "start" };
 
     /// <summary>
     /// Ein Name, den es als Tag gibt ("tab", "shift+tab", "ctrl+a", "wait" …), egal ob die Argumente stimmen.
@@ -155,6 +163,9 @@ public static partial class KeyTags
 
         if (spec == "window")
             return TryParseWindow(args, out steps, out error);
+
+        if (spec == "start")
+            return TryParseStart(args, out steps, out error);
 
         if (args.Count > 1)
         {
@@ -260,6 +271,40 @@ public static partial class KeyTags
         return true;
     }
 
+    /// <summary>
+    /// {start,notepad}, {start,"C:\Program Files\Notepad++\notepad++.exe","C:\temp\log.txt"}. Nur Programme (.exe, die
+    /// Endung darf fehlen), keine Skripte oder Verknüpfungen. Das Fenster wird am Programmnamen erkannt.
+    /// </summary>
+    internal static bool TryParseStart(List<string> args, out IReadOnlyList<FormStep> steps, out string error)
+    {
+        steps = [];
+        error = "";
+        if (args.Count is < 1 or > 2 || args[0].Trim().Length == 0)
+        {
+            error = "\"start\" needs a program and optionally its arguments, e.g. {start,notepad} or {start,notepad,\"C:\\temp\\log.txt\"}";
+            return false;
+        }
+
+        var program = args[0].Trim();
+        if (program.IndexOfAny(Path.GetInvalidPathChars()) >= 0 || program.EndsWith('\\') || program.EndsWith('/'))
+        {
+            error = $"\"{program}\" is not a program";
+            return false;
+        }
+        var extension = Path.GetExtension(program);
+        if (extension.Length == 0)
+            program += ".exe";
+        else if (!extension.Equals(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            error = $"\"start\" only starts programs (.exe), not {extension} files";
+            return false;
+        }
+
+        var arguments = args.Count == 2 && args[1].Length > 0 ? args[1] : null;
+        steps = [new StartStep(program, arguments, new WindowSelector(Path.GetFileNameWithoutExtension(program), null, null))];
+        return true;
+    }
+
     /// <summary>Ein Element-Tag, wie es der Picker in die Zwischenablage legt. Setzt Argumente nur in "…", wenn nötig.</summary>
     public static string ElementTag(ElementAction action, ElementSelector selector, string? value = null)
     {
@@ -279,6 +324,16 @@ public static partial class KeyTags
     {
         var text = window.ToString().Replace("\"", "");
         return "{window," + (text.IndexOfAny([',', '{', '}']) >= 0 || text != text.Trim() ? "\"" + text + "\"" : text) + "}";
+    }
+
+    /// <summary>Wie der Tag geschrieben wurde, nur ".exe" beim reinen Namen weggelassen: {start,notepad}.</summary>
+    public static string StartTag(StartStep start)
+    {
+        var program = start.Program.Contains('\\') || start.Program.Contains('/') ? start.Program : start.Program[..^4];
+        var tag = "{start," + (program.IndexOfAny([',', '{', '}', ' ']) >= 0 ? "\"" + program + "\"" : program);
+        if (start.Arguments is not null)
+            tag += ",\"" + start.Arguments.Replace("\"", "") + "\"";
+        return tag + "}";
     }
 
     static KeyStep Key(string name, ushort vk, IReadOnlyList<ushort> modifiers, int repeat) =>
@@ -385,6 +440,7 @@ public static partial class KeyTags
         GuardStep g => g.On ? "{guard,on}" : "{guard,off}",
         ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
         WindowStep w => WindowTag(w.Window),
+        StartStep s => StartTag(s),
         _ => "",
     };
 

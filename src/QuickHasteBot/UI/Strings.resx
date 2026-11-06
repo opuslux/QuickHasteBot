@@ -60,6 +60,11 @@ The element picker (crosshair in the popup or tray menu) shows how the element c
 {2}</value></data>
   <data name="FormWindowNotFoundFormat" xml:space="preserve"><value>"{0}" was stopped: no window for {1} came up within {2} seconds. Is the program open?</value></data>
   <data name="FormWindowNotActivatedFormat" xml:space="preserve"><value>"{0}" was stopped: the window for {1} couldn't be brought to the front.</value></data>
+  <data name="FormStartFailedFormat" xml:space="preserve"><value>"{0}" was stopped: {1} couldn't start the program.
+{2}</value></data>
+  <data name="FormStartedWindowNotFoundFormat" xml:space="preserve"><value>"{0}" was stopped: {1} started the program, but no window of it came up within {2} seconds.
+
+The window is recognized by the program's name. If the program opens its window under another name (a launcher or a Store app, e.g. calc), start it by hand and use {{window,title=…}} instead.</value></data>
   <data name="TargetElevatedFormat" xml:space="preserve"><value>"{0}" can't reach {1}: it runs as administrator, and Windows doesn't let normal programs send keys to it.
 
 Start {1} without administrator rights (in its shortcut: Properties › Advanced/Compatibility › turn off "Run as administrator"). QuickHasteBot itself doesn't need them.</value></data>
@@ -135,6 +140,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagClick" xml:space="preserve"><value>click a button or link</value></data>
   <data name="TagSet" xml:space="preserve"><value>fill a field or dropdown</value></data>
   <data name="TagWindow" xml:space="preserve"><value>bring a program to the front</value></data>
+  <data name="TagStart" xml:space="preserve"><value>start a program, or bring it to the front</value></data>
   <data name="TagDate" xml:space="preserve"><value>today</value></data>
   <data name="TagDateIn" xml:space="preserve"><value>in 14 days</value></data>
   <data name="TagWeek" xml:space="preserve"><value>calendar week</value></data>

@@ -60,6 +60,11 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
 {2}</value></data>
   <data name="FormWindowNotFoundFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Für {1} ist innerhalb von {2} Sekunden kein Fenster aufgetaucht. Ist das Programm offen?</value></data>
   <data name="FormWindowNotActivatedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Das Fenster für {1} liess sich nicht nach vorne holen.</value></data>
+  <data name="FormStartFailedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} konnte das Programm nicht starten.
+{2}</value></data>
+  <data name="FormStartedWindowNotFoundFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} hat das Programm gestartet, aber innerhalb von {2} Sekunden ist kein Fenster davon aufgetaucht.
+
+Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unter einem anderen Namen (ein Starter oder eine Store-App, z.B. calc), starte es von Hand und nimm stattdessen {{window,title=…}}.</value></data>
   <data name="TargetElevatedFormat" xml:space="preserve"><value>«{0}» kommt nicht an {1} heran: Es läuft mit Administratorrechten, und Windows lässt normale Programme dort keine Tasten senden.
 
 {1} ohne Administratorrechte starten (in der Verknüpfung: Eigenschaften › Erweitert/Kompatibilität › «Als Administrator ausführen» ausschalten). QuickHasteBot selbst braucht keine.</value></data>
@@ -135,6 +140,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="TagClick" xml:space="preserve"><value>Button oder Link klicken</value></data>
   <data name="TagSet" xml:space="preserve"><value>Feld oder Dropdown füllen</value></data>
   <data name="TagWindow" xml:space="preserve"><value>Programm nach vorne holen</value></data>
+  <data name="TagStart" xml:space="preserve"><value>Programm starten oder nach vorne holen</value></data>
   <data name="TagDate" xml:space="preserve"><value>heute</value></data>
   <data name="TagDateIn" xml:space="preserve"><value>in 14 Tagen</value></data>
   <data name="TagWeek" xml:space="preserve"><value>Kalenderwoche</value></data>

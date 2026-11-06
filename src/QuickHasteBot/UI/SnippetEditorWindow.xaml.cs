@@ -226,7 +226,7 @@ internal partial class SnippetEditorWindow : Window
             [
                 new("{focus,#id}", Strings.TagFocus, "id"), new("{click,name=Label}", Strings.TagClick, "Label"),
                 new("{set,#id,\"\"}", Strings.TagSet, "id"), null,
-                new("{window,program}", Strings.TagWindow, "program"),
+                new("{window,program}", Strings.TagWindow, "program"), new("{start,program}", Strings.TagStart, "program"),
             ]),
             (Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
             [

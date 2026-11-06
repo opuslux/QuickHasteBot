@@ -39,6 +39,8 @@ public class SnippetSyntaxTests
         Assert.Equal([("{set,", Element), ("#land", Argument), (",", Element), ("\"Öster, reich\"", SyntaxKind.String), ("}", Element)],
             Spans("{set,#land,\"Öster, reich\"}"));
         Assert.Equal([("{window,", Element), ("crm", Argument), ("}", Element)], Spans("{window,crm}"));
+        Assert.Equal([("{start,", Element), ("notepad", Argument), (",", Element), ("\"C:\\a.txt\"", SyntaxKind.String), ("}", Element)],
+            Spans("{start,notepad,\"C:\\a.txt\"}"));
     }
 
     [Fact]

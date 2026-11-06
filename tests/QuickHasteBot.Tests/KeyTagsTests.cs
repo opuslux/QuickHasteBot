@@ -283,4 +283,65 @@ public class KeyTagsTests
     [Fact]
     public void Scripts_bring_windows_to_the_front() =>
         Assert.Equal("{window,crm}{focus,#suche}«x»", Show("{{ window('crm') + focus('#suche') + 'x' }}"));
+
+    // --- Programme starten ---
+
+    static StartStep Start(string tag) => Assert.IsType<StartStep>(Assert.Single(Steps(tag)));
+
+    [Theory]
+    [InlineData("{start,notepad}", "notepad.exe", "notepad")]
+    [InlineData("{start,Notepad.EXE}", "Notepad.EXE", "Notepad")]
+    [InlineData("{start,\"C:\\Program Files\\Notepad++\\notepad++.exe\"}", "C:\\Program Files\\Notepad++\\notepad++.exe", "notepad++")]
+    [InlineData("{start,C:\\Tools\\crm}", "C:\\Tools\\crm.exe", "crm")]
+    public void Start_tag_names_the_program_and_its_window(string tag, string program, string process)
+    {
+        var step = Start(tag);
+        Assert.Equal(program, step.Program);
+        Assert.Null(step.Arguments);
+        Assert.Equal(process, step.Window.Process);
+    }
+
+    [Fact]
+    public void Start_tag_passes_arguments() =>
+        Assert.Equal("C:\\temp\\a, b.txt", Start("{start,notepad,\"C:\\temp\\a, b.txt\"}").Arguments);
+
+    [Theory]
+    [InlineData("{start,notepad}")]
+    [InlineData("{start,notepad,\"C:\\temp\\log.txt\"}")]
+    [InlineData("{start,\"C:\\Program Files\\Notepad++\\notepad++.exe\"}")]
+    public void Start_tag_reads_back_as_written(string tag) => Assert.Equal(tag, Show(tag));
+
+    [Fact]
+    public void Start_tag_combines_with_elements_and_text() =>
+        Assert.Equal("{start,notepad}«Hallo»{enter}«Welt»", Show("{start,notepad}Hallo{enter}Welt"));
+
+    [Theory]
+    [InlineData("{start}")]
+    [InlineData("{start,notepad,a,b}")]
+    [InlineData("{start,run.bat}")]
+    [InlineData("{start,\"C:\\Users\\Me\\Desktop\\Crm.lnk\"}")]
+    [InlineData("{start,script.ps1}")]
+    [InlineData("{start,C:\\Tools\\}")]
+    public void Start_only_takes_programs(string text) => Assert.Equal("«" + text + "»", Show(text));
+
+    [Fact]
+    public void Start_tag_errors_explain_why()
+    {
+        Assert.False(KeyTags.TryParse("start,run.bat", null, out _, out var error));
+        Assert.Contains(".exe", error);
+        Assert.False(KeyTags.TryParse("start", null, out _, out error));
+        Assert.Contains("{start,notepad}", error);
+    }
+
+    [Fact]
+    public void Scripts_and_clipboard_never_start_programs()
+    {
+        // Kein Helfer start() …
+        Assert.Throws<SnippetScriptException>(() => Steps("{{ start('notepad') }}"));
+        // … auch nicht über key() …
+        Assert.Throws<SnippetScriptException>(() => Steps("{{ key('start,notepad') }}"));
+        Assert.Throws<SnippetScriptException>(() => Steps("{{ key(clipboard) }}", clipboard: "start,notepad"));
+        // … und Ausgabe oder Zwischenablage mit {start,…} bleiben Text
+        Assert.Equal([new TextStep("{start,notepad}{start,calc}")], Steps("{{ '{start,notepad}' }}{{ clipboard }}", clipboard: "{start,calc}"));
+    }
 }

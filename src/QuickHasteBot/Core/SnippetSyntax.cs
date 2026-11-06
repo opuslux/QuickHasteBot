@@ -6,7 +6,7 @@ public enum SyntaxKind
 {
     /// <summary>Tasten- und Ablauf-Tags: {tab}, {shift+tab}, {wait,500}, {guard,off}.</summary>
     Key,
-    /// <summary>Klammern, Name und Kommas von {focus,…}, {click,…}, {set,…}, {window,…}.</summary>
+    /// <summary>Klammern, Name und Kommas von {focus,…}, {click,…}, {set,…}, {window,…}, {start,…}.</summary>
     Element,
     /// <summary>Selektor bzw. Programm in einem Element-Tag, z.B. #email oder name=Senden.</summary>
     Argument,
@@ -137,7 +137,7 @@ public static partial class SnippetSyntax
         }
 
         var spec = name.Groups[1].Value.ToLowerInvariant();
-        if (spec is not ("focus" or "click" or "set" or "window"))
+        if (spec is not ("focus" or "click" or "set" or "window" or "start"))
         {
             spans.Add(new(start, length, SyntaxKind.Key));
             return;
