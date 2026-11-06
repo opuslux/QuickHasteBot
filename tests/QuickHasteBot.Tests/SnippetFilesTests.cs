@@ -118,6 +118,34 @@ public class SnippetFilesTests
         Assert.True(File.Exists(source));
     }
 
+    [Theory]
+    [InlineData("Gruss.txt")]
+    [InlineData("Gruss CH.txt")]
+    public void Move_into_another_folder(string name)
+    {
+        using var dir = new TempDirectory();
+        var source = dir.File(@"Mails\Gruss.txt", "Freundliche Grüsse");
+        var archive = Directory.CreateDirectory(Path.Combine(dir.Path, @"Mails\Archiv")).FullName;
+
+        var target = SnippetFiles.Move(source, archive, name);
+
+        Assert.Equal(Path.Combine(archive, name), target);
+        Assert.False(File.Exists(source));
+        Assert.Equal("Freundliche Grüsse", File.ReadAllText(target));
+    }
+
+    [Fact]
+    public void Move_never_overwrites()
+    {
+        using var dir = new TempDirectory();
+        var source = dir.File("Gruss.txt", "neu");
+        var existing = dir.File(@"Archiv\Gruss.txt", "alt");
+
+        Assert.Throws<IOException>(() => SnippetFiles.Move(source, Path.GetDirectoryName(existing)!, "Gruss.txt"));
+        Assert.Equal("alt", File.ReadAllText(existing));
+        Assert.True(File.Exists(source));
+    }
+
     [Fact]
     public void Clone_copies_into_the_same_folder()
     {

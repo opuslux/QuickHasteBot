@@ -24,7 +24,9 @@ internal partial class SnippetEditorWindow : Window
     const ushort VK_LBUTTON = 0x01;
 
     readonly AppController _app;
-    readonly string _folder;
+    // Der gewählte Ordner, beim Speichern landet die Datei dort. _savedFolder: wo sie gerade liegt.
+    string _folder;
+    string _savedFolder;
     readonly string _extension;
     readonly DispatcherTimer _previewTimer;
     string? _path;
@@ -44,7 +46,7 @@ internal partial class SnippetEditorWindow : Window
     {
         InitializeComponent();
         _app = app;
-        _folder = folder;
+        _folder = _savedFolder = folder;
         _path = path;
         _extension = path is null ? app.NewSnippetExtension : Path.GetExtension(path);
         _encoding = encoding;
@@ -59,10 +61,7 @@ internal partial class SnippetEditorWindow : Window
         NameInput.Text = name;
         BodyInput.Text = text;
         ExtensionText.Text = _extension;
-        var relative = Path.GetRelativePath(app.StructureRoot, folder);
-        IEnumerable<string> folders = relative == "." ? [] : relative.Split(Path.DirectorySeparatorChar).Select(f => FileHotkey.Split(f).Name);
-        FolderText.Text = string.Format(Strings.EditorFolderFormat, string.Join(" › ", folders.Prepend(Strings.BreadcrumbRoot)));
-        FolderText.ToolTip = folder;
+        UpdateFolder();
         _loading = false;
         UpdateTitle();
         UpdatePreview();
@@ -137,7 +136,105 @@ internal partial class SnippetEditorWindow : Window
 
     public string DisplayName => NameInput.Text.Trim().Length > 0 ? NameInput.Text.Trim() : Strings.EditorNewSnippet;
 
-    public bool IsDirty => NameInput.Text.Trim() != _savedName || BodyInput.Text != _savedText || _path is null && BodyInput.Text.Length > 0;
+    public bool IsDirty => NameInput.Text.Trim() != _savedName || BodyInput.Text != _savedText || FolderChanged
+        || _path is null && BodyInput.Text.Length > 0;
+
+    bool FolderChanged => !SamePath(_folder, _savedFolder);
+
+    static bool SamePath(string a, string b) =>
+        string.Equals(Path.TrimEndingDirectorySeparator(a), Path.TrimEndingDirectorySeparator(b), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Der gewählte Ordner, z.B. "in Bausteine › 5-SQL", ohne die Hotkey-Tags der Ordner.</summary>
+    void UpdateFolder()
+    {
+        FolderText.Text = string.Format(Strings.EditorFolderFormat, FolderDisplay(_folder));
+        FolderButton.ToolTip = _folder + Environment.NewLine + Strings.EditorFolderToolTip;
+    }
+
+    string FolderDisplay(string folder)
+    {
+        var relative = Path.GetRelativePath(_app.StructureRoot, folder);
+        IEnumerable<string> folders = relative == "." ? [] : relative.Split(Path.DirectorySeparatorChar).Select(f => FileHotkey.Split(f).Name);
+        return string.Join(" › ", folders.Prepend(Strings.BreadcrumbRoot));
+    }
+
+    /// <summary>Anderer Ordner für den Baustein. Verschoben bzw. angelegt wird erst beim Speichern.</summary>
+    internal void ChooseFolder(string folder)
+    {
+        _folder = folder;
+        UpdateFolder();
+        UpdateTitle();
+    }
+
+    void OnFolderClick(object sender, RoutedEventArgs e)
+    {
+        var menu = FolderMenu();
+        menu.PlacementTarget = FolderButton;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Die Ordner wie im Explorer zum Aufklappen: zuoberst der Wurzelordner, darunter die Ordner der ersten Ebene. Wer
+    /// Unterordner hat, klappt auf, zuoberst steht dort "Diesen Ordner wählen". Der gewählte Ordner hat ein Häkchen, der
+    /// Weg dorthin ist fett.
+    /// </summary>
+    internal ContextMenu FolderMenu()
+    {
+        var menu = new ContextMenu();
+        var root = _app.Library.Root;
+        menu.Items.Add(Choice(root, Strings.BreadcrumbRoot));
+        var children = Subfolders(root);
+        if (children.Count > 0)
+            menu.Items.Add(new Separator());
+        foreach (var child in children)
+            menu.Items.Add(Entry(child));
+        return menu;
+
+        static List<Snippet> Subfolders(Snippet folder) => folder.Children.Where(c => c.IsFolder).ToList();
+
+        // Ohne Unterordner gleich wählbar, sonst ein Untermenü
+        MenuItem Entry(Snippet folder)
+        {
+            var subfolders = Subfolders(folder);
+            if (subfolders.Count == 0)
+                return Choice(folder, folder.Name);
+
+            var item = new MenuItem
+            {
+                Header = folder.Name,
+                Icon = MenuIcons.Glyph(MenuIcons.Folder),
+                FontWeight = OnCurrentPath(folder) ? FontWeights.SemiBold : FontWeights.Normal,
+                Tag = folder.FullPath,
+            };
+            item.Items.Add(Choice(folder, Strings.EditorFolderChooseThis));
+            item.Items.Add(new Separator());
+            foreach (var child in subfolders)
+                item.Items.Add(Entry(child));
+            return item;
+        }
+
+        MenuItem Choice(Snippet folder, string header)
+        {
+            var current = SamePath(folder.FullPath, _folder);
+            var item = new MenuItem
+            {
+                Header = header,
+                Icon = MenuIcons.Glyph(current ? MenuIcons.Check : MenuIcons.Folder),
+                FontWeight = current ? FontWeights.SemiBold : FontWeights.Normal,
+                Tag = folder.FullPath,
+            };
+            item.Click += (_, _) => ChooseFolder(folder.FullPath);
+            return item;
+        }
+
+        // Der gewählte Ordner selbst oder einer darüber
+        bool OnCurrentPath(Snippet folder)
+        {
+            var relative = Path.GetRelativePath(folder.FullPath, _folder);
+            return relative == "." || !relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative);
+        }
+    }
 
     void OnNameChanged(object sender, TextChangedEventArgs e)
     {
@@ -344,6 +441,8 @@ internal partial class SnippetEditorWindow : Window
         var hotkey = typedHotkey ?? _hotkey;
         var fileName = FileHotkey.Tagged(name, hotkey) + _extension;
         var currentName = _path is null ? null : Path.GetFileName(_path);
+        // In einen anderen Ordner: Dort zählt jeder gleichnamige Eintrag, auch einer, der sich nur in Gross/Klein unterscheidet
+        var moving = _path is not null && !SamePath(_folder, Path.GetDirectoryName(_path) ?? "");
         if (_app.HotkeyConflictForName(fileName, isFolder: false, _path, _hotkey) is { } conflict)
         {
             ShowStatus(string.Format(Strings.EditorHotkeyConflictFormat, hotkey, conflict), error: true);
@@ -351,7 +450,7 @@ internal partial class SnippetEditorWindow : Window
             return false;
         }
         // Den Namen prüfen, nicht name + Endung: ".txt" allein wäre sonst ein gültiger Dateiname
-        var problem = name.Length == 0 ? NameProblem.Empty : SnippetFiles.Check(_folder, fileName, currentName);
+        var problem = name.Length == 0 ? NameProblem.Empty : SnippetFiles.Check(_folder, fileName, moving ? null : currentName);
         if (problem is not (NameProblem.None or NameProblem.Unchanged))
         {
             ShowStatus(problem switch
@@ -375,7 +474,9 @@ internal partial class SnippetEditorWindow : Window
         try
         {
             var path = _path;
-            if (path is not null && currentName != fileName)
+            if (path is not null && moving)
+                path = SnippetFiles.Move(path, _folder, fileName);
+            else if (path is not null && currentName != fileName)
                 path = SnippetFiles.Rename(path, fileName);
             path ??= Path.Combine(_folder, fileName);
 
@@ -383,7 +484,7 @@ internal partial class SnippetEditorWindow : Window
             if (used != _encoding)
                 Log.Info($"Baustein enthält Zeichen, die {_encoding} nicht kann, gespeichert als {used}: {path}");
 
-            (_path, _encoding, _savedName, _savedText, _hotkey) = (path, used, name, BodyInput.Text, hotkey);
+            (_path, _encoding, _savedName, _savedText, _hotkey, _savedFolder) = (path, used, name, BodyInput.Text, hotkey, _folder);
             // Ein getipptes Tag steht jetzt im Dateinamen, im Feld wieder nur der Name
             if (typedHotkey is not null)
                 NameInput.Text = name;
