@@ -27,6 +27,7 @@ internal partial class SettingsWindow : Window
         ClickSingle.IsChecked = app.Settings.SingleClick;
         ClickDouble.IsChecked = !app.Settings.SingleClick;
         RememberFolderInput.IsChecked = app.Settings.RememberFolder;
+        RememberQueryInput.IsChecked = app.Settings.RememberQuery;
         PositionInput.Position = app.Settings.PopupPosition;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
@@ -51,8 +52,12 @@ internal partial class SettingsWindow : Window
         UpdateLegacyHint();
         StartClip();
 
-        // Die Stecknadel im Popup schaltet dieselbe Einstellung, auch während dieses Fenster offen ist
-        Activated += (_, _) => RememberFolderInput.IsChecked = _app.Settings.RememberFolder;
+        // Stecknadel und Filter im Popup schalten dieselben Einstellungen, auch während dieses Fenster offen ist
+        Activated += (_, _) =>
+        {
+            RememberFolderInput.IsChecked = _app.Settings.RememberFolder;
+            RememberQueryInput.IsChecked = _app.Settings.RememberQuery;
+        };
 
         // Solange der Hotkey aufgenommen wird, darf er nicht das Popup öffnen
         HotkeyInput.GotKeyboardFocus += (_, _) => app.SuspendHotkey();
@@ -211,6 +216,12 @@ internal partial class SettingsWindow : Window
     void OnRememberFolderChanged(object sender, RoutedEventArgs e)
     {
         _app.Settings.RememberFolder = RememberFolderInput.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnRememberQueryChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.RememberQuery = RememberQueryInput.IsChecked == true;
         _app.SaveSettings();
     }
 

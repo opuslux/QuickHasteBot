@@ -93,6 +93,19 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         }
     }
 
+    /// <summary>Filtersymbol neben der Stecknadel: den Suchtext fürs nächste Öffnen behalten, wie im Einstellungsfenster.</summary>
+    public bool RememberQuery
+    {
+        get => app.Settings.RememberQuery;
+        set
+        {
+            if (app.Settings.RememberQuery == value) return;
+            app.Settings.RememberQuery = value;
+            app.SaveSettings();
+            OnPropertyChanged();
+        }
+    }
+
     public string EmptyText
     {
         get => _emptyText;
@@ -116,36 +129,41 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     /// <summary>
     /// Jedes Öffnen beginnt wie das alte Menü oben im Wurzelordner, oder auf Wunsch dort, wo man aufgehört hat.
-    /// Gibt es den Ordner nicht mehr, geht es oben los.
+    /// Gibt es den Ordner nicht mehr, geht es oben los. Mit gemerktem Suchtext steht wieder die Trefferliste da,
+    /// mit dem damals markierten Treffer, so dass Enter denselben Eintrag noch einmal startet.
     /// </summary>
     /// <param name="startFolder">Ordner relativ zum structure-Ordner, z.B. vom Hotkey eines Ordners. Übersteuert das Merken.</param>
     public void Reset(string? startFolder = null)
     {
         var settings = app.Settings;
         _folderPath = startFolder ?? (settings.RememberFolder ? settings.LastFolder : "");
-        _query = "";
+        _query = startFolder is null && settings.RememberQuery ? settings.LastQuery : "";
         OnPropertyChanged(nameof(Query));
         OnPropertyChanged(nameof(ShowPlaceholder));
         // Kann sich inzwischen im Einstellungsfenster geändert haben
         OnPropertyChanged(nameof(EnterHint));
         OnPropertyChanged(nameof(ShiftEnterHint));
         OnPropertyChanged(nameof(RememberFolder));
+        OnPropertyChanged(nameof(RememberQuery));
         OnPropertyChanged(nameof(WrapPreview));
-        Refresh(selectRelativePath: startFolder is null && settings.RememberFolder ? settings.LastSelected : null);
+        var restoreSelection = startFolder is null && (IsSearching || settings.RememberFolder);
+        Refresh(selectRelativePath: restoreSelection ? settings.LastSelected : null);
     }
 
-    /// <summary>Beim Schliessen Ordner und markierten Eintrag für das nächste Öffnen speichern.</summary>
+    /// <summary>Beim Schliessen Ordner, Suchtext und markierten Eintrag für das nächste Öffnen speichern.</summary>
     public void RememberPosition()
     {
         var settings = app.Settings;
-        if (!settings.RememberFolder) return;
+        if (!settings.RememberFolder && !settings.RememberQuery) return;
 
-        // Ein Suchtreffer liegt meist nicht im Ordner, dann beginnt es dort beim ersten Eintrag
-        var selected = IsSearching ? "" : _selected?.Snippet.RelativePath ?? "";
-        if (settings.LastFolder == _folderPath && settings.LastSelected == selected) return;
+        // Ein Suchtreffer liegt meist nicht im Ordner. Kommt die Suche nicht wieder, beginnt es dort beim ersten Eintrag.
+        var query = settings.RememberQuery ? _query : "";
+        var selected = IsSearching && !settings.RememberQuery ? "" : _selected?.Snippet.RelativePath ?? "";
+        if (settings.LastFolder == _folderPath && settings.LastSelected == selected && settings.LastQuery == query) return;
 
         settings.LastFolder = _folderPath;
         settings.LastSelected = selected;
+        settings.LastQuery = query;
         app.SaveSettings();
     }
 

@@ -203,6 +203,27 @@ public class WindowSmokeTests
         Assert.True(viewModel.RememberFolder);
         controller.Settings.RememberFolder = false;
 
+        // Mit dem Filter kommt der Suchtext samt markiertem Treffer wieder, Enter startet denselben Eintrag
+        viewModel.RememberQuery = true;
+        viewModel.Query = "mfg";
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "03-MfG-EN");
+        popup.Show();
+        popup.Hide();
+        Assert.Contains(@"""LastQuery"": ""mfg""", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        viewModel.Reset();
+        Assert.Equal("mfg", viewModel.Query);
+        Assert.Equal("03-MfG-EN", viewModel.Selected?.Snippet.Name);
+        // Der Hotkey eines Ordners öffnet dort ohne Suchtext
+        viewModel.Reset("4-Grüsse");
+        Assert.Equal("", viewModel.Query);
+        // Ohne Filter beginnt es wieder leer
+        viewModel.Query = "mfg";
+        viewModel.RememberQuery = false;
+        popup.Show();
+        popup.Hide();
+        viewModel.Reset();
+        Assert.Equal("", viewModel.Query);
+
         // Umbruch der Textvorschau wird sofort gespeichert
         Assert.False(viewModel.WrapPreview);
         viewModel.WrapPreview = true;
