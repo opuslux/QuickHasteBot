@@ -188,6 +188,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="HintSettings" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="KeyCtrl" xml:space="preserve"><value>Strg</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Beim nächsten Öffnen wieder in diesem Ordner beginnen</value></data>
+  <data name="NewSnippetTooltip" xml:space="preserve"><value>Neuer Baustein im Editor (Strg+N): mit Testen (F5) ausprobieren und bei Bedarf als Datei speichern</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
   <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – wie ein Klick auf diesen Eintrag</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Bausteine</value></data>
