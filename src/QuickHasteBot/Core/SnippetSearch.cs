@@ -98,5 +98,9 @@ public static class SnippetSearch
         }
     }
 
+    /// <summary>Für einfache Filter (Tag-Menü im Editor): kommt jedes Suchwort irgendwo in <paramref name="text"/> vor?</summary>
+    public static bool MatchesAll(string text, string query) =>
+        query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).All(token => Contains(text, token));
+
     static bool Contains(string text, string token) => text.Length > 0 && Compare.IndexOf(text, token, Options) >= 0;
 }

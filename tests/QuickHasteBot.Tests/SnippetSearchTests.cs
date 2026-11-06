@@ -30,6 +30,15 @@ public class SnippetSearchTests
     static List<string> Names(string query, Func<Snippet, string?>? content = null) =>
         SnippetSearch.Search(Library(), query, content).Select(h => h.Snippet.Name).ToList();
 
+    [Theory]
+    [InlineData("{tab} nächstes Feld Tasten", "feld", true)]
+    [InlineData("{tab} nächstes Feld Tasten", "NACHSTES", true)]
+    [InlineData("{tab} nächstes Feld Tasten", "tab feld", true)]
+    [InlineData("{tab} nächstes Feld Tasten", "tab pause", false)]
+    [InlineData("{tab} nächstes Feld Tasten", "  ", true)]
+    public void Filter_needs_every_word_somewhere(string text, string query, bool expected) =>
+        Assert.Equal(expected, SnippetSearch.MatchesAll(text, query));
+
     [Fact]
     public void Ignores_case_and_umlauts()
     {

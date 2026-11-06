@@ -116,6 +116,8 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="EditorTagsFlow" xml:space="preserve"><value>Ablauf</value></data>
   <data name="EditorTagsElements" xml:space="preserve"><value>Elemente und Fenster</value></data>
   <data name="EditorTagsScripts" xml:space="preserve"><value>Skript</value></data>
+  <data name="EditorTagsFilter" xml:space="preserve"><value>Filtern, z.B. Pause oder Feld</value></data>
+  <data name="EditorTagsNoMatch" xml:space="preserve"><value>Kein passendes Tag</value></data>
   <data name="TagNextField" xml:space="preserve"><value>nächstes Feld</value></data>
   <data name="TagPreviousField" xml:space="preserve"><value>Feld zurück</value></data>
   <data name="TagSubmit" xml:space="preserve"><value>absenden</value></data>
