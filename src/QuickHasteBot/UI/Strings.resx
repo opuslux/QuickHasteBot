@@ -87,6 +87,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="EditorName" xml:space="preserve"><value>Name</value></data>
   <data name="EditorFolderFormat" xml:space="preserve"><value>in {0}</value></data>
   <data name="EditorFolderToolTip" xml:space="preserve"><value>Choose another folder. The snippet moves there when you save.</value></data>
+  <data name="EditorFolderChooseThis" xml:space="preserve"><value>Choose this folder</value></data>
   <data name="EditorNewSnippet" xml:space="preserve"><value>New snippet</value></data>
   <data name="EditorInsertTag" xml:space="preserve"><value>Insert tag ▾</value></data>
   <data name="EditorInsertTagToolTip" xml:space="preserve"><value>Keys, pauses, form elements, windows and script helpers, inserted at the cursor</value></data>

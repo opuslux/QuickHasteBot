@@ -397,9 +397,16 @@ public class WindowSmokeTests
         var archive = Directory.CreateDirectory(Path.Combine(dir.Path, @"structure\Editor\Archiv")).FullName;
         dir.File(@"structure\Editor\Archiv\Belegt.txt", "schon da");
         controller.Library.Reload();
+        // Aufklappbar: "Editor" hat Unterordner, also ein Untermenü mit "Diesen Ordner wählen" zuoberst
         var folders = editor.FolderMenu().Items.OfType<System.Windows.Controls.MenuItem>().ToList();
-        Assert.Contains(folders, i => (string)i.Tag == archive && ((System.Windows.Controls.TextBlock)i.Header).Text == "Archiv");
-        Assert.Equal(FontWeights.SemiBold, folders.Single(i => (string)i.Tag == Path.Combine(dir.Path, @"structure\Editor")).FontWeight);
+        Assert.Equal("Bausteine", folders[0].Header);
+        var editorFolder = folders.Single(i => (string)i.Tag == Path.Combine(dir.Path, @"structure\Editor"));
+        Assert.Equal(FontWeights.SemiBold, editorFolder.FontWeight);
+        var inEditor = editorFolder.Items.OfType<System.Windows.Controls.MenuItem>().ToList();
+        Assert.Equal(["Diesen Ordner wählen", "Archiv"], inEditor.Select(i => (string)i.Header));
+        Assert.Equal(FontWeights.SemiBold, inEditor[0].FontWeight);
+        Assert.Equal(FontWeights.Normal, inEditor[1].FontWeight);
+        Assert.Equal(archive, inEditor[1].Tag);
         editor.ChooseFolder(archive);
         Assert.Equal("in Bausteine › Editor › Archiv", editor.FolderText.Text);
         Assert.True(editor.IsDirty);

@@ -174,27 +174,65 @@ internal partial class SnippetEditorWindow : Window
         menu.IsOpen = true;
     }
 
-    /// <summary>Alle Ordner der Struktur untereinander, eingerückt nach Tiefe, der gewählte mit Häkchen.</summary>
+    /// <summary>
+    /// Die Ordner wie im Explorer zum Aufklappen: zuoberst der Wurzelordner, darunter die Ordner der ersten Ebene. Wer
+    /// Unterordner hat, klappt auf, zuoberst steht dort "Diesen Ordner wählen". Der gewählte Ordner hat ein Häkchen, der
+    /// Weg dorthin ist fett.
+    /// </summary>
     internal ContextMenu FolderMenu()
     {
         var menu = new ContextMenu();
-        Add(_app.Library.Root, Strings.BreadcrumbRoot, depth: 0);
+        var root = _app.Library.Root;
+        menu.Items.Add(Choice(root, Strings.BreadcrumbRoot));
+        var children = Subfolders(root);
+        if (children.Count > 0)
+            menu.Items.Add(new Separator());
+        foreach (var child in children)
+            menu.Items.Add(Entry(child));
         return menu;
 
-        void Add(Snippet folder, string header, int depth)
+        static List<Snippet> Subfolders(Snippet folder) => folder.Children.Where(c => c.IsFolder).ToList();
+
+        // Ohne Unterordner gleich wählbar, sonst ein Untermenü
+        MenuItem Entry(Snippet folder)
+        {
+            var subfolders = Subfolders(folder);
+            if (subfolders.Count == 0)
+                return Choice(folder, folder.Name);
+
+            var item = new MenuItem
+            {
+                Header = folder.Name,
+                Icon = MenuIcons.Glyph(MenuIcons.Folder),
+                FontWeight = OnCurrentPath(folder) ? FontWeights.SemiBold : FontWeights.Normal,
+                Tag = folder.FullPath,
+            };
+            item.Items.Add(Choice(folder, Strings.EditorFolderChooseThis));
+            item.Items.Add(new Separator());
+            foreach (var child in subfolders)
+                item.Items.Add(Entry(child));
+            return item;
+        }
+
+        MenuItem Choice(Snippet folder, string header)
         {
             var current = SamePath(folder.FullPath, _folder);
             var item = new MenuItem
             {
-                Header = new TextBlock { Text = header, Margin = new Thickness(depth * 16, 0, 0, 0) },
+                Header = header,
                 Icon = MenuIcons.Glyph(current ? MenuIcons.Check : MenuIcons.Folder),
                 FontWeight = current ? FontWeights.SemiBold : FontWeights.Normal,
                 Tag = folder.FullPath,
             };
             item.Click += (_, _) => ChooseFolder(folder.FullPath);
-            menu.Items.Add(item);
-            foreach (var child in folder.Children.Where(c => c.IsFolder))
-                Add(child, child.Name, depth + 1);
+            return item;
+        }
+
+        // Der gewählte Ordner selbst oder einer darüber
+        bool OnCurrentPath(Snippet folder)
+        {
+            var relative = Path.GetRelativePath(folder.FullPath, _folder);
+            return relative == "." || !relative.StartsWith("..", StringComparison.Ordinal) && !Path.IsPathRooted(relative);
         }
     }
 

@@ -43,6 +43,9 @@
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
                                VerticalAlignment="Center" Margin="6,1,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <!-- Dasselbe Ordnersymbol wie in der Liste, etwas kleiner als der Text -->
+                    <TextBlock DockPanel.Dock="Left" Text="&#xE8B7;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
+                               VerticalAlignment="Center" Margin="0,1,6,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock x:Name="FolderText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </DockPanel>
