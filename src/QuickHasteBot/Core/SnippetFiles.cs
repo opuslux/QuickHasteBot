@@ -59,6 +59,15 @@ public static class SnippetFiles
         return target;
     }
 
+    /// <summary>Datei kommt in einen anderen Ordner, auf Wunsch gleich mit neuem Namen. Überschreibt nie etwas.</summary>
+    /// <returns>Vollständiger neuer Pfad.</returns>
+    public static string Move(string path, string folder, string name)
+    {
+        var target = Path.Combine(folder, name);
+        File.Move(path, target, overwrite: false);
+        return target;
+    }
+
     /// <summary>Wie im Explorer: "Neuer Ordner", gibt es den schon, "Neuer Ordner (2)" usw.</summary>
     /// <param name="baseName">"Neuer Ordner" bzw. "New folder", je nach Sprache.</param>
     public static string SuggestNewFolderName(string parent, string baseName)

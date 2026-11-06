@@ -86,6 +86,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="EditorTitle" xml:space="preserve"><value>Baustein bearbeiten</value></data>
   <data name="EditorName" xml:space="preserve"><value>Name</value></data>
   <data name="EditorFolderFormat" xml:space="preserve"><value>in {0}</value></data>
+  <data name="EditorFolderToolTip" xml:space="preserve"><value>Anderen Ordner wählen. Der Baustein wird beim Speichern dorthin verschoben.</value></data>
   <data name="EditorNewSnippet" xml:space="preserve"><value>Neuer Baustein</value></data>
   <data name="EditorInsertTag" xml:space="preserve"><value>Tag einfügen ▾</value></data>
   <data name="EditorInsertTagToolTip" xml:space="preserve"><value>Tasten, Pausen, Formular-Elemente, Fenster und Skript-Helfer, an der Schreibmarke eingefügt</value></data>

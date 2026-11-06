@@ -392,6 +392,30 @@ public class WindowSmokeTests
         Assert.False(File.Exists(ansi));
         Assert.Equal("Grüsse aus Zürich", TextFile.Read(Path.Combine(dir.Path, @"structure\Editor\Gruss Zürich.txt")).Text);
         Assert.NotNull(controller.Library.Find(@"Editor\Gruss Zürich.txt"));
+
+        // Anderer Ordner: steht im Menü, macht den Baustein geändert, verschoben wird beim Speichern
+        var archive = Directory.CreateDirectory(Path.Combine(dir.Path, @"structure\Editor\Archiv")).FullName;
+        dir.File(@"structure\Editor\Archiv\Belegt.txt", "schon da");
+        controller.Library.Reload();
+        var folders = editor.FolderMenu().Items.OfType<System.Windows.Controls.MenuItem>().ToList();
+        Assert.Contains(folders, i => (string)i.Tag == archive && ((System.Windows.Controls.TextBlock)i.Header).Text == "Archiv");
+        Assert.Equal(FontWeights.SemiBold, folders.Single(i => (string)i.Tag == Path.Combine(dir.Path, @"structure\Editor")).FontWeight);
+        editor.ChooseFolder(archive);
+        Assert.Equal("in Bausteine › Editor › Archiv", editor.FolderText.Text);
+        Assert.True(editor.IsDirty);
+        editor.NameInput.Text = "Belegt";
+        Assert.False(editor.Save());
+        Assert.Equal(Strings.NameExists, editor.StatusText.Text);
+        editor.NameInput.Text = "Gruss Zürich";
+        Assert.True(editor.Save());
+        Assert.False(editor.IsDirty);
+        Assert.False(File.Exists(Path.Combine(dir.Path, @"structure\Editor\Gruss Zürich.txt")));
+        Assert.Equal(Path.Combine(archive, "Gruss Zürich.txt"), editor.FilePath);
+        Assert.Equal("Grüsse aus Zürich", TextFile.Read(editor.FilePath!).Text);
+        Assert.NotNull(controller.Library.Find(@"Editor\Archiv\Gruss Zürich.txt"));
+        editor.ChooseFolder(Path.GetDirectoryName(archive)!);
+        Assert.True(editor.Save());
+        Assert.Equal(Path.Combine(dir.Path, @"structure\Editor\Gruss Zürich.txt"), editor.FilePath);
         editor.Close();
 
         // Neuer Baustein: ohne Namen nicht speicherbar, dann als UTF-8 im Ordner
@@ -408,6 +432,15 @@ public class WindowSmokeTests
         Assert.Equal(new TextFileContent("Neu 😀", TextEncoding.Utf8), TextFile.Read(Path.Combine(dir.Path, @"structure\Editor\Neu.txt")));
         Assert.Equal(created.FilePath, Path.Combine(dir.Path, @"structure\Editor\Neu.txt"));
         created.Close();
+
+        // Neuer Baustein in einem anderen Ordner als dem, aus dem er angelegt wurde
+        var elsewhere = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, @"structure\Editor"));
+        elsewhere.NameInput.Text = "Abgelegt";
+        elsewhere.BodyInput.Text = "Archiviert";
+        elsewhere.ChooseFolder(archive);
+        Assert.True(elsewhere.Save());
+        Assert.Equal(Path.Combine(archive, "Abgelegt.txt"), elsewhere.FilePath);
+        elsewhere.Close();
 
         // Element-Picker: vor dem ersten Erfassen nur Fadenkreuz und leere Felder
         var picker = new ElementPickerWindow(controller);

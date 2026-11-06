@@ -29,6 +29,8 @@ internal static class MenuIcons
     public const string Flow = "";
     public const string Script = "";
     public const string Search = "";
+    public const string Folder = "";
+    public const string Check = "";
 
     static readonly FontFamily SymbolFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 

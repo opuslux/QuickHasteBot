@@ -22,8 +22,31 @@
         <DockPanel Grid.Row="0">
             <TextBlock Text="{x:Static ui:Strings.EditorName}" VerticalAlignment="Center" Margin="0,0,10,0" />
             <!-- Ganz rechts und mit Abstand der Ordner, die Endung direkt am Namen: sonst liest es sich wie "Name Ordner.txt" -->
-            <TextBlock x:Name="FolderText" DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="300" Margin="20,0,0,0"
-                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <!-- Ein Klick wählt einen anderen Ordner, verschoben bzw. angelegt wird beim Speichern -->
+            <Button x:Name="FolderButton" DockPanel.Dock="Right" VerticalAlignment="Center" MaxWidth="320" Margin="14,0,0,0" Padding="6,3"
+                    Cursor="Hand" Click="OnFolderClick">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Back" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Back" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
+                               VerticalAlignment="Center" Margin="6,1,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="FolderText" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </DockPanel>
+            </Button>
             <TextBlock x:Name="ExtensionText" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="4,0,0,0"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             <TextBox x:Name="NameInput" TextChanged="OnNameChanged" />
