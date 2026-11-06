@@ -186,6 +186,9 @@
                         ToolTip="{x:Static ui:Strings.NewSnippetTooltip}" Click="OnNewSnippetClick" />
                 <ToggleButton DockPanel.Dock="Right" Style="{StaticResource IconToggle}" Content="&#xE718;"
                               IsChecked="{Binding RememberFolder}" ToolTip="{x:Static ui:Strings.RememberFolderTooltip}" />
+                <!-- Daneben der Filter: Suchtext fürs nächste Öffnen behalten, Enter startet wieder denselben Eintrag -->
+                <ToggleButton DockPanel.Dock="Right" Style="{StaticResource IconToggle}" Content="&#xE71C;"
+                              IsChecked="{Binding RememberQuery}" ToolTip="{x:Static ui:Strings.RememberQueryTooltip}" />
                 <ItemsControl ItemsSource="{Binding Breadcrumbs}" VerticalAlignment="Center" Focusable="False">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>

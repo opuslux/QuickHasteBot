@@ -103,6 +103,12 @@ public sealed class AppSettings
     /// <summary>Der dabei markierte Eintrag, relativ zum structure-Ordner.</summary>
     public string LastSelected { get; set; } = "";
 
+    /// <summary>Das Popup öffnet mit dem Suchtext vom letzten Schliessen, Enter startet wieder denselben Eintrag.</summary>
+    public bool RememberQuery { get; set; }
+
+    /// <summary>Suchtext beim letzten Schliessen. Gilt nur mit <see cref="RememberQuery"/>.</summary>
+    public string LastQuery { get; set; } = "";
+
     /// <summary>Auch von Hand eingetragene Werte lassen beide Spalten sichtbar, Unsinn ergibt den Standard.</summary>
     public static double ClampColumnShare(double share) =>
         double.IsFinite(share) ? Math.Clamp(share, 0.15, 0.85) : DefaultListColumnShare;

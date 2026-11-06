@@ -149,6 +149,11 @@
                         </CheckBox>
                         <TextBlock Text="{x:Static ui:Strings.RememberFolderHint}" FontSize="12" Margin="0,2,0,0"
                                    TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <CheckBox x:Name="RememberQueryInput" Click="OnRememberQueryChanged" Margin="0,8,0,0">
+                            <TextBlock Text="{x:Static ui:Strings.RememberQuery}" TextWrapping="Wrap" />
+                        </CheckBox>
+                        <TextBlock Text="{x:Static ui:Strings.RememberQueryHint}" FontSize="12" Margin="0,2,0,0"
+                                   TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <TextBlock Text="{x:Static ui:Strings.PositionLabel}" Margin="0,12,0,8" />
                         <DockPanel>

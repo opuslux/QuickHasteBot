@@ -94,6 +94,8 @@ internal partial class SearchPopup : Window
         WindowFocus.Activate(new WindowInteropHelper(this).Handle);
         SearchBox.Focus();
         Keyboard.Focus(SearchBox);
+        // Ein gemerkter Suchtext ist markiert: Enter nimmt ihn, Tippen ersetzt ihn
+        SearchBox.SelectAll();
     }
 
     /// <summary>Die Bibliothek wurde neu eingelesen (Datei geändert, anderer Ordner).</summary>
