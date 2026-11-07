@@ -97,10 +97,6 @@ internal sealed class BreakpointMargin : AbstractMargin
 /// </summary>
 internal sealed class StepMarker(TextView view) : IBackgroundRenderer
 {
-    static readonly (Brush Fill, Pen Border) Paused = Style(Color.FromArgb(0x55, 0xFF, 0xC8, 0x00), Color.FromRgb(0xC8, 0x96, 0x00));
-    static readonly (Brush Fill, Pen Border) Running = Style(Color.FromArgb(0x33, 0x00, 0x78, 0xD4), Color.FromRgb(0x00, 0x78, 0xD4));
-    static readonly (Brush Fill, Pen Border) Failed = Style(Color.FromArgb(0x40, 0xE8, 0x11, 0x23), Color.FromRgb(0xE8, 0x11, 0x23));
-
     public KnownLayer Layer => KnownLayer.Background;
 
     public StepMark Mark { get; private set; } = StepMark.None;
@@ -118,17 +114,27 @@ internal sealed class StepMarker(TextView view) : IBackgroundRenderer
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
         if (Segment is null || textView.Document is null || Segment.EndOffset > textView.Document.TextLength) return;
-        var (fill, border) = Mark switch
-        {
-            StepMark.Running => Running,
-            StepMark.Failed => Failed,
-            _ => Paused,
-        };
+        var (fill, border) = StepColors.For(Mark);
         var builder = new BackgroundGeometryBuilder { AlignToWholePixels = true, CornerRadius = 2, BorderThickness = border.Thickness };
         builder.AddSegment(textView, Segment);
         if (builder.CreateGeometry() is { } geometry)
             drawingContext.DrawGeometry(fill, border, geometry);
     }
+}
+
+/// <summary>Die Farben eines Schritts, gleich im Editor und in der Leiste: angehalten gelb, läuft blau, gescheitert rot.</summary>
+internal static class StepColors
+{
+    static readonly (Brush Fill, Pen Border) Paused = Style(Color.FromArgb(0x55, 0xFF, 0xC8, 0x00), Color.FromRgb(0xC8, 0x96, 0x00));
+    static readonly (Brush Fill, Pen Border) Running = Style(Color.FromArgb(0x33, 0x00, 0x78, 0xD4), Color.FromRgb(0x00, 0x78, 0xD4));
+    static readonly (Brush Fill, Pen Border) Failed = Style(Color.FromArgb(0x40, 0xE8, 0x11, 0x23), Color.FromRgb(0xE8, 0x11, 0x23));
+
+    public static (Brush Fill, Pen Border) For(StepMark mark) => mark switch
+    {
+        StepMark.Running => Running,
+        StepMark.Failed => Failed,
+        _ => Paused,
+    };
 
     static (Brush, Pen) Style(Color fill, Color border)
     {

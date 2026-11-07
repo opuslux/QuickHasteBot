@@ -10,6 +10,9 @@ using static QuickHasteBot.Interop.NativeMethods;
 
 namespace QuickHasteBot.UI;
 
+/// <summary>Wie ein Schritt-für-Schritt-Lauf ausgegangen ist, bestimmt die Farbe des Titels.</summary>
+internal enum StepResult { Done, Stopped, Failed }
+
 /// <summary>
 /// Leiste für den Schritt-für-Schritt-Lauf, unten mittig am Zielfenster. Wird nie aktiv (WS_EX_NOACTIVATE, ein Klick
 /// beantwortet WM_MOUSEACTIVATE mit MA_NOACTIVATE), damit Tasten und Fokus im Zielfenster bleiben. Zeigt den Schritt,
@@ -26,8 +29,9 @@ internal sealed class StepBar : Window
     readonly TextBlock _state = new() { FontSize = 12, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
     readonly TextBlock _now = Code();
     readonly TextBlock _then = Code();
+    readonly Border _nowBox;
     readonly TextBlock _message = new() { FontSize = 12, TextWrapping = TextWrapping.Wrap, MaxWidth = 520 };
-    readonly TextBlock _note = new() { FontSize = 11, Opacity = 0.8, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap, MaxWidth = 520 };
+    readonly TextBlock _note = new() { FontSize = 11, Margin = new Thickness(0, 6, 0, 0), TextWrapping = TextWrapping.Wrap, MaxWidth = 520 };
     readonly Grid _steps = new() { Margin = new Thickness(0, 6, 0, 0) };
     readonly StackPanel _runButtons = new() { Orientation = Orientation.Horizontal };
     readonly StackPanel _endButtons = new() { Orientation = Orientation.Horizontal };
@@ -64,7 +68,11 @@ internal sealed class StepBar : Window
         _steps.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         _steps.RowDefinitions.Add(new RowDefinition());
         _steps.RowDefinitions.Add(new RowDefinition());
-        AddRow(0, Strings.StepBarNow, _now);
+        // „Jetzt“ in der Farbe der Markierung im Editor, „Danach“ gedämpft
+        _nowBox = new Border { Child = _now, CornerRadius = new CornerRadius(3), BorderThickness = new Thickness(1), Padding = new Thickness(5, 0, 5, 0), Margin = new Thickness(-6, 1, 0, 1), HorizontalAlignment = HorizontalAlignment.Left };
+        _then.Opacity = 0.6;
+        _then.Margin = new Thickness(0, 3, 0, 2);
+        AddRow(0, Strings.StepBarNow, _nowBox);
         AddRow(1, Strings.StepBarThen, _then);
 
         var header = new DockPanel { LastChildFill = true };
@@ -81,6 +89,7 @@ internal sealed class StepBar : Window
         var body = new StackPanel { Children = { header, _steps, _message, _note } };
         _message.Visibility = Visibility.Collapsed;
         _note.Visibility = Visibility.Collapsed;
+        _note.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCautionBrush");
         var row = new DockPanel { Children = { grip, body } };
 
         var card = new Border
@@ -124,7 +133,11 @@ internal sealed class StepBar : Window
         _steps.Visibility = Visibility.Visible;
         _message.Visibility = Visibility.Collapsed;
         _next.IsEnabled = _continue.IsEnabled = paused;
+        var (fill, border) = StepColors.For(paused ? StepMark.Paused : StepMark.Running);
+        _nowBox.Background = fill;
+        _nowBox.BorderBrush = border.Brush;
 
+        _title.ClearValue(TextBlock.ForegroundProperty);
         _title.Text = string.Format(Strings.StepBarStepFormat, Math.Min(index + 1, steps.Count), steps.Count);
         _state.Text = paused ? Strings.StepBarPaused : Strings.StepBarRunning;
         _now.Text = index < steps.Count ? StepText(steps[index].Step, paste) : Strings.StepBarEnd;
@@ -139,7 +152,7 @@ internal sealed class StepBar : Window
     }
 
     /// <summary>Ende oder Fehler, mit „Nochmal“ und „Schliessen“.</summary>
-    public void ShowResult(string title, string? message, bool failed)
+    public void ShowResult(string title, string? message, StepResult result)
     {
         _runButtons.Visibility = Visibility.Collapsed;
         _endButtons.Visibility = Visibility.Visible;
@@ -148,10 +161,12 @@ internal sealed class StepBar : Window
         _state.Text = "";
         _message.Text = message ?? "";
         _message.Visibility = string.IsNullOrEmpty(message) ? Visibility.Collapsed : Visibility.Visible;
-        if (failed)
-            _title.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCriticalBrush");
-        else
-            _title.ClearValue(TextBlock.ForegroundProperty);
+        _title.SetResourceReference(TextBlock.ForegroundProperty, result switch
+        {
+            StepResult.Done => "SystemFillColorSuccessBrush",
+            StepResult.Stopped => "SystemFillColorCautionBrush",
+            _ => "SystemFillColorCriticalBrush",
+        });
         ShowNote(null);
     }
 
@@ -234,7 +249,7 @@ internal sealed class StepBar : Window
             _dragWindow.Left + cursor.X - _dragStart.X, _dragWindow.Top + cursor.Y - _dragStart.Y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
-    void AddRow(int row, string label, TextBlock value)
+    void AddRow(int row, string label, FrameworkElement value)
     {
         var caption = new TextBlock { Text = label, FontSize = 12, Opacity = 0.75, Margin = new Thickness(0, 2, 10, 2), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetRow(caption, row);
@@ -247,7 +262,7 @@ internal sealed class StepBar : Window
     static TextBlock Code() => new()
     {
         FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 12, Margin = new Thickness(0, 2, 0, 2),
-        TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 460,
+        TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 460, HorizontalAlignment = HorizontalAlignment.Left,
     };
 
     static Button Button(string text, Action click, bool accent = false)

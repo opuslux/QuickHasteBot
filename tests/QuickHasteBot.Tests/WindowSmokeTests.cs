@@ -839,6 +839,11 @@ public class WindowSmokeTests
         Assert.Contains("Schritt  F10", Buttons(bar));
         Assert.Contains("Weiter  F5", Buttons(bar));
 
+        // „Jetzt“ in der Farbe der Editor-Markierung: angehalten gelb, läuft blau
+        Assert.Same(StepColors.For(StepMark.Paused).Fill, NowBox(bar).Background);
+        bar.ShowNote("Feld nicht da");
+        Assert.Same(bar.FindResource("SystemFillColorCautionBrush"), Text(bar, "Feld nicht da").Foreground);
+
         // Nie aktiv: weder beim Zeigen noch bei einem Klick
         var hwnd = new System.Windows.Interop.WindowInteropHelper(bar).Handle;
         var style = (long)Interop.NativeMethods.GetWindowLongPtr(hwnd, Interop.NativeMethods.GWL_EXSTYLE);
@@ -848,9 +853,15 @@ public class WindowSmokeTests
         bar.ShowStep(steps, paste: false, index: 2, paused: false);
         bar.UpdateLayout();
         Assert.Contains("(Ende)", Texts(bar));
+        Assert.Same(StepColors.For(StepMark.Running).Fill, NowBox(bar).Background);
 
-        bar.ShowResult("Abgebrochen bei Schritt 2", "Nichts gefunden", failed: true);
+        bar.ShowResult("Fertig", null, StepResult.Done);
+        Assert.Same(bar.FindResource("SystemFillColorSuccessBrush"), Text(bar, "Fertig").Foreground);
+        bar.ShowResult("Gestoppt", null, StepResult.Stopped);
+        Assert.Same(bar.FindResource("SystemFillColorCautionBrush"), Text(bar, "Gestoppt").Foreground);
+        bar.ShowResult("Abgebrochen bei Schritt 2", "Nichts gefunden", StepResult.Failed);
         Snapshot(bar, "stepbar-failed.png");
+        Assert.Same(bar.FindResource("SystemFillColorCriticalBrush"), Text(bar, "Abgebrochen bei Schritt 2").Foreground);
         Assert.Contains("Nichts gefunden", Texts(bar));
         Assert.Equal(["Nochmal", "Schliessen"], Buttons(bar));
 
@@ -861,6 +872,12 @@ public class WindowSmokeTests
 
         static List<string> Texts(Window window) => Descendants<System.Windows.Controls.TextBlock>(window)
             .Where(t => t.IsVisible).Select(t => t.Text).ToList();
+
+        static System.Windows.Controls.TextBlock Text(Window window, string text) =>
+            Descendants<System.Windows.Controls.TextBlock>(window).Single(t => t.IsVisible && t.Text == text);
+
+        static System.Windows.Controls.Border NowBox(Window window) =>
+            Descendants<System.Windows.Controls.Border>(window).Single(b => b.Child is System.Windows.Controls.TextBlock { Text: "{tab}" or "{enter}" } && b.IsVisible);
 
         static List<string> Buttons(Window window) => Descendants<System.Windows.Controls.Button>(window)
             .Where(b => b.IsVisible).Select(b => (string)b.Content).ToList();

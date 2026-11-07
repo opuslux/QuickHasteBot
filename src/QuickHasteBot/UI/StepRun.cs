@@ -134,7 +134,7 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
     {
         if (problem is null)
         {
-            bar.ShowResult(string.Format(Strings.StepBarDoneFormat, session.Steps.Count), null, failed: false);
+            bar.ShowResult(string.Format(Strings.StepBarDoneFormat, session.Steps.Count), null, StepResult.Done);
             Changed?.Invoke(this, new StepView(-1, default, StepMark.None));
             return;
         }
@@ -143,13 +143,13 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
             var message = session.Stop == StepStop.TimedOut
                 ? string.Format(Strings.StepBarTimedOutFormat, StepSession.IdleTimeout.TotalMinutes)
                 : null;
-            bar.ShowResult(Strings.StepBarStopped, message, failed: false);
+            bar.ShowResult(Strings.StepBarStopped, message, StepResult.Stopped);
             Changed?.Invoke(this, new StepView(-1, default, StepMark.None));
             return;
         }
 
         var failedStep = problem.Step is { } i && i < session.Steps.Count ? i : (int?)null;
-        bar.ShowResult(failedStep is { } f ? string.Format(Strings.StepBarFailedFormat, f + 1) : Strings.StepBarError, problem.Message, failed: true);
+        bar.ShowResult(failedStep is { } f ? string.Format(Strings.StepBarFailedFormat, f + 1) : Strings.StepBarError, problem.Message, StepResult.Failed);
         Changed?.Invoke(this, failedStep is { } s
             ? new StepView(s, session.Steps[s].Source, StepMark.Failed)
             : new StepView(-1, default, StepMark.None));
