@@ -36,6 +36,7 @@ public class WindowSmokeTests
             PopupGrowsWithFolderList();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
+            EditorStartsWithWindow();
         }
         finally
         {
@@ -951,6 +952,74 @@ public class WindowSmokeTests
         // Nichts geändert, was gespeichert werden müsste: ohne Rückfrage zu
         editor.BodyInput.Text = "";
         editor.Close();
+    }
+
+    /// <summary>Beginnt der Text mit {window,…}, starten „Testen“ und „Schritt für Schritt“ ohne Klick ins Zielfeld.</summary>
+    static void EditorStartsWithWindow()
+    {
+        // Wie in der App: nach await weiter auf dem UI-Thread
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+        try
+        {
+            EditorStartsWithWindowRun();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    static void EditorStartsWithWindowRun()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        // Ein Programm, das es nicht gibt: es wird nie etwas getippt
+        editor.BodyInput.Text = "{window,process=qhb-gibt-es-nicht}Grüsse";
+        Snapshot(editor, "editor-starts-with-window.png");
+        var click = new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent);
+
+        // Schritt für Schritt hält gleich vor {window} an, ohne Banner „Ins Zielfeld klicken“
+        editor.StepButton.RaiseEvent(click);
+        Assert.Equal(Visibility.Collapsed, editor.TestBanner.Visibility);
+        Assert.StartsWith("Beginnt mit {window,process=qhb-gibt-es-nicht}", editor.StatusText.Text);
+        Assert.True(PumpUntil(() => editor.StepMarker.Mark == StepMark.Paused, TimeSpan.FromSeconds(5)));
+        Assert.Equal("{window,process=qhb-gibt-es-nicht}", editor.BodyInput.Text.Substring(editor.StepMarker.Segment!.StartOffset, editor.StepMarker.Segment.Length));
+        editor.StepButton.RaiseEvent(click); // Lauf beenden
+        Assert.True(PumpUntil(() => (string)editor.StepButton.Content == "Schritt für Schritt", TimeSpan.FromSeconds(5)));
+
+        // Testen läuft sofort, scheitert hier am fehlenden Fenster
+        editor.TestButton.RaiseEvent(click);
+        Assert.Equal(Visibility.Collapsed, editor.TestBanner.Visibility);
+        Assert.StartsWith("Beginnt mit {window,process=qhb-gibt-es-nicht}", editor.StatusText.Text);
+        Assert.True(PumpUntil(() => !editor.StatusText.Text.StartsWith("Beginnt mit"), TimeSpan.FromSeconds(15)));
+        Assert.Equal(Visibility.Collapsed, editor.TestBanner.Visibility);
+
+        // Ohne {window} am Anfang wie bisher: erst ins Zielfeld klicken
+        editor.BodyInput.Text = "Grüsse{window,process=qhb-gibt-es-nicht}";
+        editor.StepButton.RaiseEvent(click);
+        Assert.Equal(Visibility.Visible, editor.TestBanner.Visibility);
+        editor.StepButton.RaiseEvent(click); // Warten abbrechen
+        Assert.True(PumpUntil(() => editor.TestBanner.Visibility == Visibility.Collapsed, TimeSpan.FromSeconds(5)));
+
+        editor.BodyInput.Text = "";
+        editor.Close();
+    }
+
+    /// <summary>Den Dispatcher laufen lassen, bis <paramref name="done"/> zutrifft oder die Zeit um ist.</summary>
+    static bool PumpUntil(Func<bool> done, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (!done() && DateTime.UtcNow < deadline)
+        {
+            var frame = new DispatcherFrame();
+            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, () => frame.Continue = false);
+            Dispatcher.PushFrame(frame);
+            Thread.Sleep(20);
+        }
+        return done();
     }
 
     static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

@@ -122,10 +122,18 @@ internal sealed class PasteService
     /// </summary>
     /// <param name="gate">Darf vor jedem Schritt anhalten (Schritt für Schritt). Nach einer Pause kommt das Fenster, das
     /// vorher vorne war, zurück nach vorne, sonst bricht der Lauf ab.</param>
+    /// <summary>
+    /// Der Schritt, mit dem ein Baustein sein Fenster selbst nach vorne holt ({window,…}, {start,…} oder ein Element-Tag
+    /// mit Fenster), falls er so beginnt. Pausen und {guard} davor zählen nicht. Sonst null.
+    /// </summary>
+    internal static FormStep? StartWindowStep(IReadOnlyList<FormStep> steps) =>
+        steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is { } first
+        && first is WindowStep or StartStep or ElementStep { Selector.Window: not null } ? first : null;
+
     public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard, IStepGate? gate = null)
     {
         // Beginnt der Baustein mit {window,…} oder {start,…}, ist das Fenster vom Hotkey egal
-        var startsWithWindow = steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is WindowStep or StartStep or ElementStep { Selector.Window: not null };
+        var startsWithWindow = StartWindowStep(steps) is not null;
         if (!startsWithWindow && !await WindowFocus.ActivateAndWaitAsync(targetWindow))
         {
             // Anders als beim Einfügen nicht einfach ans aktuelle Fenster senden, {enter} & Co. könnten dort Schaden anrichten

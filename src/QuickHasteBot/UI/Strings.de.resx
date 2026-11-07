@@ -327,6 +327,7 @@ Details stehen in QuickHasteBot.log.</value></data>
   <data name="EditorStepRun" xml:space="preserve"><value>Schritt für Schritt</value></data>
   <data name="EditorStepRunToolTip" xml:space="preserve"><value>Danach ins Zielfeld klicken: Der ganze Baustein läuft dort und hält vor jedem Schritt an. F10 führt den nächsten Schritt aus, F5 läuft bis zum nächsten Haltepunkt. Haltepunkte setzt ein Klick in den linken Rand (F9).</value></data>
   <data name="EditorStepRunStop" xml:space="preserve"><value>Lauf beenden</value></data>
+  <data name="EditorStartsWithWindowFormat" xml:space="preserve"><value>Beginnt mit {0}, darum ohne Klick ins Zielfeld.</value></data>
   <data name="EditorStepRunning" xml:space="preserve"><value>Schritt für Schritt: F10 nächster Schritt, F5 bis zum nächsten Haltepunkt, Esc gedrückt halten stoppt. Der Text ist solange gesperrt.</value></data>
   <data name="EditorStepRunEnded" xml:space="preserve"><value>Schritt für Schritt beendet.</value></data>
   <data name="EditorStepRunFailed" xml:space="preserve"><value>Schritt für Schritt beim rot markierten Schritt abgebrochen.</value></data>

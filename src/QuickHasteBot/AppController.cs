@@ -334,6 +334,32 @@ internal sealed class AppController : IDisposable
         return null;
     }
 
+    /// <summary>
+    /// Beginnt der Text mit {window,…} oder {start,…}, holt er sein Fenster selbst: dann dieses Tag, sonst null. Der
+    /// Editor wartet dann nicht auf den Klick ins Zielfeld.
+    /// </summary>
+    internal string? StartWindowTag(string text) => StartWindowTag(text, Settings.EvaluateKeyTags, Settings.EvaluateScripts);
+
+    /// <summary>Wie <see cref="StartWindowTag(string)"/>. Skripte sehen eine leere Zwischenablage, ein Skriptfehler gibt null.</summary>
+    internal static string? StartWindowTag(string text, bool keyTags, bool scripts)
+    {
+        if (!keyTags) return null;
+        var form = new FormBuilder();
+        text = KeyTags.MarkTags(KeyTags.StripMarkers(text), form);
+        if (scripts && SnippetScript.HasBlocks(text))
+        {
+            try
+            {
+                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, "", Form: form));
+            }
+            catch (SnippetScriptException)
+            {
+                return null;
+            }
+        }
+        return KeyTags.HasMarkers(text) && PasteService.StartWindowStep(KeyTags.Split(text, form)) is { } step ? KeyTags.Describe(step) : null;
+    }
+
     /// <param name="Text">Was eingefügt würde, Tasten als lesbare Tags wie {tab}.</param>
     /// <param name="IsForm">Enthält Tasten- oder Element-Tags, wird darum getippt.</param>
     /// <param name="Error">Skriptfehler statt eines Ergebnisses.</param>

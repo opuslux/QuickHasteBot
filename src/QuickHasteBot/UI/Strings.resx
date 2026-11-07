@@ -327,6 +327,7 @@ Details are in QuickHasteBot.log.</value></data>
   <data name="EditorStepRun" xml:space="preserve"><value>Step by step</value></data>
   <data name="EditorStepRunToolTip" xml:space="preserve"><value>Then click into the target field: the whole snippet runs there and pauses before each step. F10 runs the next step, F5 runs to the next breakpoint. Click the left margin to set a breakpoint (F9).</value></data>
   <data name="EditorStepRunStop" xml:space="preserve"><value>Stop run</value></data>
+  <data name="EditorStartsWithWindowFormat" xml:space="preserve"><value>Starts with {0}, no click into the target field needed.</value></data>
   <data name="EditorStepRunning" xml:space="preserve"><value>Step by step: F10 next step, F5 to the next breakpoint, hold Esc to stop. The text is locked meanwhile.</value></data>
   <data name="EditorStepRunEnded" xml:space="preserve"><value>Step by step ended.</value></data>
   <data name="EditorStepRunFailed" xml:space="preserve"><value>Step by step stopped at the step marked in red.</value></data>

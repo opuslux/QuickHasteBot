@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using QuickHasteBot.Core;
@@ -523,7 +524,8 @@ internal partial class SnippetEditorWindow : Window
 
     /// <summary>
     /// Wartet, bis ein anderes Programm vorne ist (man klickt ins Zielfeld), dann läuft der Baustein dort wie beim
-    /// Einfügen, mit dem Text, wie er gerade im Editor steht. Nochmals drücken bricht das Warten ab.
+    /// Einfügen, mit dem Text, wie er gerade im Editor steht. Nochmals drücken bricht das Warten ab. Beginnt der Text
+    /// mit {window,…} oder {start,…}, läuft er sofort, er holt sein Fenster selbst.
     /// </summary>
     async void OnTest(object sender, RoutedEventArgs e)
     {
@@ -542,17 +544,19 @@ internal partial class SnippetEditorWindow : Window
 
         using var test = _test = new CancellationTokenSource(TargetTimeout);
         TestButton.Content = Strings.EditorTestCancel;
-        ShowWaiting(scope == TestScope.All ? null : Shorten(text));
+        var startTag = _app.StartWindowTag(text);
+        if (startTag is null)
+            ShowWaiting(scope == TestScope.All ? null : Shorten(text));
         try
         {
-            var target = await WaitForTargetAsync(test.Token);
+            var target = startTag is null ? await WaitForTargetAsync(test.Token) : Handle;
             HideWaiting();
             if (target == 0)
             {
                 ShowStatus(Strings.EditorTestCancelled);
                 return;
             }
-            ShowStatus(Strings.EditorTestRunning);
+            ShowStatus(Running(startTag, Strings.EditorTestRunning));
             var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target);
             ShowStatus(problem?.Message ?? Strings.EditorTestDone, error: problem is not null);
         }
@@ -565,9 +569,9 @@ internal partial class SnippetEditorWindow : Window
     }
 
     /// <summary>
-    /// Schritt für Schritt: wie „Testen“ erst ins Zielfeld klicken, dann läuft der ganze Baustein dort, angehalten vor
-    /// jedem Schritt. Die Leiste am Zielfenster und F10/F5 steuern, der Editor markiert den Schritt. Der Text ist
-    /// solange gesperrt. Nochmals drücken beendet den Lauf.
+    /// Schritt für Schritt: wie „Testen“ erst ins Zielfeld klicken (ausser der Text beginnt mit {window,…} oder
+    /// {start,…}), dann läuft der ganze Baustein dort, angehalten vor jedem Schritt. Die Leiste am Zielfenster und
+    /// F10/F5 steuern, der Editor markiert den Schritt. Der Text ist solange gesperrt. Nochmals drücken beendet den Lauf.
     /// </summary>
     async void OnStepRun(object sender, RoutedEventArgs e)
     {
@@ -583,9 +587,11 @@ internal partial class SnippetEditorWindow : Window
         }
 
         var text = BodyInput.Text;
-        nint target;
-        using (var test = _test = new CancellationTokenSource(TargetTimeout))
+        var startTag = _app.StartWindowTag(text);
+        var target = Handle;
+        if (startTag is null)
         {
+            using var test = _test = new CancellationTokenSource(TargetTimeout);
             StepButton.Content = Strings.EditorTestCancel;
             ShowWaiting(null);
             try
@@ -610,7 +616,7 @@ internal partial class SnippetEditorWindow : Window
         run.Changed += (_, view) => ShowStep(text, view);
         StepMarker.Clear();
         LockForStepRun(true);
-        ShowStatus(Strings.EditorStepRunning);
+        ShowStatus(Running(startTag, Strings.EditorStepRunning));
         try
         {
             await run.RunAsync();
@@ -626,6 +632,13 @@ internal partial class SnippetEditorWindow : Window
                 StepMarker.Clear();
         }
     }
+
+    /// <summary>Der Editor selbst: Zielfenster, wenn der Text sein Fenster mit {window,…} selbst holt.</summary>
+    nint Handle => new WindowInteropHelper(this).Handle;
+
+    /// <summary>Statuszeile während eines Laufs, mit dem Grund, falls er ohne Klick ins Zielfeld begann.</summary>
+    static string Running(string? startTag, string running) =>
+        startTag is null ? running : string.Format(Strings.EditorStartsWithWindowFormat, startTag) + " " + running;
 
     /// <summary>Während des Laufs: Text gesperrt, „Testen“ aus, der Knopf beendet den Lauf.</summary>
     internal void LockForStepRun(bool running)
