@@ -14,7 +14,7 @@ internal static class WindowFinder
         for (var hwnd = GetTopWindow(0); hwnd != 0; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
         {
             if (!IsMainWindow(hwnd)) continue;
-            GetWindowThreadProcessId(hwnd, out var pid);
+            var pid = AppProcessId(hwnd);
             if (pid == Environment.ProcessId) continue;
             if (!names.TryGetValue(pid, out var name))
                 names[pid] = name = ProcessName(pid);
@@ -37,6 +37,30 @@ internal static class WindowFinder
     {
         var buffer = stackalloc char[512];
         var length = GetWindowText(hwnd, buffer, 512);
+        return new string(buffer, 0, Math.Max(length, 0));
+    }
+
+    /// <summary>
+    /// Der Prozess hinter einem Hauptfenster. Store-Apps wie der Rechner laufen in einem Rahmen, der ApplicationFrameHost
+    /// gehört: dann der Prozess der App im Rahmen (CalculatorApp), so wie ihn UI Automation, Picker und Recorder melden.
+    /// </summary>
+    public static uint AppProcessId(nint hwnd)
+    {
+        GetWindowThreadProcessId(hwnd, out var pid);
+        if (ClassName(hwnd) != "ApplicationFrameWindow") return pid;
+        for (var child = GetWindow(hwnd, GW_CHILD); child != 0; child = GetWindow(child, GW_HWNDNEXT))
+        {
+            if (ClassName(child) != "Windows.UI.Core.CoreWindow") continue;
+            GetWindowThreadProcessId(child, out var app);
+            if (app != 0) return app;
+        }
+        return pid;
+    }
+
+    static unsafe string ClassName(nint hwnd)
+    {
+        var buffer = stackalloc char[256];
+        var length = GetClassName(hwnd, buffer, 256);
         return new string(buffer, 0, Math.Max(length, 0));
     }
 
