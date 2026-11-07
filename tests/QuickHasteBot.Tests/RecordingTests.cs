@@ -38,7 +38,7 @@ public class RecordingTests
         {set,#newsletter,"on"}
         {click,name=Speichern}
 
-        """, Build(RecordMode.Mixed, Form));
+        """.ReplaceLineEndings("\n"), Build(RecordMode.Mixed, Form));
 
     [Fact]
     public void Always_set_sets_every_field() => Assert.Equal(
@@ -50,7 +50,7 @@ public class RecordingTests
         {set,#newsletter,"on"}
         {click,name=Speichern}
 
-        """, Build(RecordMode.AlwaysSet, Form));
+        """.ReplaceLineEndings("\n"), Build(RecordMode.AlwaysSet, Form));
 
     [Fact]
     public void Always_type_types_choices_and_clicks_checkboxes() => Assert.Equal(
@@ -62,7 +62,7 @@ public class RecordingTests
         {click,#newsletter}
         {click,name=Speichern}
 
-        """, Build(RecordMode.AlwaysType, Form));
+        """.ReplaceLineEndings("\n"), Build(RecordMode.AlwaysType, Form));
 
     [Fact]
     public void Clear_only_when_the_field_had_text_before()
