@@ -480,6 +480,24 @@ public static partial class KeyTags
     public static bool HasMarkers(string text) => text.Contains(MarkerStart);
 
     /// <summary>
+    /// Eine Stelle im Text nach <see cref="StripMarkers"/> (dort gelten die <see cref="SourceSpan"/>s), zurück im Text
+    /// davor, z.B. im Editor. Nur anders, wenn der Text Marker-Zeichen enthielt.
+    /// </summary>
+    public static int UnstrippedOffset(string original, int offset)
+    {
+        if (!original.Contains(MarkerStart) && !original.Contains(MarkerEnd))
+            return Math.Min(offset, original.Length);
+        var seen = 0;
+        for (var i = 0; i < original.Length; i++)
+        {
+            if (original[i] is MarkerStart or MarkerEnd) continue;
+            if (seen == offset) return i;
+            seen++;
+        }
+        return original.Length;
+    }
+
+    /// <summary>
     /// Zerlegt den fertigen Text an den Markern in Schritte. Ein Umbruch ganz am Ende fällt weg,
     /// den hängen Editoren oft an und er würde nach dem letzten Feld noch eine Zeile einfügen.
     /// </summary>

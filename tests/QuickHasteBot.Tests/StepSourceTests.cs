@@ -62,6 +62,18 @@ public class StepSourceTests
         Assert.Equal(["{{ '{tab}' }}", "{enter}"], Sources("{{ '{tab}' }}{enter}"));
 
     [Fact]
+    public void Places_map_back_to_text_with_marker_characters()
+    {
+        // Der Editor zeigt den Text mit den Marker-Zeichen, die Stellen gelten im Text ohne
+        const string original = "ab{tab}";
+        Assert.Equal(0, KeyTags.UnstrippedOffset(original, 0));
+        Assert.Equal(3, KeyTags.UnstrippedOffset(original, 2));
+        Assert.Equal(original.Length, KeyTags.UnstrippedOffset(original, 7));
+        Assert.Equal(4, KeyTags.UnstrippedOffset("text", 4));
+        Assert.Equal(4, KeyTags.UnstrippedOffset("text", 10));
+    }
+
+    [Fact]
     public void Split_still_gives_the_same_steps()
     {
         var form = new FormBuilder();

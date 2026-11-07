@@ -35,6 +35,7 @@ public class WindowSmokeTests
             FileHotkeys();
             PopupGrowsWithFolderList();
             StepBarShowsStepsAndResult();
+            EditorStepByStep();
         }
         finally
         {
@@ -866,6 +867,73 @@ public class WindowSmokeTests
 
         static System.Windows.Controls.Button FindButton(Window window, string text) =>
             Descendants<System.Windows.Controls.Button>(window).Single(b => b.IsVisible && (string)b.Content == text);
+    }
+
+    /// <summary>Editor: Knopf, Haltepunkte im Rand (Klick und F9), Markierung des Schritts, Sperre während des Laufs.</summary>
+    static void EditorStepByStep()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        const string text = "Grüsse{tab}\r\nMax{enter}\r\n{{ 'MfG' + key('tab') }}";
+        editor.BodyInput.Text = text;
+        Snapshot(editor, "editor-step.png");
+
+        Assert.Equal("Schritt für Schritt", editor.StepButton.Content);
+        Assert.Contains(editor.Breakpoints, editor.BodyInput.TextArea.LeftMargins);
+
+        // Klick in den Rand auf Höhe der zweiten Zeile, F9 an der Schreibmarke in der dritten
+        var document = editor.BodyInput.Document;
+        var view = editor.BodyInput.TextArea.TextView;
+        view.EnsureVisualLines();
+        var secondLine = view.GetVisualLine(2)!;
+        var y = secondLine.GetTextLineVisualYPosition(secondLine.TextLines[0], VisualYPosition.TextMiddle) - view.VerticalOffset;
+        Assert.Equal(2, editor.Breakpoints.LineAt(y)?.LineNumber);
+        editor.Breakpoints.Toggle(editor.Breakpoints.LineAt(y)!);
+        editor.BodyInput.CaretOffset = document.GetLineByNumber(3).Offset;
+        editor.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(editor)!, 0, Key.F9) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal([2, 3], editor.Breakpoints.Lines);
+        editor.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(editor)!, 0, Key.F9) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal([2], editor.Breakpoints.Lines);
+
+        // Welcher Schritt welchen Haltepunkt trifft
+        var form = new FormBuilder();
+        var steps = KeyTags.SplitWithSources(SnippetScript.Render(KeyTags.MarkTags(text, form), SnippetScriptTests.Context with { Form = form }), form);
+        // "\r\nMfG" beginnt mit dem Umbruch am Ende von Zeile 2, F5 hält dort trotzdem nur einmal (siehe StepSession)
+        Assert.Equal([null, null, 2, 2, 2, null], steps.Select(s => editor.BreakpointLine(text, s.Source)));
+
+        // Haltepunkte wandern mit dem Text
+        editor.BodyInput.Document.Insert(0, "Neu\r\n");
+        Assert.Equal([3], editor.Breakpoints.Lines);
+        editor.BodyInput.Document.Remove(0, 5);
+        Assert.Equal([2], editor.Breakpoints.Lines);
+        Assert.Equal(text, editor.BodyInput.Text);
+
+        // Der Schritt wird markiert, während des Laufs ist der Text gesperrt
+        editor.LockForStepRun(true);
+        Assert.True(editor.BodyInput.IsReadOnly);
+        Assert.False(editor.TestButton.IsEnabled);
+        Assert.Equal("Lauf beenden", editor.StepButton.Content);
+        editor.ShowStep(text, new StepView(3, steps[3].Source, StepMark.Paused));
+        Assert.Equal(StepMark.Paused, editor.StepMarker.Mark);
+        Assert.Equal("{enter}", text.Substring(editor.StepMarker.Segment!.StartOffset, editor.StepMarker.Segment.Length));
+        Snapshot(editor, "editor-step-paused.png");
+        editor.ShowStep(text, new StepView(5, steps[5].Source, StepMark.Failed));
+        Assert.Equal("{{ 'MfG' + key('tab') }}", text.Substring(editor.StepMarker.Segment!.StartOffset, editor.StepMarker.Segment.Length));
+        editor.LockForStepRun(false);
+        Assert.False(editor.BodyInput.IsReadOnly);
+        Assert.True(editor.TestButton.IsEnabled);
+        Assert.Equal("Schritt für Schritt", editor.StepButton.Content);
+
+        // Rot bleibt bis zur nächsten Änderung
+        Assert.Equal(StepMark.Failed, editor.StepMarker.Mark);
+        editor.BodyInput.Document.Insert(0, "x");
+        Assert.Equal(StepMark.None, editor.StepMarker.Mark);
+
+        // Nichts geändert, was gespeichert werden müsste: ohne Rückfrage zu
+        editor.BodyInput.Text = "";
+        editor.Close();
     }
 
     static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject

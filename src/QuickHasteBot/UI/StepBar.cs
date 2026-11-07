@@ -162,6 +162,9 @@ internal sealed class StepBar : Window
         return _choice.Task;
     }
 
+    /// <summary>Wie ein Klick auf „Nochmal“ oder „Schliessen“, falls gerade danach gefragt wird.</summary>
+    public void Choose(bool again) => _choice?.TrySetResult(again);
+
     /// <summary>Vor dem ersten Mal nicht sichtbar, ohne das Zielfenster zu deaktivieren.</summary>
     public void ShowAt(nint window)
     {

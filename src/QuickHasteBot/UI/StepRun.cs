@@ -31,16 +31,26 @@ internal sealed record StepView(int Index, SourceSpan Source, StepMark Mark);
 internal sealed class StepRun(AppController app, string text, string name, nint target, Func<SourceSpan, int?> breakpoint)
 {
     StepSession? _session;
+    StepBar? _bar;
+    bool _cancelled;
     int _version;
 
-    /// <summary>Für die Markierung im Editor.</summary>
+    /// <summary>Für die Markierung im Editor. Ein gescheiterter Schritt bleibt markiert, auch nach „Schliessen“.</summary>
     public event EventHandler<StepView>? Changed;
+
+    /// <summary>Von aussen beenden (Editor geschlossen oder Knopf nochmals gedrückt): stoppt und schliesst die Leiste.</summary>
+    public void Cancel()
+    {
+        _cancelled = true;
+        _session?.RequestStop();
+        _bar?.Choose(again: false);
+    }
 
     /// <summary>Bis „Schliessen“, mit jedem „Nochmal“ ein neuer Lauf mit demselben Text im selben Fenster.</summary>
     public async Task RunAsync()
     {
         using var keys = new GlobalHotkey();
-        var bar = new StepBar();
+        var bar = _bar = new StepBar();
         var frame = new ElementHighlight();
         keys.StepPressed += (_, id) =>
         {
@@ -72,6 +82,7 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
                 _version++;
                 frame.Hide();
                 ShowResult(session, bar, problem);
+                if (_cancelled) break;
                 if (!bar.IsVisible)
                     bar.ShowAt(target);
             }
@@ -80,9 +91,9 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
         finally
         {
             _session = null;
+            _bar = null;
             bar.Close();
             frame.Close();
-            Changed?.Invoke(this, new StepView(-1, default, StepMark.None));
         }
     }
 

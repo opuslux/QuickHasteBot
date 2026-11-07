@@ -42,6 +42,11 @@ internal partial class SnippetEditorWindow : Window
     CancellationTokenSource? _test;
     CursorHint? _hint;
 
+    /// <summary>Haltepunkte für den Schritt-für-Schritt-Lauf, nur solange der Editor offen ist.</summary>
+    internal BreakpointMargin Breakpoints { get; } = new();
+    internal StepMarker StepMarker { get; }
+    StepRun? _stepRun;
+
     SnippetEditorWindow(AppController app, string folder, string? path, string name, string text, TextEncoding encoding)
     {
         InitializeComponent();
@@ -58,6 +63,9 @@ internal partial class SnippetEditorWindow : Window
 
         SetUpBody();
         Highlighting = SnippetHighlighting.Attach(BodyInput, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts);
+        BodyInput.TextArea.LeftMargins.Insert(0, Breakpoints);
+        StepMarker = new StepMarker(BodyInput.TextArea.TextView);
+        BodyInput.TextArea.TextView.BackgroundRenderers.Add(StepMarker);
         NameInput.Text = name;
         BodyInput.Text = text;
         ExtensionText.Text = _extension;
@@ -75,6 +83,7 @@ internal partial class SnippetEditorWindow : Window
         {
             _previewTimer.Stop();
             _test?.Cancel();
+            _stepRun?.Cancel();
             Highlighting.Dispose();
         };
     }
@@ -245,6 +254,8 @@ internal partial class SnippetEditorWindow : Window
     {
         if (_loading) return;
         UpdateTitle();
+        // Ein roter Schritt vom letzten Lauf passt nach einer Änderung nicht mehr
+        StepMarker.Clear();
         _previewTimer.Stop();
         _previewTimer.Start();
     }
@@ -521,6 +532,7 @@ internal partial class SnippetEditorWindow : Window
             _test.Cancel();
             return;
         }
+        if (_stepRun is not null) return;
 
         // Was läuft, wird festgehalten, bevor man wegklickt. Ein einzelnes Tag wird markiert, damit man es sieht.
         var (start, length, scope) = TestRange();
@@ -550,6 +562,107 @@ internal partial class SnippetEditorWindow : Window
             _test = null;
             UpdateTestButton();
         }
+    }
+
+    /// <summary>
+    /// Schritt für Schritt: wie „Testen“ erst ins Zielfeld klicken, dann läuft der ganze Baustein dort, angehalten vor
+    /// jedem Schritt. Die Leiste am Zielfenster und F10/F5 steuern, der Editor markiert den Schritt. Der Text ist
+    /// solange gesperrt. Nochmals drücken beendet den Lauf.
+    /// </summary>
+    async void OnStepRun(object sender, RoutedEventArgs e)
+    {
+        if (_stepRun is not null)
+        {
+            _stepRun.Cancel();
+            return;
+        }
+        if (_test is not null)
+        {
+            _test.Cancel();
+            return;
+        }
+
+        var text = BodyInput.Text;
+        nint target;
+        using (var test = _test = new CancellationTokenSource(TargetTimeout))
+        {
+            StepButton.Content = Strings.EditorTestCancel;
+            ShowWaiting(null);
+            try
+            {
+                target = await WaitForTargetAsync(test.Token);
+            }
+            finally
+            {
+                HideWaiting();
+                _test = null;
+                StepButton.Content = Strings.EditorStepRun;
+                UpdateTestButton();
+            }
+        }
+        if (target == 0)
+        {
+            ShowStatus(Strings.EditorTestCancelled);
+            return;
+        }
+
+        var run = _stepRun = new StepRun(_app, text, DisplayName, target, span => BreakpointLine(text, span));
+        run.Changed += (_, view) => ShowStep(text, view);
+        StepMarker.Clear();
+        LockForStepRun(true);
+        ShowStatus(Strings.EditorStepRunning);
+        try
+        {
+            await run.RunAsync();
+            ShowStatus(StepMarker.Mark == StepMark.Failed ? Strings.EditorStepRunFailed : Strings.EditorStepRunEnded,
+                error: StepMarker.Mark == StepMark.Failed);
+        }
+        finally
+        {
+            _stepRun = null;
+            LockForStepRun(false);
+            // Rot bleibt stehen, bis man den Text ändert
+            if (StepMarker.Mark != StepMark.Failed)
+                StepMarker.Clear();
+        }
+    }
+
+    /// <summary>Während des Laufs: Text gesperrt, „Testen“ aus, der Knopf beendet den Lauf.</summary>
+    internal void LockForStepRun(bool running)
+    {
+        BodyInput.IsReadOnly = running;
+        TestButton.IsEnabled = !running;
+        StepButton.Content = running ? Strings.EditorStepRunStop : Strings.EditorStepRun;
+    }
+
+    /// <summary>Den Schritt im Text markieren und hinscrollen. <paramref name="text"/>: der Text, mit dem der Lauf begann.</summary>
+    internal void ShowStep(string text, StepView view)
+    {
+        if (view.Mark == StepMark.None)
+        {
+            StepMarker.Clear();
+            return;
+        }
+        var length = BodyInput.Document.TextLength;
+        var start = Math.Min(KeyTags.UnstrippedOffset(text, view.Source.Start), length);
+        var end = Math.Min(KeyTags.UnstrippedOffset(text, view.Source.End), length);
+        StepMarker.Show(start, end - start, view.Mark);
+        var location = BodyInput.Document.GetLocation(start);
+        BodyInput.ScrollTo(location.Line, location.Column);
+    }
+
+    /// <summary>Die erste Zeile mit Haltepunkt, die der Schritt an <paramref name="span"/> berührt, sonst null.</summary>
+    internal int? BreakpointLine(string text, SourceSpan span)
+    {
+        var document = BodyInput.Document;
+        var start = Math.Min(KeyTags.UnstrippedOffset(text, span.Start), document.TextLength);
+        var end = Math.Min(KeyTags.UnstrippedOffset(text, Math.Max(span.Start, span.End - 1)), document.TextLength);
+        for (var line = document.GetLineByOffset(start).LineNumber; line <= document.GetLineByOffset(end).LineNumber; line++)
+        {
+            if (Breakpoints.Has(line))
+                return line;
+        }
+        return null;
     }
 
     /// <summary>
@@ -638,8 +751,14 @@ internal partial class SnippetEditorWindow : Window
             case Key.F5:
                 OnTest(this, e);
                 break;
+            case Key.F9:
+                Breakpoints.Toggle(BodyInput.Document.GetLineByOffset(BodyInput.CaretOffset));
+                break;
             case Key.Escape when _test is not null:
                 _test.Cancel();
+                break;
+            case Key.Escape when _stepRun is not null:
+                _stepRun.Cancel();
                 break;
             case Key.Escape:
                 Close();
