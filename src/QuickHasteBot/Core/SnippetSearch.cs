@@ -7,6 +7,8 @@ public sealed record SearchHit(Snippet Snippet, int Score, int MatchStart, int M
 
 /// <summary>
 /// Alle Suchwörter müssen passen (UND). Groß/Klein und Akzente werden ignoriert, "grusse" findet "Grüsse".
+/// Der Ordnerpfad grenzt nur ein: Mindestens ein Suchwort muss Name oder Inhalt treffen. "grusse" findet den Ordner
+/// "Grüsse", aber nicht alles darin; "grusse mfg" findet "MfG-DE" in diesem Ordner.
 /// </summary>
 public static class SnippetSearch
 {
@@ -35,22 +37,24 @@ public static class SnippetSearch
             int matchStart = -1, matchLength = 0;
             string? content = null;
             var contentLoaded = false;
+            // Hat ein Suchwort Name oder Inhalt getroffen? Sonst passt nur der Ordner, und das zählt allein nicht.
+            var anchored = false;
+            List<string>? locationOnly = null;
 
             foreach (var token in tokens)
             {
                 var score = ScoreName(snippet.Name, token, out var start, out var length);
-                if (score == 0 && Contains(snippet.Location, token))
-                    score = LocationScore;
-                if (score == 0 && contentProvider is not null)
+                if (score > 0)
+                    anchored = true;
+                else if (Contains(snippet.Location, token))
                 {
-                    // Inhalt erst laden, wenn Name und Ort nicht gereicht haben
-                    if (!contentLoaded)
-                    {
-                        content = contentProvider(snippet);
-                        contentLoaded = true;
-                    }
-                    if (content is not null && Contains(content, token))
-                        score = ContentScore;
+                    score = LocationScore;
+                    (locationOnly ??= []).Add(token);
+                }
+                else if (contentProvider is not null && ContentContains(token))
+                {
+                    score = ContentScore;
+                    anchored = true;
                 }
 
                 if (score == 0)
@@ -64,8 +68,23 @@ public static class SnippetSearch
                 total += score;
             }
 
-            if (total > 0)
+            // Nur Ordnertreffer: zählt doch, wenn eines dieser Wörter auch im Inhalt steht
+            if (total > 0 && !anchored && contentProvider is not null)
+                anchored = locationOnly!.Any(ContentContains);
+
+            if (total > 0 && anchored)
                 hits.Add(new SearchHit(snippet, total, matchStart, matchLength));
+
+            // Inhalt erst laden, wenn Name und Ort nicht gereicht haben
+            bool ContentContains(string token)
+            {
+                if (!contentLoaded)
+                {
+                    content = contentProvider!(snippet);
+                    contentLoaded = true;
+                }
+                return content is not null && Contains(content, token);
+            }
         }
 
         // Stabil sortiert: bei gleichem Score bleibt die Baum-Reihenfolge (Nummern-Präfixe) erhalten

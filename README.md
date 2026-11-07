@@ -86,7 +86,7 @@ Snippets can be created, renamed, cloned and deleted right in the popup (see [Ri
 
 | Key | Action |
 |---|---|
-| Typing | From the second character on, searches all folders (a single character keeps the current folder). With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Folder names and, optionally, the text inside the snippets are searched as well. |
+| Typing | From the second character on, searches all folders (a single character keeps the current folder). With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Optionally the text inside the snippets is searched as well. A folder name only narrows the search: `grusse` finds the folder `Grüsse`, not everything in it, while `grusse mfg` finds the `MfG` snippets in that folder. |
 | ↑ ↓ / Page Up, Page Down | Move the selection |
 | Ctrl+Home / Ctrl+End | First / last entry |
 | Enter | Paste (or open the folder) |

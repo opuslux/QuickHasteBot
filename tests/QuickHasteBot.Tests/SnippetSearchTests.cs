@@ -42,16 +42,43 @@ public class SnippetSearchTests
     [Fact]
     public void Ignores_case_and_umlauts()
     {
-        var names = Names("grusse");
-        Assert.Equal("4-Grüsse", names[0]); // Ordner selbst zuerst (Treffer im Namen)
-        Assert.Contains("01-MfG-DE", names);  // dann alles darin (Treffer im Ort)
+        Assert.Equal(["4-Grüsse"], Names("GRUSSE"));
+        Assert.Equal(["04-Bestätigung"], Names("bestatigung"));
     }
 
     [Fact]
     public void Equal_scores_keep_tree_order()
     {
-        var names = Names("grusse");
-        Assert.Equal(["4-Grüsse", "01-MfG-DE", "03-MfG-EN", "04-Bestätigung", "MfG-FR"], names);
+        // "fg" steht in allen drei mitten im Wort, also gleich viele Punkte
+        Assert.Equal(["01-MfG-DE", "03-MfG-EN", "MfG-FR"], Names("fg"));
+    }
+
+    [Fact]
+    public void Folder_word_alone_finds_the_folder_but_not_its_content()
+    {
+        Assert.Equal(["4-Grüsse"], Names("grusse"));
+        Assert.Equal(["5-SQL"], Names("sql"));
+    }
+
+    [Fact]
+    public void Folder_word_narrows_name_hits()
+    {
+        // "mfg" trifft die Namen, "grusse" nur noch den Ordner: grenzt ein, findet aber nichts allein
+        // MfG-FR zuerst: dort steht "mfg" am Anfang des Namens
+        Assert.Equal(["MfG-FR", "01-MfG-DE", "03-MfG-EN"], Names("grusse mfg"));
+        Assert.Equal(["MfG-FR", "01-MfG-DE", "03-MfG-EN"], Names("mfg grusse"));
+        Assert.Empty(Names("sql mfg"));
+
+        // Name zählt mehr als Ordner: der Ordner selbst steht vor seinem Inhalt
+        Assert.Equal(["5-SQL", "03-Suche nach Feld-Namen"], Names("sql s"));
+    }
+
+    [Fact]
+    public void Folder_word_also_in_content_counts()
+    {
+        string? Content(Snippet s) => s.Name == "MfG-FR" ? "Grüsse aus Genf" : null;
+
+        Assert.Equal(["4-Grüsse", "MfG-FR"], Names("grusse", Content));
     }
 
     [Fact]
