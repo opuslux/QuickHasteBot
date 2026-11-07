@@ -395,6 +395,9 @@ internal partial class SearchPopup : Window
 
     void OnEditClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, EditSelected);
 
+    // Stift unten rechts in der Textvorschau: den angezeigten Baustein bearbeiten, wie Strg+O
+    void OnEditPreviewClick(object sender, RoutedEventArgs e) => EditSelected();
+
     void OnExplorerClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, RevealSelected);
 
     void OnSettingsClick(object sender, MouseButtonEventArgs e) => OnHintClick(e, OpenSettings);

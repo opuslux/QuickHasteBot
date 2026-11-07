@@ -63,6 +63,8 @@ internal partial class SnippetEditorWindow : Window
         _previewTimer = new DispatcherTimer(PreviewDelay, DispatcherPriority.Background, (_, _) => UpdatePreview(), Dispatcher) { IsEnabled = false };
 
         SetUpBody();
+        WrapToggle.IsChecked = app.Settings.WrapEditor;
+        ApplyWrap(app.Settings.WrapEditor);
         Highlighting = SnippetHighlighting.Attach(BodyInput, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts);
         BodyInput.TextArea.LeftMargins.Insert(0, Breakpoints);
         StepMarker = new StepMarker(BodyInput.TextArea.TextView);
@@ -87,6 +89,22 @@ internal partial class SnippetEditorWindow : Window
             _stepRun?.Cancel();
             Highlighting.Dispose();
         };
+    }
+
+    /// <summary>Der Umschalter unten rechts im Text: gilt sofort und für alle Editoren, die danach aufgehen.</summary>
+    void OnWrapClick(object sender, RoutedEventArgs e)
+    {
+        var wrap = WrapToggle.IsChecked == true;
+        ApplyWrap(wrap);
+        _app.Settings.WrapEditor = wrap;
+        _app.SaveSettings();
+    }
+
+    /// <summary>Lange Zeilen umbrechen, oder ungebrochen lassen und waagrecht scrollen.</summary>
+    void ApplyWrap(bool wrap)
+    {
+        BodyInput.WordWrap = wrap;
+        BodyInput.HorizontalScrollBarVisibility = wrap ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
     }
 
     /// <summary>Verhalten und Farben des Textfelds an die Fluent-Textfelder angleichen.</summary>
