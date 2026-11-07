@@ -95,6 +95,9 @@ public class WindowSmokeTests
         Assert.True(viewModel.DetailIsText);
         Assert.StartsWith("Freundliche Grüsse" + Environment.NewLine + "Max Muster" + Environment.NewLine, viewModel.DetailText);
         Snapshot(popup, "popup-search.png");
+        // Bei einem Text unten rechts in der Vorschau der Stift zum Bearbeiten, bei Ordnern und Weblinks nicht
+        Assert.True(popup.EditPreviewButton.IsVisible);
+        Assert.Equal("Diesen Baustein im Editor bearbeiten (Strg+O)", popup.EditPreviewButton.ToolTip);
 
         // Aus der Suche heraus führt ein Ordner von rechts in den Blätter-Modus
         viewModel.Query = "grüsse";
@@ -110,6 +113,8 @@ public class WindowSmokeTests
         Assert.Equal(["", null], viewModel.Breadcrumbs.Select(c => c.Target));
         Assert.Equal("Öffnet https://www.google.com", viewModel.DetailText);
         Assert.False(viewModel.DetailIsText);
+        popup.UpdateLayout();
+        Assert.False(popup.EditPreviewButton.IsVisible);
         Assert.True(viewModel.GoUp());
         Assert.Equal("6-Weblinks", viewModel.Selected?.Snippet.Name);
 

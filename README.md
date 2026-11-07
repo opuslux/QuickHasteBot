@@ -128,7 +128,7 @@ Right-clicking the empty space next to the entries offers **New snippet…** and
 
 ### Preview and layout
 
-The right column shows what is inside the selected entry: the contents of a folder, the text of a snippet (scrollable, lines are not wrapped), or the address a link opens. The ↵ button in the text preview switches line wrapping on and off.
+The right column shows what is inside the selected entry: the contents of a folder, the text of a snippet (scrollable, lines are not wrapped), or the address a link opens. The ↵ button in the text preview switches line wrapping on and off, the pencil next to it opens the snippet in the editor (like Ctrl+O).
 
 The divider between the columns can be dragged, and the left and right edges of the popup change its width (at least as wide as the shortcut row at the bottom). Wrapping, split and width are remembered (`WrapPreview`, `ListColumnShare`, `PopupWidth` in `settings.json`).
 
