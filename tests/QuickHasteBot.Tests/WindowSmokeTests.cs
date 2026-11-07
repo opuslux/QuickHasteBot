@@ -33,6 +33,7 @@ public class WindowSmokeTests
             SwitchLanguage();
             ThemeAndDialogs();
             FileHotkeys();
+            PopupGrowsWithFolderList();
         }
         finally
         {
@@ -759,6 +760,74 @@ public class WindowSmokeTests
         Assert.Equal("3 aktiv, 2 wirken nicht", settings.FileHotkeysSummary.Text);
         Snapshot(settings, "settings-hotkeys.png");
         settings.Close();
+    }
+
+    /// <summary>
+    /// Ein langer Ordnerinhalt rechts macht das Popup höher statt zu scrollen. Es schrumpft nicht, solange die linke
+    /// Liste bleibt, und hält sich an die maximale Höhe (dann scrollt die rechte Liste doch).
+    /// </summary>
+    static void PopupGrowsWithFolderList()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        dir.File(@"structure\1-Kurz\Eins.txt", "eins");
+        for (var i = 1; i <= 25; i++)
+            dir.File($@"structure\2-Lang\Text {i:00}.txt", $"text {i}");
+        dir.File(@"structure\3-Notiz.txt", "notiz");
+        using var controller = new AppController(new AppPaths(dir.Path));
+
+        var popup = new SearchPopup(controller) { MaxHeight = 3000 };
+        var viewModel = (SearchPopupViewModel)popup.DataContext;
+        viewModel.Reset();
+        Assert.Equal("1-Kurz", viewModel.Selected?.Snippet.Name);
+        Snapshot(popup, "popup-grow-short.png");
+        var shortHeight = popup.ActualHeight;
+        var detailScroll = FindDescendant<System.Windows.Controls.ScrollViewer>(popup.DetailList);
+
+        // Der lange Ordner passt ganz hinein, ohne Scrollbalken
+        Select("2-Lang");
+        Assert.True(popup.ActualHeight > shortHeight + 200, $"{popup.ActualHeight} nicht höher als {shortHeight}");
+        Assert.Equal(25, popup.DetailList.Items.Count);
+        Assert.Equal(0, detailScroll.ScrollableHeight);
+        Snapshot(popup, "popup-grow-long.png");
+        var longHeight = popup.ActualHeight;
+
+        // Zurück auf kurze Inhalte: die Höhe bleibt, sonst rutschte die Liste unter der Maus weg
+        Select("1-Kurz");
+        Assert.Equal(longHeight, popup.ActualHeight);
+        Select("3-Notiz");
+        Assert.Equal(longHeight, popup.ActualHeight);
+
+        // Eine neue Liste links gibt die Höhe wieder frei
+        viewModel.Query = "eins";
+        viewModel.Query = "";
+        popup.UpdateLayout();
+        Assert.Equal("1-Kurz", viewModel.Selected?.Snippet.Name);
+        Assert.Equal(shortHeight, popup.ActualHeight);
+
+        // Höher als erlaubt wird es nie, dann scrollt die rechte Liste (und das Layout bleibt stabil)
+        popup.MaxHeight = shortHeight + 100;
+        Select("2-Lang");
+        Assert.Equal(shortHeight + 100, popup.ActualHeight, 1);
+        Assert.True(detailScroll.ScrollableHeight > 0);
+        popup.Close();
+
+        void Select(string name)
+        {
+            viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == name);
+            popup.UpdateLayout();
+        }
+    }
+
+    static T FindDescendant<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) return match;
+            if (FindDescendant<T>(child) is { } nested) return nested;
+        }
+        return null!;
     }
 
     static void Snapshot(Window window, string fileName)

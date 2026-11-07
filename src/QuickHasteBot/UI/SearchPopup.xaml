@@ -247,7 +247,8 @@
                 </ItemsControl>
             </DockPanel>
 
-            <!-- Links die Liste, rechts der Inhalt des markierten Eintrags. Die Höhe gibt die linke Liste vor. -->
+            <!-- Links die Liste, rechts der Inhalt des markierten Eintrags. Die Höhe gibt die linke Liste vor,
+                 ein Ordnerinhalt rechts darf sie vergrössern (siehe FillDecorator.Grow). -->
             <Grid Grid.Row="2" MinHeight="240">
                 <!-- Die Aufteilung kommt aus den Einstellungen, siehe ApplyColumnShare -->
                 <Grid.ColumnDefinitions>
