@@ -39,6 +39,8 @@ public class WindowSmokeTests
             EditorStepByStep();
             EditorStartsWithWindow();
             SetPicksFromAListElsewhere();
+            RecorderFollowsFieldsInAForm();
+            RecordBarAndEditor();
             EditorInsertsPickedTagsOnTheirOwnLine();
             EditorWrapToggle();
         }
@@ -1159,6 +1161,148 @@ public class WindowSmokeTests
         Assert.Equal("5", box.Text);
         Assert.False(box.IsOpen);
         window.Close();
+    }
+
+    /// <summary>
+    /// Der Recorder mit echtem UI Automation: Felder betreten und ändern wie ein Mensch, daraus wird der Baustein. Den
+    /// Fokus gibt der Test selbst durch, weil sein Fenster nicht vorne sein muss. Klicks (Maus) sind hier nicht dabei.
+    /// </summary>
+    static void RecorderFollowsFieldsInAForm()
+    {
+        var name = new System.Windows.Controls.TextBox { Name = "name" };
+        var ort = new System.Windows.Controls.TextBox { Name = "ort", Text = "Zürich" };
+        var land = new System.Windows.Controls.ComboBox { Name = "land", ItemsSource = new[] { "Deutschland", "Schweiz" }, SelectedIndex = 0 };
+        var newsletter = new System.Windows.Controls.CheckBox { Name = "newsletter", Content = "Newsletter" };
+        var pw = new System.Windows.Controls.PasswordBox { Name = "pw" };
+        var save = new System.Windows.Controls.Button { Name = "speichern", Content = "Speichern" };
+        var window = new Window
+        {
+            Width = 300, Height = 400, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.StackPanel { Children = { name, ort, land, newsletter, pw, save } },
+        };
+        Snapshot(window, "recorder-form.png");
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        // UIA ruft zurück in dieses Fenster: auf einem anderen Thread, der UI-Thread läuft weiter
+        T Off<T>(Func<T> work)
+        {
+            var task = Task.Run(work);
+            Assert.True(PumpUntil(() => task.IsCompleted, TimeSpan.FromSeconds(15)));
+            return task.Result;
+        }
+        System.Windows.Automation.AutomationElement Element(string id) => Off(() =>
+            System.Windows.Automation.AutomationElement.FromHandle(hwnd).FindFirst(System.Windows.Automation.TreeScope.Descendants,
+                new System.Windows.Automation.PropertyCondition(System.Windows.Automation.AutomationElement.AutomationIdProperty, id)))!;
+
+        // Nur die Fenster dieses Tests, was sonst auf dem Bildschirm passiert, bleibt draussen
+        using var recorder = new ActionRecorder(skip: pid => pid != Environment.ProcessId);
+        recorder.Start(poll: false);
+        void Enter(string id)
+        {
+            recorder.Focused(Element(id));
+            Off(() => { recorder.IdleAsync().Wait(); return true; });
+        }
+
+        Enter("name");
+        name.Text = "Muster";
+        Enter("ort");
+        ort.Text = "Bern";
+        Enter("land");
+        land.SelectedIndex = 1;
+        Enter("newsletter");
+        newsletter.IsChecked = true;
+        Enter("pw");
+        pw.Password = "geheim";
+        Enter("speichern"); // kein Feld: beendet das Passwortfeld
+        var actions = Off(() => recorder.StopAsync().Result);
+
+        Assert.Equal(RecordNote.Password, recorder.Note);
+        var lines = Recording.Lines(actions, RecordMode.Mixed);
+        Assert.StartsWith("{window,process=", lines[0]);
+        Assert.Equal(
+            ["{focus,#name}Muster", "{focus,#ort}{clear}Bern", "{set,#land,\"Schweiz\"}", "{set,#newsletter,\"on\"}", "{focus,#pw}"],
+            lines.Skip(1));
+        Assert.DoesNotContain("geheim", Recording.Build(actions, RecordMode.AlwaysSet));
+        window.Close();
+    }
+
+    /// <summary>Leiste der Aufnahme (Stand, Tag-Art, nie aktiv) und der Knopf im Editor samt Einfügen auf eigenen Zeilen.</summary>
+    static void RecordBarAndEditor()
+    {
+        UiLanguage.Apply("de");
+        var bar = new RecordBar(RecordMode.Mixed);
+        Snapshot(bar, "recordbar-empty.png");
+        Assert.Contains("0 Schritte", Texts(bar));
+        Assert.Contains("(noch nichts)", Texts(bar));
+        Assert.Equal(RecordMode.Mixed, bar.Mode);
+        Assert.True(Toggle(bar, "Gemischt").IsChecked);
+
+        bar.Show(["{window,process=crm}", "{focus,#ort}{clear}Bern"], RecordNote.Password);
+        bar.UpdateLayout();
+        Snapshot(bar, "recordbar-password.png");
+        Assert.Contains("2 Schritte", Texts(bar));
+        Assert.Contains("{focus,#ort}{clear}Bern", Texts(bar));
+        Assert.Contains(Texts(bar), t => t.StartsWith("Passwortfeld"));
+        bar.Show(["{click,name=OK}"], RecordNote.None);
+        bar.UpdateLayout();
+        Assert.Contains("1 Schritt", Texts(bar));
+        Assert.DoesNotContain(Texts(bar), t => t.StartsWith("Passwortfeld"));
+
+        // Nie aktiv, wie die Leiste des Schritt-für-Schritt-Laufs
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(bar).Handle;
+        var style = (long)Interop.NativeMethods.GetWindowLongPtr(hwnd, Interop.NativeMethods.GWL_EXSTYLE);
+        Assert.NotEqual(0, style & Interop.NativeMethods.WS_EX_NOACTIVATE);
+        Assert.False(bar.IsActive);
+
+        // Tag-Art umschalten: genau einer gedrückt, die Änderung wird gemeldet
+        var changed = 0;
+        bar.ModeChanged += (_, _) => changed++;
+        Toggle(bar, "Immer tippen").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Equal(RecordMode.AlwaysType, bar.Mode);
+        Assert.Equal(1, changed);
+        Assert.Equal([false, false, true], new[] { "Gemischt", "Immer setzen", "Immer tippen" }.Select(t => Toggle(bar, t).IsChecked == true));
+
+        var end = bar.WaitForEndAsync();
+        Descendants<System.Windows.Controls.Button>(bar).Single(b => (string)b.Content == "Fertig")
+            .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.True(end.IsCompleted && end.Result);
+        bar.Close();
+
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        Snapshot(editor, "editor-record.png");
+        Assert.Equal("Aufnehmen", editor.RecordButtonText.Text);
+
+        // Während der Aufnahme gesperrt, der Knopf beendet sie
+        editor.LockForRecording(true);
+        Assert.True(editor.BodyInput.IsReadOnly);
+        Assert.False(editor.TestButton.IsEnabled);
+        Assert.False(editor.StepButton.IsEnabled);
+        Assert.Equal("Aufnahme beenden", editor.RecordButtonText.Text);
+        editor.LockForRecording(false);
+        Assert.False(editor.BodyInput.IsReadOnly);
+        Assert.True(editor.StepButton.IsEnabled);
+
+        // Mitten in einer Zeile: die Aufnahme beginnt auf der nächsten, der Rest der Zeile folgt danach
+        editor.BodyInput.Text = "Hallo{tab}Rest";
+        editor.BodyInput.CaretOffset = "Hallo{tab}".Length;
+        editor.InsertRecorded("{focus,#ort}Bern\n{click,name=OK}\n");
+        Assert.Equal("Hallo{tab}\r\n{focus,#ort}Bern\r\n{click,name=OK}\r\nRest", editor.BodyInput.Text);
+        // Am Zeilenanfang ohne zusätzlichen Umbruch
+        editor.BodyInput.Text = "";
+        editor.InsertRecorded("{click,name=OK}\r\n");
+        Assert.Equal("{click,name=OK}\r\n", editor.BodyInput.Text);
+
+        editor.BodyInput.Text = "";
+        editor.Close();
+
+        static List<string> Texts(Window window) => Descendants<System.Windows.Controls.TextBlock>(window)
+            .Where(t => t.IsVisible).Select(t => t.Text).ToList();
+
+        static System.Windows.Controls.Primitives.ToggleButton Toggle(Window window, string text) =>
+            Descendants<System.Windows.Controls.Primitives.ToggleButton>(window).Single(b => (string)b.Content == text);
     }
 
     /// <summary>Den Dispatcher laufen lassen, bis <paramref name="done"/> zutrifft oder die Zeit um ist.</summary>

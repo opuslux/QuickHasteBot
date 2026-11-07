@@ -425,10 +425,53 @@ internal static class ElementAutomation
                 element = parent;
             }
 
-            var current = element.Current;
-            return new ElementInfo(element, current.AutomationId ?? "", current.Name ?? "", current.ClassName ?? "",
-                current.ControlType.ProgrammaticName.Replace("ControlType.", ""), ValueOf(element), ProcessName(current.ProcessId),
-                current.BoundingRectangle, root);
+            return Describe(element, root);
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or COMException or InvalidOperationException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Was Picker und Recorder über ein Element wissen. <paramref name="root"/>: sein Hauptfenster.</summary>
+    static ElementInfo Describe(AutomationElement element, nint root)
+    {
+        var current = element.Current;
+        return new ElementInfo(element, current.AutomationId ?? "", current.Name ?? "", current.ClassName ?? "",
+            current.ControlType.ProgrammaticName.Replace("ControlType.", ""), ValueOf(element), ProcessName(current.ProcessId),
+            current.BoundingRectangle, root);
+    }
+
+    /// <summary>Wie <see cref="Probe"/>, für ein Element, das man schon hat (z.B. das fokussierte). Null, wenn es weg ist.</summary>
+    public static ElementInfo? Describe(AutomationElement element)
+    {
+        try
+        {
+            var top = TopLevel(element).Current.NativeWindowHandle;
+            return Describe(element, top == 0 ? 0 : GetAncestor(top, GA_ROOT));
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or COMException or InvalidOperationException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Der ganze Wert eines Felds für den Recorder: "on"/"off" bei Checkboxen, der Text eines Textfelds, die gewählte
+    /// Option eines Dropdowns. Null, wenn das Feld keinen verrät oder nicht mehr da ist.
+    /// </summary>
+    public static string? FullValue(AutomationElement element)
+    {
+        try
+        {
+            if (Pattern<TogglePattern>(element, TogglePattern.Pattern) is { } toggle)
+                return toggle.Current.ToggleState == ToggleState.On ? "on" : "off";
+            if (Pattern<ValuePattern>(element, ValuePattern.Pattern) is { } value)
+                return value.Current.Value;
+            // Windows-Dropdowns ohne Textfeld haben keinen Wert, nur eine Auswahl
+            if (Pattern<SelectionPattern>(element, SelectionPattern.Pattern) is { } selection)
+                return selection.Current.GetSelection() is [{ } selected, ..] ? selected.Current.Name : "";
+            return null;
         }
         catch (Exception ex) when (ex is ElementNotAvailableException or COMException or InvalidOperationException or ArgumentException)
         {
@@ -481,7 +524,26 @@ internal static class ElementAutomation
     /// Die Selektoren aus <see cref="ElementSelector.Candidates"/>, die im Fenster des Elements wirklich genau dieses
     /// Element finden. Findet keiner es, kommt type=…;index=n dazu.
     /// </summary>
-    public static IReadOnlyList<ElementSelector> VerifiedSelectors(ElementInfo info)
+    public static IReadOnlyList<ElementSelector> VerifiedSelectors(ElementInfo info) => VerifiedSelectors(info, firstOnly: false);
+
+    /// <summary>
+    /// Für den Recorder: der stabilste Selektor, der genau dieses Element findet, sonst der stabilste ungeprüfte.
+    /// Hört beim ersten Treffer auf, das spart in Browsern Sekunden. Null, wenn das Element nichts Brauchbares hat.
+    /// </summary>
+    public static ElementSelector? BestSelector(ElementInfo info)
+    {
+        try
+        {
+            if (VerifiedSelectors(info, firstOnly: true) is [var best, ..]) return best;
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or COMException or InvalidOperationException or ArgumentException)
+        {
+            // Element inzwischen weg (Seite gewechselt): dann eben ungeprüft
+        }
+        return ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null) is [var first, ..] ? first : null;
+    }
+
+    static List<ElementSelector> VerifiedSelectors(ElementInfo info, bool firstOnly)
     {
         if (info.Element is null) return [];
         var window = TopLevel(info.Element);
@@ -489,8 +551,9 @@ internal static class ElementAutomation
         var verified = new List<ElementSelector>();
         foreach (var candidate in ElementSelector.Candidates(info.Id, info.Name, info.ClassName, type))
         {
-            if (Hits(window, candidate, info.Element))
-                verified.Add(candidate);
+            if (!Hits(window, candidate, info.Element)) continue;
+            verified.Add(candidate);
+            if (firstOnly) return verified;
         }
         if (verified.Count > 0 || type is null) return verified;
 

@@ -64,6 +64,9 @@ public sealed class AppSettings
     /// <summary>Element-Picker: {window,process=…} vor den Tag setzen, damit der Baustein das Programm zuerst nach vorne holt.</summary>
     public bool PickerIncludeWindow { get; set; }
 
+    /// <summary>Aufnahme: welche Tags Felder bekommen, zuletzt in der Leiste gewählt.</summary>
+    public RecordMode RecordMode { get; set; } = RecordMode.Mixed;
+
     /// <summary>Wohin das KI-Icon im Popup den Prompt schickt, mit {prompt} und {lang}. Standard: ChatGPT.</summary>
     public string AiPromptUrl { get; set; } = ScriptPrompt.DefaultUrl;
 

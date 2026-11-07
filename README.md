@@ -182,6 +182,7 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Name** at the top: changing it renames the file when saving. The extension stays (`.txt` for new snippets).
 - **Folder** next to the name ("in Snippets › 2-Email"): click it to choose another folder from the list of all folders, with collapsible subfolders. A new snippet is created there, an existing one moves there when saving.
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
+- **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
 - **Line wrapping:** the ↵ button at the bottom right of the text switches it off and on, e.g. for snippets with aligned columns (`WrapEditor` in `settings.json`, on by default). Shift+mouse wheel scrolls long lines sideways.
@@ -332,6 +333,39 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 4. **Test** runs the tag right away in the program the element was picked in, like a snippet would (so a click really clicks), and shows whether it worked or why not.
 
 With "Include the window" (remembered), the tag starts with `{window,process=…}` for the program it was picked in.
+
+### Recording a form
+
+**Record** in the editor watches while you fill in a form once yourself and turns that into tags. Click it, click into the target window, and work as usual: type into fields, pick from dropdowns, tick checkboxes, click buttons. A bar at the bottom of the target window shows how many steps there are and the last one as a tag; like the step-by-step bar, it never takes the focus away. **Done** puts the tags at the cursor in the editor, one step per line; **Discard**, or closing the editor, throws them away. While recording, the text is locked, and pressing the button again or Esc in the editor works like Done.
+
+```
+{window,process=crm}
+{focus,#name}Muster
+{focus,#city}{clear}Bern
+{set,#country,"Switzerland"}
+{set,#newsletter,"on"}
+{click,name=Save}
+```
+
+The three buttons in the bar choose what fields become, and apply to the whole recording, also afterwards (`RecordMode` in `settings.json`):
+
+| | Mixed (default) | Always set | Always type |
+|---|---|---|---|
+| Text field | `{focus,f}` and the text typed | `{set,f,"text"}` | `{focus,f}` and the text typed |
+| Dropdown | `{set,f,"option"}` | `{set,f,"option"}` | `{focus,f}` and the option typed |
+| Checkbox | `{set,f,"on"}` | `{set,f,"on"}` | `{click,f}` |
+| Button, link, tab | `{click,f}` | `{click,f}` | `{click,f}` |
+
+Typing is what a person does, so web forms that check or complete input as you type react to it; `{set}` is shorter, but some web forms don't notice a value that was set directly. `{clear}` comes before typed text only when the field wasn't empty. Text that would be read as a tag, like a typed `{tab}`, is written as `{{ '…' }}` so that it is typed exactly as it was.
+
+What the recording leaves out:
+
+- **Keys** like Tab, Enter or shortcuts. There is no keyboard or mouse hook; the recording reads fields, values and clicks through the same UI Automation the element tags use. So it records what a key did (another field, a new value), not the key itself. Add `{enter}` and the like where needed.
+- **Fields that didn't change**, and clicks on the option of an open dropdown (the `{set}` picks it).
+- **Passwords:** a password field only gets `{focus,f}`, the password itself is not recorded.
+- **Programs without UI Automation**: where the element picker sees nothing, the recording doesn't either. For [programs running as administrator](#programs-running-as-administrator), the bar says so.
+
+A recording starts with `{window,process=…}` for the program it was made in, so Test and Step by step run it without clicking into the target first.
 
 ### Other programs: window and start
 

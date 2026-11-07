@@ -357,6 +357,37 @@ Details are in QuickHasteBot.log.</value></data>
   <data name="StepBarTimedOutFormat" xml:space="preserve"><value>No input for {0} minutes.</value></data>
   <data name="StepBarFailedFormat" xml:space="preserve"><value>Stopped at step {0}</value></data>
   <data name="StepBarError" xml:space="preserve"><value>Didn't run</value></data>
+  <!-- Aufnahme -->
+  <data name="EditorRecord" xml:space="preserve"><value>Record</value></data>
+  <data name="EditorRecordToolTip" xml:space="preserve"><value>Then click into the target window and fill in the form once yourself: fields, choices, checkboxes and clicks become tags at the cursor. Single keys like Tab or Enter are not recorded, only what they do.</value></data>
+  <data name="EditorRecordStop" xml:space="preserve"><value>Stop recording</value></data>
+  <data name="EditorRecordClickTarget" xml:space="preserve"><value>Now click into the target window</value></data>
+  <data name="EditorRecordWaiting" xml:space="preserve"><value>Recording runs there until you press Done in the bar. </value></data>
+  <data name="CursorHintRecordTitle" xml:space="preserve"><value>Click into the target window</value></data>
+  <data name="CursorHintRecord" xml:space="preserve"><value>Recording · Esc cancels</value></data>
+  <data name="EditorRecording" xml:space="preserve"><value>Recording: fill in the form, then Done in the bar. The text is locked meanwhile.</value></data>
+  <data name="EditorRecordedFormat" xml:space="preserve"><value>{0} steps recorded and inserted.</value></data>
+  <data name="EditorRecordedNothing" xml:space="preserve"><value>Nothing recorded: no field changed and nothing clicked.</value></data>
+  <data name="EditorRecordDiscarded" xml:space="preserve"><value>Recording discarded.</value></data>
+  <data name="EditorRecordCancelled" xml:space="preserve"><value>Recording cancelled.</value></data>
+  <data name="RecordBarTitle" xml:space="preserve"><value>Recording</value></data>
+  <data name="RecordBarStepsFormat" xml:space="preserve"><value>{0} steps</value></data>
+  <data name="RecordBarOneStep" xml:space="preserve"><value>1 step</value></data>
+  <data name="RecordBarLast" xml:space="preserve"><value>Last</value></data>
+  <data name="RecordBarNothingYet" xml:space="preserve"><value>(nothing yet)</value></data>
+  <data name="RecordBarFields" xml:space="preserve"><value>Fields</value></data>
+  <data name="RecordBarModeMixed" xml:space="preserve"><value>Mixed</value></data>
+  <data name="RecordBarModeMixedToolTip" xml:space="preserve"><value>Type into text fields like a person, set dropdowns and checkboxes to the value</value></data>
+  <data name="RecordBarModeSet" xml:space="preserve"><value>Always set</value></data>
+  <data name="RecordBarModeSetToolTip" xml:space="preserve"><value>Set every field to the value directly: shortest, but some web forms don't notice it</value></data>
+  <data name="RecordBarModeType" xml:space="preserve"><value>Always type</value></data>
+  <data name="RecordBarModeTypeToolTip" xml:space="preserve"><value>Focus and type into every field, click checkboxes</value></data>
+  <data name="RecordBarDone" xml:space="preserve"><value>Done</value></data>
+  <data name="RecordBarDiscard" xml:space="preserve"><value>Discard</value></data>
+  <data name="RecordBarHint" xml:space="preserve"><value>Keys like Tab or Enter are not recorded, only what they do.</value></data>
+  <data name="RecordBarPassword" xml:space="preserve"><value>Password field: only focused, the password itself is not recorded.</value></data>
+  <data name="RecordBarElevated" xml:space="preserve"><value>This program runs as administrator, Windows doesn't let anything be recorded there.</value></data>
+  <data name="RecordBarUnnamed" xml:space="preserve"><value>An element without id, label or class can't be found again and is left out of the recording.</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>en</value></data>
 </root>

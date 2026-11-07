@@ -203,6 +203,12 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW")]
     public static unsafe partial int GetWindowText(nint hWnd, char* text, int maxCount);
 
+    // Store-Apps: das Kindfenster der App im Rahmen von ApplicationFrameHost finden
+    public const uint GW_CHILD = 5;
+
+    [LibraryImport("user32.dll", EntryPoint = "GetClassNameW")]
+    public static unsafe partial int GetClassName(nint hWnd, char* className, int maxCount);
+
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmGetWindowAttribute(nint hwnd, int attribute, out int value, int size);
 

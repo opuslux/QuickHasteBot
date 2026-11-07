@@ -47,6 +47,7 @@ internal partial class SnippetEditorWindow : Window
     internal BreakpointMargin Breakpoints { get; } = new();
     internal StepMarker StepMarker { get; }
     StepRun? _stepRun;
+    RecordBar? _recordBar;
 
     SnippetEditorWindow(AppController app, string folder, string? path, string name, string text, TextEncoding encoding)
     {
@@ -87,6 +88,7 @@ internal partial class SnippetEditorWindow : Window
             _previewTimer.Stop();
             _test?.Cancel();
             _stepRun?.Cancel();
+            _recordBar?.End(keep: false);
             Highlighting.Dispose();
         };
     }
@@ -583,7 +585,7 @@ internal partial class SnippetEditorWindow : Window
             _test.Cancel();
             return;
         }
-        if (_stepRun is not null) return;
+        if (_stepRun is not null || _recordBar is not null) return;
 
         // Was läuft, wird festgehalten, bevor man wegklickt. Ein einzelnes Tag wird markiert, damit man es sieht.
         var (start, length, scope) = TestRange();
@@ -694,7 +696,116 @@ internal partial class SnippetEditorWindow : Window
     {
         BodyInput.IsReadOnly = running;
         TestButton.IsEnabled = !running;
+        RecordButton.IsEnabled = !running;
         StepButton.Content = running ? Strings.EditorStepRunStop : Strings.EditorStepRun;
+    }
+
+    // --- Aufnahme ---
+
+    /// <summary>
+    /// Aufnehmen: wie „Testen“ erst ins Zielfenster klicken, dann schaut der Recorder zu, während man das Formular selbst
+    /// ausfüllt. Die Leiste am Zielfenster zeigt den Stand, „Fertig“ setzt die Tags an die Schreibmarke. Der Text ist
+    /// solange gesperrt. Nochmals drücken (oder Esc im Editor) ist wie „Fertig“.
+    /// </summary>
+    async void OnRecord(object sender, RoutedEventArgs e)
+    {
+        if (_recordBar is not null)
+        {
+            _recordBar.End(keep: true);
+            return;
+        }
+        if (_test is not null)
+        {
+            _test.Cancel();
+            return;
+        }
+        if (_stepRun is not null) return;
+
+        nint target;
+        using (var wait = _test = new CancellationTokenSource(TargetTimeout))
+        {
+            RecordButtonText.Text = Strings.EditorTestCancel;
+            ShowWaiting(null, record: true);
+            try
+            {
+                target = await WaitForTargetAsync(wait.Token);
+            }
+            finally
+            {
+                HideWaiting();
+                _test = null;
+                RecordButtonText.Text = Strings.EditorRecord;
+            }
+        }
+        if (target == 0)
+        {
+            ShowStatus(Strings.EditorRecordCancelled);
+            return;
+        }
+
+        var bar = _recordBar = new RecordBar(_app.Settings.RecordMode);
+        using var recorder = new ActionRecorder();
+        void Update() => bar.Show(Recording.Lines(recorder.Snapshot(), bar.Mode), recorder.Note);
+        recorder.Changed += (_, _) => Dispatcher.BeginInvoke(Update);
+        recorder.ForegroundChanged += (_, window) => Dispatcher.BeginInvoke(() => bar.Place(window));
+        bar.ModeChanged += (_, _) =>
+        {
+            _app.Settings.RecordMode = bar.Mode;
+            _app.SaveSettings();
+            Update();
+        };
+
+        LockForRecording(true);
+        ShowStatus(Strings.EditorRecording);
+        Log.Info($"Aufnahme: {DisplayName}");
+        try
+        {
+            recorder.Start();
+            bar.ShowAt(target);
+            var keep = await bar.WaitForEndAsync();
+            var actions = await recorder.StopAsync();
+            var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(BodyInput.Document, 1);
+            var text = Recording.Build(actions, bar.Mode, newLine);
+            if (!keep)
+                ShowStatus(Strings.EditorRecordDiscarded);
+            else if (text.Length == 0)
+                ShowStatus(Strings.EditorRecordedNothing);
+            else
+            {
+                LockForRecording(false);
+                InsertRecorded(text);
+                ShowStatus(string.Format(Strings.EditorRecordedFormat, Recording.Lines(actions, bar.Mode).Count));
+            }
+        }
+        finally
+        {
+            _recordBar = null;
+            bar.Close();
+            LockForRecording(false);
+        }
+        if (IsVisible) Activate(); // nicht, wenn der Editor während der Aufnahme geschlossen wurde
+    }
+
+    /// <summary>Während der Aufnahme: Text gesperrt, Testen aus, der Knopf beendet die Aufnahme.</summary>
+    internal void LockForRecording(bool recording)
+    {
+        BodyInput.IsReadOnly = recording;
+        TestButton.IsEnabled = StepButton.IsEnabled = !recording;
+        RecordButtonText.Text = recording ? Strings.EditorRecordStop : Strings.EditorRecord;
+    }
+
+    /// <summary>
+    /// Die aufgenommenen Zeilen an die Schreibmarke (ersetzt eine Markierung), auf eigenen Zeilen: Umbruch davor, wenn
+    /// die Zeile schon etwas enthält. Der Text endet mit einem Umbruch, was danach steht, rückt auf die nächste Zeile.
+    /// </summary>
+    internal void InsertRecorded(string text)
+    {
+        var document = BodyInput.Document;
+        var start = BodyInput.SelectionStart;
+        var line = document.GetLineByOffset(start);
+        var before = !string.IsNullOrWhiteSpace(document.GetText(line.Offset, start - line.Offset));
+        var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, line.LineNumber);
+        Insert((before ? newLine : "") + text.ReplaceLineEndings(newLine));
     }
 
     /// <summary>Den Schritt im Text markieren und hinscrollen. <paramref name="text"/>: der Text, mit dem der Lauf begann.</summary>
@@ -730,14 +841,17 @@ internal partial class SnippetEditorWindow : Window
     /// <summary>
     /// Wartet auf den Klick ins Zielfeld: Banner in der Akzentfarbe statt der Statuszeile, und ein Kärtchen am
     /// Mauszeiger, weil man beim Hinüberfahren dorthin schaut. <paramref name="part"/>: was läuft, null für alles.
+    /// <paramref name="record"/>: für die Aufnahme statt für einen Lauf.
     /// </summary>
-    void ShowWaiting(string? part)
+    void ShowWaiting(string? part, bool record = false)
     {
         var inlines = TestBannerText.Inlines;
         inlines.Clear();
-        inlines.Add(new Run(Strings.EditorTestClickTarget) { FontWeight = FontWeights.SemiBold, FontSize = 13 });
+        inlines.Add(new Run(record ? Strings.EditorRecordClickTarget : Strings.EditorTestClickTarget) { FontWeight = FontWeights.SemiBold, FontSize = 13 });
         inlines.Add(new LineBreak());
-        if (part is null)
+        if (record)
+            inlines.Add(new Run(Strings.EditorRecordWaiting));
+        else if (part is null)
             inlines.Add(new Run(string.Format(Strings.EditorTestRunsAllFormat, DisplayName)));
         else
         {
@@ -754,8 +868,10 @@ internal partial class SnippetEditorWindow : Window
         TestBanner.Visibility = Visibility.Visible;
 
         _hint?.Close();
-        _hint = new CursorHint(Strings.CursorHintTitle, part,
-            part is null ? string.Format(Strings.CursorHintAllFormat, DisplayName) : Strings.CursorHintEsc);
+        _hint = record
+            ? new CursorHint(Strings.CursorHintRecordTitle, null, Strings.CursorHintRecord)
+            : new CursorHint(Strings.CursorHintTitle, part,
+                part is null ? string.Format(Strings.CursorHintAllFormat, DisplayName) : Strings.CursorHintEsc);
         _hint.ShowAtCursor();
     }
 
@@ -821,6 +937,9 @@ internal partial class SnippetEditorWindow : Window
                 break;
             case Key.Escape when _stepRun is not null:
                 _stepRun.Cancel();
+                break;
+            case Key.Escape when _recordBar is not null:
+                _recordBar.End(keep: true);
                 break;
             case Key.Escape:
                 Close();

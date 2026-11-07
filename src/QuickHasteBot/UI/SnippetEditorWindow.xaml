@@ -99,6 +99,13 @@
                     <TextBlock Text="{x:Static ui:Strings.EditorPicker}" Margin="6,0,0,0" />
                 </StackPanel>
             </Button>
+            <!-- Aufnehmen: ein Formular einmal selbst ausfüllen, daraus werden Tags -->
+            <Button x:Name="RecordButton" Margin="8,0,0,0" ToolTip="{x:Static ui:Strings.EditorRecordToolTip}" Click="OnRecord">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource SystemFillColorCriticalBrush}" />
+                    <TextBlock x:Name="RecordButtonText" Text="{x:Static ui:Strings.EditorRecord}" Margin="6,0,0,0" />
+                </StackPanel>
+            </Button>
             <Button Margin="8,0,0,0" ToolTip="{x:Static ui:Strings.AiPromptTooltip}" Click="OnAiClick">
                 <StackPanel Orientation="Horizontal">
                     <Path Width="14" Height="14" Stretch="Uniform" VerticalAlignment="Center"
