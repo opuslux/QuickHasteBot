@@ -55,7 +55,14 @@ public static partial class SnippetScript
         ("window(app)", "bring a program to the front"),
     ];
 
-    [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
+    // Ein Block nur mit Kommentaren, z.B. {{ // Notiz }} oder {{ /* … */ }}. Auch hier beendet }} den Block immer.
+    const string Comment = @"\{\{(?:\s*(?://(?:(?!\}\})[^\r\n])*?|/\*(?:(?!\}\}).)*?\*/))+\s*\}\}";
+
+    // Steht ein Kommentarblock allein auf seiner Zeile, verschwindet die ganze Zeile samt Umbruch (auf der letzten Zeile
+    // samt dem Umbruch davor, auch wenn danach nur noch ein Umbruch kommt), damit Notizen keine Leerzeilen hinterlassen.
+    // Sonst ein gewöhnlicher Block, seine Ausgabe steht im Text.
+    [GeneratedRegex(@"^[ \t]*" + Comment + @"[ \t]*(?:\r?\n|\z)|\r?\n[ \t]*" + Comment + @"[ \t]*(?:\r?\n)?\z|\{\{(?<code>.*?)\}\}",
+        RegexOptions.Singleline | RegexOptions.Multiline)]
     private static partial Regex Block();
 
     public static bool HasBlocks(string text) => text.Contains("{{");
@@ -83,7 +90,7 @@ public static partial class SnippetScript
         return Block().Replace(text, match =>
         {
             block++;
-            var code = match.Groups[1].Value;
+            var code = match.Groups["code"].Value; // leer bei einer Kommentarzeile
             form?.BeginScript(match.Index, match.Length);
             if (string.IsNullOrWhiteSpace(code))
             {

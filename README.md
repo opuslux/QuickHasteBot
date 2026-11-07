@@ -224,6 +224,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
+- **Comments:** `{{ // note }}` or `{{ /* … */ }}` is a note to yourself and pastes nothing. If it stands on a line of its own, the whole line disappears, so comments leave no empty lines, also between tags in forms. **Insert tag ▾** → Script → the first entry puts one on its own line with the note selected. Like every block, a comment only works with scripts turned on (see below).
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 - If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts`).

@@ -321,7 +321,7 @@ internal partial class SnippetEditorWindow : Window
     /// noch etwas folgt oder es die letzte Zeile ist. Diese Umbrüche sind nur Layout und werden nicht gesendet
     /// (<see cref="KeyTags.SplitWithSources"/>). Mitten im Text wird der Tag ohne Umbruch eingefügt.
     /// </summary>
-    internal void InsertTag(string tag)
+    internal void InsertTag(string tag, string? select = null)
     {
         var document = BodyInput.Document;
         var start = BodyInput.SelectionStart;
@@ -332,11 +332,11 @@ internal partial class SnippetEditorWindow : Window
         var after = !string.IsNullOrWhiteSpace(document.GetText(end, endLine.EndOffset - end));
         if (before && after)
         {
-            Insert(tag);
+            Insert(tag, select);
             return;
         }
         var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, startLine.LineNumber);
-        Insert((before ? newLine : "") + tag + (after || endLine.NextLine is null ? newLine : ""));
+        Insert((before ? newLine : "") + tag + (after || endLine.NextLine is null ? newLine : ""), select);
     }
 
     void OnTagsClick(object sender, RoutedEventArgs e)
@@ -347,8 +347,11 @@ internal partial class SnippetEditorWindow : Window
         menu.IsOpen = true;
     }
 
-    /// <summary>Ein Eintrag im Tag-Menü. <see cref="Select"/>: was nach dem Einfügen markiert wird, zum Überschreiben.</summary>
-    sealed record TagEntry(string Tag, string? Description = null, string? Select = null);
+    /// <summary>
+    /// Ein Eintrag im Tag-Menü. <see cref="Select"/>: was nach dem Einfügen markiert wird, zum Überschreiben.
+    /// <see cref="OwnLine"/>: auf eine eigene Zeile wie die Tags aus dem Picker (Kommentare).
+    /// </summary>
+    sealed record TagEntry(string Tag, string? Description = null, string? Select = null, bool OwnLine = false);
 
     /// <summary>
     /// "Tag einfügen ▾": oben eine Filterzeile, darunter die Gruppen. Sobald gefiltert wird, stehen statt der Gruppen alle
@@ -380,6 +383,7 @@ internal partial class SnippetEditorWindow : Window
             ]),
             (Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
             [
+                new("{{ // " + Strings.TagCommentText + " }}", Strings.TagComment, Strings.TagCommentText, OwnLine: true), null,
                 new("{{ date() }}", Strings.TagDate), new("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), new("{{ time() }}"),
                 new("{{ isoweek() }}", Strings.TagWeek), new("{{ clipboard }}", Strings.TagClipboard), new("{{ user }}", Strings.TagUser),
                 new("{{ guid() }}"),
@@ -473,7 +477,11 @@ internal partial class SnippetEditorWindow : Window
         MenuItem Tag(TagEntry entry)
         {
             var item = new MenuItem { Header = entry.Tag, InputGestureText = entry.Description ?? "", FontFamily = BodyInput.FontFamily };
-            item.Click += (_, _) => Insert(entry.Tag, entry.Select);
+            item.Click += (_, _) =>
+            {
+                if (entry.OwnLine) InsertTag(entry.Tag, entry.Select);
+                else Insert(entry.Tag, entry.Select);
+            };
             return item;
         }
     }

@@ -411,6 +411,17 @@ public class WindowSmokeTests
         filter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(filter)!, 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
         Assert.Equal("Ref {{ guid() }}", editor.BodyInput.Text);
         Assert.False(menu.IsOpen);
+
+        // Kommentar: auf eine eigene Zeile, die Notiz markiert zum Überschreiben
+        filter.Text = "kommentar";
+        Assert.Equal(["{{ // Notiz }}"], Visible());
+        editor.BodyInput.Text = "Hallo";
+        editor.BodyInput.Select(5, 0);
+        filter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(filter)!, 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal("Hallo\r\n{{ // Notiz }}\r\n", editor.BodyInput.Text);
+        Assert.Equal("Notiz", editor.BodyInput.SelectedText);
+        editor.UpdatePreview();
+        Assert.Equal("Hallo", editor.PreviewText.Text);
         filter.Text = "";
         Assert.Equal(["Tasten", "Ablauf", "Elemente und Fenster", "Skript"], Visible());
 

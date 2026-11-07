@@ -22,6 +22,11 @@ public class KeyTagsTests
     static KeyStep Key(string tag) => Assert.IsType<KeyStep>(Assert.Single(Steps(tag)));
 
     [Fact]
+    public void Comment_lines_between_tags_add_no_steps() =>
+        Assert.Equal("{focus,#name}«Max»{tab}«Müller»{enter}",
+            Show("{{ // Erst der Name }}\r\n{focus,#name}Max\r\n{{ // dann Nachname }}\r\n{tab}Müller\r\n{{ /* und ab */ }}\r\n{enter}"));
+
+    [Fact]
     public void Text_and_keys_become_steps_in_order() =>
         Assert.Equal("«Max»{tab}«Müller»{tab}{tab}{enter}", Show("Max{tab}Müller{tab}{tab}{enter}"));
 
