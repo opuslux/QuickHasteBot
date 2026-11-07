@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Rendering;
 using QuickHasteBot.Core;
+using QuickHasteBot.Interop;
 using QuickHasteBot.UI;
 
 namespace QuickHasteBot.Tests;
@@ -37,6 +38,7 @@ public class WindowSmokeTests
             StepBarShowsStepsAndResult();
             EditorStepByStep();
             EditorStartsWithWindow();
+            SetPicksFromAListElsewhere();
         }
         finally
         {
@@ -1006,6 +1008,43 @@ public class WindowSmokeTests
 
         editor.BodyInput.Text = "";
         editor.Close();
+    }
+
+    /// <summary>{set} bei einem Auswahlfeld, dessen Liste nicht unter dem Feld steht, sondern woanders im Fenster.</summary>
+    static void SetPicksFromAListElsewhere()
+    {
+        var list = new System.Windows.Controls.ListBox { Name = "liste" };
+        foreach (var option in new[] { "3", "4", "5" })
+            list.Items.Add(new System.Windows.Controls.ListBoxItem { Content = option });
+        var box = new PopupSelect(list) { Name = "personen", Width = 120 };
+        var window = new Window
+        {
+            Width = 300, Height = 300, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.StackPanel { Children = { box, new System.Windows.Controls.TextBlock { Text = "Weiter unten:" }, list } },
+        };
+        Snapshot(window, "popup-select.png");
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        // UIA ruft zurück in dieses Fenster: auf einem anderen Thread, der UI-Thread läuft weiter
+        ElementResult Set(string value)
+        {
+            Assert.True(KeyTags.TryParse($"set,#personen,\"{value}\"", null, out var steps, out var error), error);
+            var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(15)));
+            return run.Result;
+        }
+
+        Assert.Equal(ElementOutcome.Done, Set("5").Outcome);
+        Assert.Equal("5", box.Text);
+        Assert.False(box.IsOpen);
+
+        // Gibt es die Option nicht, wird das gemeldet statt ins schreibgeschützte Feld getippt
+        var missing = Set("9");
+        Assert.Equal(ElementOutcome.Failed, missing.Outcome);
+        Assert.Contains("\"9\"", missing.Error);
+        Assert.Equal("5", box.Text);
+        Assert.False(box.IsOpen);
+        window.Close();
     }
 
     /// <summary>Den Dispatcher laufen lassen, bis <paramref name="done"/> zutrifft oder die Zeit um ist.</summary>
