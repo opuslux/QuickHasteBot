@@ -153,31 +153,6 @@ public class SnippetScriptTests
         Assert.Contains("Timeout", ex.Message);
     }
 
-    [Theory]
-    [InlineData("Hallo\r\n{{ // Notiz }}\r\nWelt", "Hallo\r\nWelt")]
-    [InlineData("Hallo\n  {{ // eingerückt }}  \nWelt", "Hallo\nWelt")]
-    [InlineData("{{ // ganz oben }}\r\nHallo", "Hallo")]
-    [InlineData("Hallo\r\n{{ // ganz unten }}", "Hallo")]
-    [InlineData("Hallo\r\n{{ // ganz unten }}\r\n", "Hallo")]
-    [InlineData("Hallo\r\n{{ /* über\r\nzwei Zeilen */ }}\r\nWelt", "Hallo\r\nWelt")]
-    [InlineData("Hallo\r\n{{ // eins\r\n// zwei }}\r\nWelt", "Hallo\r\nWelt")]
-    [InlineData("{{ // nur das }}", "")]
-    public void Comment_on_its_own_line_leaves_no_line(string text, string expected) => Assert.Equal(expected, Render(text));
-
-    [Theory]
-    [InlineData("Hallo {{ // Notiz }}Welt", "Hallo Welt")]
-    [InlineData("Hallo {{ /* Notiz */ }}\r\nWelt", "Hallo \r\nWelt")]
-    [InlineData("{{ 1 + 1 // Kommentar nach Code }}\r\nX", "2\r\nX")]
-    public void Comment_next_to_text_prints_nothing_but_keeps_the_line(string text, string expected) => Assert.Equal(expected, Render(text));
-
-    [Fact]
-    public void Comment_does_not_reach_past_the_block_end() =>
-        Assert.Throws<SnippetScriptException>(() => Render("{{ /* offen }} Text */ }}"));
-
-    [Fact]
-    public void Comments_count_as_blocks_in_error_messages() =>
-        Assert.Equal(2, Assert.Throws<SnippetScriptException>(() => Render("{{ // Notiz }}\r\n{{ 1 + }}")).Block);
-
     [Fact]
     public void Growing_memory_is_stopped() =>
         Assert.Throws<SnippetScriptException>(() => Render("{{ const a = []; while (true) a.push('x'.repeat(1000) + a.length); }}"));

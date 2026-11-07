@@ -372,6 +372,7 @@ internal partial class SnippetEditorWindow : Window
             ]),
             (Strings.EditorTagsFlow, MenuIcons.Glyph(MenuIcons.Flow),
             [
+                new("{# " + Strings.TagCommentText + "}", Strings.TagComment, Strings.TagCommentText, OwnLine: true), null,
                 new("{wait,500}", Strings.TagWait, "500"), new("{delay,50}", Strings.TagDelay, "50"), new("{clear}", Strings.TagClear), null,
                 new("{guard,off}", Strings.TagGuardOff), new("{guard,on}", Strings.TagGuardOn),
             ]),
@@ -383,7 +384,6 @@ internal partial class SnippetEditorWindow : Window
             ]),
             (Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
             [
-                new("{{ // " + Strings.TagCommentText + " }}", Strings.TagComment, Strings.TagCommentText, OwnLine: true), null,
                 new("{{ date() }}", Strings.TagDate), new("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), new("{{ time() }}"),
                 new("{{ isoweek() }}", Strings.TagWeek), new("{{ clipboard }}", Strings.TagClipboard), new("{{ user }}", Strings.TagUser),
                 new("{{ guid() }}"),

@@ -17,6 +17,13 @@ public class SnippetSyntaxTests
     }
 
     [Fact]
+    public void Comments_are_colored_whole_and_only_with_tags_on()
+    {
+        Assert.Equal([("{# Notiz\r\nzweite Zeile}", Comment), ("{tab}", Key)], Spans("{# Notiz\r\nzweite Zeile}\r\n{tab}"));
+        Assert.Empty(Spans("{# Notiz}", keyTags: false));
+    }
+
+    [Fact]
     public void Plain_braces_stay_text()
     {
         Assert.Empty(Spans("Hallo {name}, {\"a\":1} { end } {a,b}"));

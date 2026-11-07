@@ -24,7 +24,40 @@ public class KeyTagsTests
     [Fact]
     public void Comment_lines_between_tags_add_no_steps() =>
         Assert.Equal("{focus,#name}«Max»{tab}«Müller»{enter}",
-            Show("{{ // Erst der Name }}\r\n{focus,#name}Max\r\n{{ // dann Nachname }}\r\n{tab}Müller\r\n{{ /* und ab */ }}\r\n{enter}"));
+            Show("{# Erst der Name}\r\n{focus,#name}Max\r\n  {# dann Nachname }  \r\n{tab}Müller\r\n{# und ab\r\nüber zwei Zeilen}\r\n{enter}"));
+
+    [Theory]
+    [InlineData("Hallo\r\n{# Notiz}\r\nWelt", "Hallo\r\nWelt")]
+    [InlineData("Hallo\n\t{# eingerückt}  \nWelt", "Hallo\nWelt")]
+    [InlineData("{# ganz oben}\r\nHallo", "Hallo")]
+    [InlineData("Hallo\r\n{# ganz unten}", "Hallo")]
+    [InlineData("Hallo\r\n{# ganz unten}\r\n", "Hallo")]
+    [InlineData("Hallo\r\n{# über\r\nzwei Zeilen}\r\nWelt", "Hallo\r\nWelt")]
+    [InlineData("Hallo\r\n{# eins}\r\n{# zwei}\r\nWelt", "Hallo\r\nWelt")]
+    [InlineData("{# nur das}", "")]
+    [InlineData("Hallo {# Notiz}Welt", "Hallo Welt")]
+    [InlineData("Hallo {# Notiz}\r\nWelt", "Hallo \r\nWelt")]
+    public void Comments_are_left_out_with_their_line(string text, string expected)
+    {
+        var form = new FormBuilder();
+        Assert.Equal(expected, KeyTags.MarkTags(text, form));
+        Assert.Empty(form.Steps);
+    }
+
+    [Theory]
+    [InlineData("Farbe {#ff0000")] // ohne } kein Kommentar
+    [InlineData("{{ '{# kein Kommentar}' }}")] // im Skript ist es Text
+    [InlineData("Hallo {name} {\"#a\": 1}")]
+    public void Not_a_comment_stays(string text) => Assert.Equal(text, KeyTags.MarkTags(text, new FormBuilder()));
+
+    [Fact]
+    public void Steps_after_a_comment_keep_their_place_in_the_text()
+    {
+        const string text = "{# Notiz}\r\nMax{tab}";
+        var form = new FormBuilder();
+        var steps = KeyTags.SplitWithSources(KeyTags.MarkTags(text, form), form);
+        Assert.Equal(["Max", "{tab}"], steps.Select(s => text.Substring(s.Source.Start, s.Source.Length)));
+    }
 
     [Fact]
     public void Text_and_keys_become_steps_in_order() =>
