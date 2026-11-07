@@ -1,12 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using QuickHasteBot.Core;
-using static QuickHasteBot.Interop.NativeMethods;
 
 namespace QuickHasteBot.UI;
 
@@ -14,15 +9,11 @@ namespace QuickHasteBot.UI;
 internal enum StepResult { Done, Stopped, Failed }
 
 /// <summary>
-/// Leiste für den Schritt-für-Schritt-Lauf, unten mittig am Zielfenster. Wird nie aktiv (WS_EX_NOACTIVATE, ein Klick
-/// beantwortet WM_MOUSEACTIVATE mit MA_NOACTIVATE), damit Tasten und Fokus im Zielfenster bleiben. Zeigt den Schritt,
-/// der als Nächstes läuft, und den danach. Am Griff links verschiebbar, danach bleibt sie, wo man sie hingezogen hat.
+/// Leiste für den Schritt-für-Schritt-Lauf, unten mittig am Zielfenster (<see cref="FloatingBar"/>). Zeigt den Schritt,
+/// der als Nächstes läuft, und den danach.
 /// </summary>
-internal sealed class StepBar : Window
+internal sealed class StepBar : FloatingBar
 {
-    /// <summary>Abstand zum unteren Rand des Zielfensters, physische Pixel.</summary>
-    const int BottomMargin = 24;
-    const int ShadowMargin = 8;
     const int MaxStepLength = 70;
 
     readonly TextBlock _title = new() { FontWeight = FontWeights.SemiBold, FontSize = 13 };
@@ -38,30 +29,16 @@ internal sealed class StepBar : Window
     readonly Button _next;
     readonly Button _continue;
     TaskCompletionSource<bool>? _choice;
-    bool _moved;
-    POINT _dragStart;
-    RECT _dragWindow;
 
-    public StepBar()
+    public StepBar() : base(Strings.StepBarTitle)
     {
-        WindowStyle = WindowStyle.None;
-        AllowsTransparency = true;
-        Background = Brushes.Transparent;
-        ResizeMode = ResizeMode.NoResize;
-        SizeToContent = SizeToContent.WidthAndHeight;
-        Topmost = true;
-        ShowInTaskbar = false;
-        ShowActivated = false;
-        Focusable = false;
-        Title = Strings.StepBarTitle;
-
-        _next = Button(Strings.StepBarNext + "  F10", () => NextClicked?.Invoke(this, EventArgs.Empty), accent: true);
-        _continue = Button(Strings.StepBarContinue + "  F5", () => ContinueClicked?.Invoke(this, EventArgs.Empty));
+        _next = BarButton(Strings.StepBarNext + "  F10", () => NextClicked?.Invoke(this, EventArgs.Empty), accent: true);
+        _continue = BarButton(Strings.StepBarContinue + "  F5", () => ContinueClicked?.Invoke(this, EventArgs.Empty));
         _runButtons.Children.Add(_next);
         _runButtons.Children.Add(_continue);
-        _runButtons.Children.Add(Button(Strings.StepBarStop, () => StopClicked?.Invoke(this, EventArgs.Empty)));
-        _endButtons.Children.Add(Button(Strings.StepBarAgain, () => _choice?.TrySetResult(true), accent: true));
-        _endButtons.Children.Add(Button(Strings.StepBarClose, () => _choice?.TrySetResult(false)));
+        _runButtons.Children.Add(BarButton(Strings.StepBarStop, () => StopClicked?.Invoke(this, EventArgs.Empty)));
+        _endButtons.Children.Add(BarButton(Strings.StepBarAgain, () => _choice?.TrySetResult(true), accent: true));
+        _endButtons.Children.Add(BarButton(Strings.StepBarClose, () => _choice?.TrySetResult(false)));
         _endButtons.Visibility = Visibility.Collapsed;
 
         _steps.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -81,43 +58,11 @@ internal sealed class StepBar : Window
         header.Children.Add(buttons);
         header.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { _title, _state } });
 
-        var grip = new TextBlock
-        {
-            Text = "⋮⋮", FontSize = 14, Opacity = 0.6, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Top,
-            Cursor = Cursors.SizeAll, ToolTip = Strings.StepBarDrag,
-        };
         var body = new StackPanel { Children = { header, _steps, _message, _note } };
         _message.Visibility = Visibility.Collapsed;
         _note.Visibility = Visibility.Collapsed;
         _note.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCautionBrush");
-        var row = new DockPanel { Children = { grip, body } };
-
-        var card = new Border
-        {
-            Margin = new Thickness(ShadowMargin),
-            Padding = new Thickness(12, 10, 12, 10),
-            CornerRadius = new CornerRadius(8),
-            BorderThickness = new Thickness(1),
-            MinWidth = 420,
-            Child = row,
-            Effect = new DropShadowEffect { BlurRadius = 12, ShadowDepth = 2, Opacity = 0.35 },
-            Cursor = Cursors.SizeAll,
-        };
-        card.SetResourceReference(Border.BackgroundProperty, "SolidBackgroundFillColorBaseBrush");
-        card.SetResourceReference(Border.BorderBrushProperty, "ControlStrokeColorDefaultBrush");
-        card.SetResourceReference(TextElement.ForegroundProperty, "TextFillColorPrimaryBrush");
-        card.MouseLeftButtonDown += StartDrag;
-        card.MouseMove += Drag;
-        card.MouseLeftButtonUp += (_, _) => card.ReleaseMouseCapture();
-        Content = card;
-
-        SourceInitialized += (_, _) =>
-        {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var style = (long)GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-            SetWindowLongPtr(hwnd, GWL_EXSTYLE, (nint)(style | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE));
-            HwndSource.FromHwnd(hwnd)?.AddHook(Hook);
-        };
+        SetBody(body);
     }
 
     public event EventHandler? NextClicked;
@@ -180,42 +125,6 @@ internal sealed class StepBar : Window
     /// <summary>Wie ein Klick auf „Nochmal“ oder „Schliessen“, falls gerade danach gefragt wird.</summary>
     public void Choose(bool again) => _choice?.TrySetResult(again);
 
-    /// <summary>Vor dem ersten Mal nicht sichtbar, ohne das Zielfenster zu deaktivieren.</summary>
-    public void ShowAt(nint window)
-    {
-        if (!IsVisible)
-        {
-            (Left, Top) = (-32000, -32000);
-            Show();
-        }
-        UpdateLayout();
-        Place(window);
-    }
-
-    /// <summary>Unten mittig ans Fenster, ausser man hat die Leiste selbst verschoben.</summary>
-    public void Place(nint window)
-    {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (_moved || hwnd == 0) return;
-        var root = window == 0 ? 0 : GetAncestor(window, GA_ROOT);
-        if (root == 0 || !GetWindowRect(root, out var target) || !GetWindowRect(hwnd, out var bar)) return;
-
-        var info = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };
-        GetMonitorInfo(MonitorFromWindow(root, MONITOR_DEFAULTTONEAREST), ref info);
-        var (x, y) = Position(target, info.rcWork, bar.Right - bar.Left, bar.Bottom - bar.Top);
-        SetWindowPos(hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
-    }
-
-    /// <summary>Unten mittig im Zielfenster, aber immer ganz im Arbeitsbereich des Bildschirms.</summary>
-    internal static (int X, int Y) Position(RECT target, RECT work, int width, int height)
-    {
-        var x = (target.Left + target.Right) / 2 - width / 2;
-        var y = Math.Min(target.Bottom, work.Bottom) - height - BottomMargin + ShadowMargin;
-        x = Math.Clamp(x, work.Left, Math.Max(work.Left, work.Right - width));
-        y = Math.Clamp(y, work.Top, Math.Max(work.Top, work.Bottom - height));
-        return (x, y);
-    }
-
     /// <summary>Ein Schritt in einer Zeile: Tags wie im Baustein, Text in «», ein Baustein ohne Tags als „Einfügen“.</summary>
     internal static string StepText(FormStep step, bool paste)
     {
@@ -223,30 +132,6 @@ internal sealed class StepBar : Window
         if (text.Length > MaxStepLength)
             text = text[..(MaxStepLength - 2)] + "…" + text[^1];
         return paste ? Strings.StepBarPaste + " " + text : text;
-    }
-
-    /// <summary>Ein Klick in die Leiste aktiviert sie nicht, das Zielfenster bleibt vorne.</summary>
-    internal static nint Hook(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
-    {
-        if (msg != WM_MOUSEACTIVATE) return 0;
-        handled = true;
-        return MA_NOACTIVATE;
-    }
-
-    void StartDrag(object sender, MouseButtonEventArgs e)
-    {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (!GetCursorPos(out _dragStart) || !GetWindowRect(hwnd, out _dragWindow)) return;
-        ((UIElement)sender).CaptureMouse();
-        e.Handled = true;
-    }
-
-    void Drag(object sender, MouseEventArgs e)
-    {
-        if (!((UIElement)sender).IsMouseCaptured || !GetCursorPos(out var cursor)) return;
-        _moved = true;
-        SetWindowPos(new WindowInteropHelper(this).Handle, HWND_TOPMOST,
-            _dragWindow.Left + cursor.X - _dragStart.X, _dragWindow.Top + cursor.Y - _dragStart.Y, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
     void AddRow(int row, string label, FrameworkElement value)
@@ -257,20 +142,5 @@ internal sealed class StepBar : Window
         Grid.SetColumn(value, 1);
         _steps.Children.Add(caption);
         _steps.Children.Add(value);
-    }
-
-    static TextBlock Code() => new()
-    {
-        FontFamily = new FontFamily("Cascadia Mono, Consolas"), FontSize = 12, Margin = new Thickness(0, 2, 0, 2),
-        TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 460, HorizontalAlignment = HorizontalAlignment.Left,
-    };
-
-    static Button Button(string text, Action click, bool accent = false)
-    {
-        var button = new Button { Content = text, Focusable = false, Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(10, 3, 10, 4), Cursor = Cursors.Arrow };
-        if (accent)
-            button.SetResourceReference(StyleProperty, "AccentButtonStyle");
-        button.Click += (_, _) => click();
-        return button;
     }
 }
