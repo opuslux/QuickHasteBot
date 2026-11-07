@@ -159,13 +159,8 @@ internal partial class ElementPickerWindow : Window
         StatusText.Text = !verified ? Strings.PickerUnverified : copied ? Strings.PickerCopied : "";
     }
 
-    /// <summary>Buttons und Links klickt man, Checkboxen und Dropdowns setzt man, alles andere fokussiert man.</summary>
-    internal static ElementAction DefaultAction(string type) => type switch
-    {
-        "Button" or "Hyperlink" or "MenuItem" or "TabItem" or "ListItem" or "TreeItem" or "RadioButton" or "SplitButton" or "DataItem" => ElementAction.Click,
-        "CheckBox" or "ComboBox" => ElementAction.Set,
-        _ => ElementAction.Focus,
-    };
+    /// <summary>Dieselbe Regel wie beim Aufnehmen: Buttons und Links klickt man, Checkboxen und Dropdowns setzt man.</summary>
+    internal static ElementAction DefaultAction(string type) => Recording.DefaultAction(type);
 
     void OnActionChanged(object sender, RoutedEventArgs e)
     {
