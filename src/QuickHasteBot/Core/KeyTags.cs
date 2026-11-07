@@ -202,8 +202,9 @@ public static partial class KeyTags
 
     public static bool IsExtended(ushort vk) => ExtendedKeys.Contains(vk);
 
-    // Ein {{ … }}-Block (bleibt unangetastet) oder ein Tag-Kandidat. Argumente in "…" dürfen } und , enthalten.
-    [GeneratedRegex("""\{\{.*?\}\}|\{((?:"[^"]*"|[^{}"\r\n])+)\}""", RegexOptions.Singleline)]
+    // Ein {{ … }}-Block (bleibt unangetastet), ein Kommentar {# … } (auch über mehrere Zeilen, endet beim ersten })
+    // oder ein Tag-Kandidat. Argumente in "…" dürfen } und , enthalten.
+    [GeneratedRegex("""\{\{.*?\}\}|(?<note>\{#[^}]*\})|\{((?:"[^"]*"|[^{}"\r\n])+)\}""", RegexOptions.Singleline)]
     internal static partial Regex Candidate();
 
     [GeneratedRegex(@"^((?:(?:ctrl|alt|shift|win)\+)*[a-z0-9]+)(?:\s*,\s*|\s+|$)", RegexOptions.IgnoreCase)]
@@ -224,17 +225,62 @@ public static partial class KeyTags
         return Keys.ContainsKey(key) || parts.Length > 1 && key.Length == 1 && char.IsAsciiLetterOrDigit(key[0]);
     }
 
-    /// <summary>Ersetzt die Tags ausserhalb von {{ … }} durch Marker für <paramref name="form"/>.</summary>
-    public static string MarkTags(string text, FormBuilder form) =>
-        Candidate().Replace(text, match =>
+    /// <summary>
+    /// Ersetzt die Tags ausserhalb von {{ … }} durch Marker für <paramref name="form"/> und lässt Kommentare {# … } weg.
+    /// </summary>
+    public static string MarkTags(string text, FormBuilder form)
+    {
+        var result = new StringBuilder(text.Length);
+        var pos = 0;
+        foreach (Match match in Candidate().Matches(text))
         {
-            if (!match.Groups[1].Success) return match.Value; // Skriptblock
-            if (!TryParse(match.Groups[1].Value, null, out var steps, out _)) return match.Value;
+            string replacement;
+            var (start, end) = (match.Index, match.Index + match.Length);
+            if (match.Groups["note"].Success)
+            {
+                (start, end) = CommentLine(text, start, end);
+                start = Math.Max(start, pos); // der Umbruch davor gehörte schon zum Kommentar davor
+                replacement = "";
+            }
+            else if (!match.Groups[1].Success || !TryParse(match.Groups[1].Value, null, out var steps, out _))
+                continue; // Skriptblock oder Text in Klammern
+            else
+                replacement = form.Markers(steps, new SourceSpan(match.Index, match.Length));
 
-            var markers = form.Markers(steps, new SourceSpan(match.Index, match.Length));
-            form.Tags.Replaced(match.Index, match.Length, markers.Length);
-            return markers;
-        });
+            result.Append(text, pos, start - pos).Append(replacement);
+            form.Tags.Replaced(start, end - start, replacement.Length);
+            pos = end;
+        }
+        return pos == 0 ? text : result.Append(text, pos, text.Length - pos).ToString();
+    }
+
+    /// <summary>
+    /// Steht ein Kommentar allein auf seiner Zeile (Leerzeichen zählen nicht), fällt die ganze Zeile weg: samt Umbruch
+    /// danach, auf der letzten Zeile samt dem Umbruch davor. So hinterlassen Notizen keine Leerzeilen. Sonst nur der
+    /// Kommentar selbst.
+    /// </summary>
+    static (int Start, int End) CommentLine(string text, int start, int end)
+    {
+        var lineStart = start;
+        while (lineStart > 0 && text[lineStart - 1] is ' ' or '\t') lineStart--;
+        if (lineStart > 0 && text[lineStart - 1] is not ('\n' or '\r')) return (start, end);
+        var lineEnd = end;
+        while (lineEnd < text.Length && text[lineEnd] is ' ' or '\t') lineEnd++;
+        if (lineEnd < text.Length && text[lineEnd] is not ('\n' or '\r')) return (start, end);
+
+        var afterBreak = BreakEnd(text, lineEnd);
+        if (afterBreak < text.Length) return (lineStart, afterBreak);
+        // Letzte Zeile (höchstens ein Umbruch folgt noch): den Umbruch davor mitnehmen
+        var beforeBreak = lineStart >= 2 && text[lineStart - 2] == '\r' && text[lineStart - 1] == '\n' ? lineStart - 2
+            : lineStart >= 1 ? lineStart - 1
+            : lineStart;
+        return (beforeBreak, afterBreak);
+
+        static int BreakEnd(string text, int i) =>
+            i < text.Length && text[i] == '\r' ? (i + 1 < text.Length && text[i + 1] == '\n' ? i + 2 : i + 1)
+            : i < text.Length && text[i] == '\n' ? i + 1
+            : i;
+    }
 
     /// <summary>
     /// Der Inhalt eines Tags ohne Klammern, z.B. "tab", "tab,3", "shift+tab", "wait,500", "guard,off".

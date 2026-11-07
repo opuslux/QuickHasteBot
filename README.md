@@ -284,6 +284,7 @@ Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdo
 
   types only "Max Muster" between the tags. Line breaks inside the text stay. For a real new line at a tag, write `{shift+enter}` or `{enter}`. "Insert into editor" in the element picker puts each tag on a line of its own.
 - **With scripts:** tags and `{{ … }}` blocks can be mixed freely, e.g. `{{ user }}{tab}{{ date() }}{enter}`, and variables carry over as usual. Inside a script, `key()` and `wait()` press keys, e.g. `{{ ['Max', 'Müller'].join(key('tab')) + key('enter') }}`. What a script returns or what comes from the clipboard is never read as a tag, so a copied `{enter}` can't submit anything. A literal tag is written as `{{ '{tab}' }}`.
+- **Comments:** `{# note}` is a note to yourself and is never pasted, in forms and in plain text. It may span several lines and ends at the first `}`. On a line of its own, the whole line goes, so comments leave no empty lines. **Insert tag ▾** → Flow → the first entry puts one on its own line with the note selected. Comments belong to the tags: with key tags turned off (below), they are pasted as is.
 - **Stopping:** holding Esc stops a snippet between two steps.
 - **Turning off:** with "Press key tags like {tab} and {enter}" off in the settings (`EvaluateKeyTags`), tags are pasted as is.
 
