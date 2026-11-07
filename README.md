@@ -21,6 +21,7 @@ The user interface is available in English and German.
 - [Settings and files](#settings-and-files)
 - [Switching from QuickPasteBot](#switching-from-quickpastebot)
 - [Development](#development)
+- [License](#license)
 
 ## Getting started
 
@@ -30,6 +31,8 @@ Every release comes with two ZIPs containing the same app:
 - `QuickHasteBot-x.y.z-win-x64-standalone.zip` (about 60 MB) includes the runtime and also works on machines that only have an older .NET installed.
 
 Unpack the ZIP into any folder and start `QuickHasteBot.exe`. No installation and no administrator rights are needed. QuickHasteBot runs in the tray; on first start it creates a `structure` folder with a few [example snippets](#snippets).
+
+The exe is not code-signed, so Windows SmartScreen may warn the first time you start it. Click **More info → Run anyway**. The ZIPs are built from this repository by the [release workflow](.github/workflows/release.yml).
 
 **The hotkey** that opens the popup is **Ctrl+Shift+Y** by default. To change it, open the settings (double-click the tray icon, or Ctrl+, in the popup), click the hotkey field under **General → Hotkey** and press the new combination. It must include Ctrl, Alt, Shift or Win; if another program already uses it, the settings say so right away. The hotkey is stored as `Hotkey` in `settings.json` and applies immediately.
 
@@ -410,3 +413,7 @@ tests/QuickHasteBot.Tests/
 - **Texts:** the user interface texts live in `src/QuickHasteBot/UI/Strings.resx` (English, also the fallback for every other language) and `Strings.de.resx` (German). The build generates the `Strings` class from them, used in code (`Strings.HotkeyActive`) and XAML (`{x:Static ui:Strings.HotkeyActive}`). A test makes sure both files contain the same keys and placeholders. Adding a language means adding another `Strings.<code>.resx` and an entry in `UiLanguage.Choices`.
 - **Snapshots:** `QHB_SNAPSHOTS=<folder> dotnet test` additionally saves images of the popup and the settings window, which is handy for checking UI changes without starting the app.
 - **Release:** pushing a `vX.Y.Z` tag runs the tests, builds both variants and attaches the ZIPs to the GitHub release.
+
+## License
+
+QuickHasteBot is free software under the [GNU General Public License v3.0 or later](LICENSE). It uses AvalonEdit, H.NotifyIcon, Jint and Acornima; their licenses are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The changes up to version 2.8.1 are in [CHANGELOG.md](CHANGELOG.md).
