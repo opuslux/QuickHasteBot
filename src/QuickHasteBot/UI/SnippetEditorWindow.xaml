@@ -9,6 +9,38 @@
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="OnPreviewKeyDown" Closing="OnClosing">
 
+    <Window.Resources>
+        <!-- Umschalter als Symbol wie in der Textvorschau des Popups, eingeschaltet in Akzentfarbe -->
+        <Style x:Key="IconToggle" TargetType="ToggleButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="16,12,16,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -93,10 +125,19 @@
                     </Style.Triggers>
                 </Style>
             </Border.Style>
-            <ae:TextEditor x:Name="BodyInput" WordWrap="True" Padding="8,6" Background="Transparent"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                           HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
-                           FontFamily="Cascadia Mono, Consolas" FontSize="13" TextChanged="OnBodyChanged" />
+            <Grid>
+                <!-- Umbruch setzt ApplyWrap nach der Einstellung, Shift+Mausrad scrollt waagrecht -->
+                <ae:TextEditor x:Name="BodyInput" Padding="8,6" Background="Transparent"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" VerticalScrollBarVisibility="Auto"
+                               FontFamily="Cascadia Mono, Consolas" FontSize="13" TextChanged="OnBodyChanged"
+                               ui:ShiftWheel.Horizontal="True" />
+                <!-- Umbruch an/aus wie in der Textvorschau des Popups: unten rechts, frei von beiden Scrollbalken -->
+                <Border x:Name="WrapBox" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,16,16" CornerRadius="4"
+                        Background="{Binding Background, RelativeSource={RelativeSource AncestorType=Border}}">
+                    <ToggleButton x:Name="WrapToggle" Style="{StaticResource IconToggle}" Content="&#xE751;"
+                                  ToolTip="{x:Static ui:Strings.WrapTooltip}" Click="OnWrapClick" />
+                </Border>
+            </Grid>
         </Border>
 
         <!-- Was der Baustein ergibt: Skripte ausgewertet, Tasten als lesbare Tags -->

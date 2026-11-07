@@ -203,6 +203,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="RememberQueryTooltip" xml:space="preserve"><value>Keep this search text next time, Enter starts the same entry again</value></data>
   <data name="NewSnippetTooltip" xml:space="preserve"><value>New snippet in the editor (Ctrl+N): try things out with Test (F5), and save it as a file if you like</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Wrap long lines</value></data>
+  <data name="EditPreviewTooltip" xml:space="preserve"><value>Edit this snippet in the editor (Ctrl+O)</value></data>
   <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – like clicking this entry</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Snippets</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 match</value></data>

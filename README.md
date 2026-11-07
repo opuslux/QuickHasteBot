@@ -128,7 +128,7 @@ Right-clicking the empty space next to the entries offers **New snippet…** and
 
 ### Preview and layout
 
-The right column shows what is inside the selected entry: the contents of a folder, the text of a snippet (scrollable, lines are not wrapped), or the address a link opens. The ↵ button in the text preview switches line wrapping on and off.
+The right column shows what is inside the selected entry: the contents of a folder, the text of a snippet (scrollable, lines are not wrapped), or the address a link opens. The ↵ button in the text preview switches line wrapping on and off, the pencil next to it opens the snippet in the editor (like Ctrl+O). Shift+mouse wheel scrolls long lines sideways.
 
 The divider between the columns can be dragged, and the left and right edges of the popup change its width (at least as wide as the shortcut row at the bottom). Wrapping, split and width are remembered (`WrapPreview`, `ListColumnShare`, `PopupWidth` in `settings.json`).
 
@@ -184,6 +184,7 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
+- **Line wrapping:** the ↵ button at the bottom right of the text switches it off and on, e.g. for snippets with aligned columns (`WrapEditor` in `settings.json`, on by default). Shift+mouse wheel scrolls long lines sideways.
 - **Preview** below the text shows what the snippet turns into while you type: scripts evaluated, keys as readable tags, and script errors in red. Nothing is sent.
 - **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. While it waits for that click, a card next to the mouse pointer and a banner in the editor say what will run. Cancel or Esc stops the wait.
   - To debug one step at a time, select part of the snippet and only the selection runs. Tags and scripts cut off by the selection are included whole. Or put the cursor inside a tag or `{{ … }}` block and only that one runs.

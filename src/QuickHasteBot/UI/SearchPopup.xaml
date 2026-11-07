@@ -321,7 +321,7 @@
                                  PreviewMouseRightButtonUp="OnListRightButtonUp" />
 
                         <!-- Text, Adresse oder Hinweis. Lange Zeilen eines Textes nur auf Wunsch umbrochen, sonst wird horizontal gescrollt. -->
-                        <ScrollViewer x:Name="DetailScroll" Focusable="False" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="DetailScroll" Focusable="False" VerticalScrollBarVisibility="Auto" ui:ShiftWheel.Horizontal="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
                                     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
@@ -362,12 +362,17 @@
                             </TextBlock>
                         </ScrollViewer>
 
-                        <!-- Umbruch an/aus, nur bei Texten. Unten rechts, frei von beiden Scrollbalken; was darunter liegt, deckt der Fensterhintergrund ab. -->
+                        <!-- Nur bei Texten, unten rechts, frei von beiden Scrollbalken; was darunter liegt, deckt der Fensterhintergrund ab.
+                             Umbruch an/aus und ganz in der Ecke der Stift: den angezeigten Baustein bearbeiten, wie Strg+O. -->
                         <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,14,14" CornerRadius="4"
                                 Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
                                 Visibility="{Binding DetailIsText, Converter={StaticResource BoolToVisibility}}">
-                            <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE751;"
-                                          IsChecked="{Binding WrapPreview}" ToolTip="{x:Static ui:Strings.WrapTooltip}" />
+                            <StackPanel Orientation="Horizontal">
+                                <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE751;"
+                                              IsChecked="{Binding WrapPreview}" ToolTip="{x:Static ui:Strings.WrapTooltip}" />
+                                <Button x:Name="EditPreviewButton" Style="{StaticResource IconButton}" Content="&#xE70F;" Margin="2,0,0,0"
+                                        ToolTip="{x:Static ui:Strings.EditPreviewTooltip}" Click="OnEditPreviewClick" />
+                            </StackPanel>
                         </Border>
                     </Grid>
                 </ui:FillDecorator>

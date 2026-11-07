@@ -203,6 +203,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="RememberQueryTooltip" xml:space="preserve"><value>Suchtext beim nächsten Öffnen behalten, Enter startet wieder denselben Eintrag</value></data>
   <data name="NewSnippetTooltip" xml:space="preserve"><value>Neuer Baustein im Editor (Strg+N): mit Testen (F5) ausprobieren und bei Bedarf als Datei speichern</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
+  <data name="EditPreviewTooltip" xml:space="preserve"><value>Diesen Baustein im Editor bearbeiten (Strg+O)</value></data>
   <data name="ShortcutTooltipFormat" xml:space="preserve"><value>Alt+{0} – wie ein Klick auf diesen Eintrag</value></data>
   <data name="BreadcrumbRoot" xml:space="preserve"><value>Bausteine</value></data>
   <data name="MatchesOne" xml:space="preserve"><value>1 Treffer</value></data>
