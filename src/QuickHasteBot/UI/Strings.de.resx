@@ -355,6 +355,37 @@ Details stehen in QuickHasteBot.log.</value></data>
   <data name="StepBarTimedOutFormat" xml:space="preserve"><value>{0} Minuten ohne Eingabe.</value></data>
   <data name="StepBarFailedFormat" xml:space="preserve"><value>Abgebrochen bei Schritt {0}</value></data>
   <data name="StepBarError" xml:space="preserve"><value>Nicht gelaufen</value></data>
+  <!-- Aufnahme -->
+  <data name="EditorRecord" xml:space="preserve"><value>Aufnehmen</value></data>
+  <data name="EditorRecordToolTip" xml:space="preserve"><value>Danach ins Zielfenster klicken und das Formular einmal selbst ausfüllen: Felder, Auswahl, Checkboxen und Klicks werden zu Tags an der Schreibmarke. Einzelne Tasten wie Tab oder Enter werden nicht aufgenommen, nur was sie bewirken.</value></data>
+  <data name="EditorRecordStop" xml:space="preserve"><value>Aufnahme beenden</value></data>
+  <data name="EditorRecordClickTarget" xml:space="preserve"><value>Jetzt ins Zielfenster klicken</value></data>
+  <data name="EditorRecordWaiting" xml:space="preserve"><value>Dort wird aufgenommen, bis du in der Leiste «Fertig» drückst. </value></data>
+  <data name="CursorHintRecordTitle" xml:space="preserve"><value>Ins Zielfenster klicken</value></data>
+  <data name="CursorHintRecord" xml:space="preserve"><value>Aufnahme · Esc bricht ab</value></data>
+  <data name="EditorRecording" xml:space="preserve"><value>Aufnahme läuft: Formular ausfüllen, dann «Fertig» in der Leiste. Der Text ist solange gesperrt.</value></data>
+  <data name="EditorRecordedFormat" xml:space="preserve"><value>{0} Schritte aufgenommen und eingefügt.</value></data>
+  <data name="EditorRecordedNothing" xml:space="preserve"><value>Nichts aufgenommen: kein Feld geändert und nichts angeklickt.</value></data>
+  <data name="EditorRecordDiscarded" xml:space="preserve"><value>Aufnahme verworfen.</value></data>
+  <data name="EditorRecordCancelled" xml:space="preserve"><value>Aufnahme abgebrochen.</value></data>
+  <data name="RecordBarTitle" xml:space="preserve"><value>Aufnahme</value></data>
+  <data name="RecordBarStepsFormat" xml:space="preserve"><value>{0} Schritte</value></data>
+  <data name="RecordBarOneStep" xml:space="preserve"><value>1 Schritt</value></data>
+  <data name="RecordBarLast" xml:space="preserve"><value>Zuletzt</value></data>
+  <data name="RecordBarNothingYet" xml:space="preserve"><value>(noch nichts)</value></data>
+  <data name="RecordBarFields" xml:space="preserve"><value>Felder</value></data>
+  <data name="RecordBarModeMixed" xml:space="preserve"><value>Gemischt</value></data>
+  <data name="RecordBarModeMixedToolTip" xml:space="preserve"><value>Textfelder tippen wie ein Mensch, Dropdowns und Checkboxen auf den Wert setzen</value></data>
+  <data name="RecordBarModeSet" xml:space="preserve"><value>Immer setzen</value></data>
+  <data name="RecordBarModeSetToolTip" xml:space="preserve"><value>Jedes Feld direkt auf den Wert setzen: am kürzesten, manche Web-Formulare merken es aber nicht</value></data>
+  <data name="RecordBarModeType" xml:space="preserve"><value>Immer tippen</value></data>
+  <data name="RecordBarModeTypeToolTip" xml:space="preserve"><value>Jedes Feld fokussieren und tippen, Checkboxen anklicken</value></data>
+  <data name="RecordBarDone" xml:space="preserve"><value>Fertig</value></data>
+  <data name="RecordBarDiscard" xml:space="preserve"><value>Verwerfen</value></data>
+  <data name="RecordBarHint" xml:space="preserve"><value>Tasten wie Tab oder Enter werden nicht aufgenommen, nur was sie bewirken.</value></data>
+  <data name="RecordBarPassword" xml:space="preserve"><value>Passwortfeld: wird nur fokussiert, das Passwort selbst wird nicht aufgenommen.</value></data>
+  <data name="RecordBarElevated" xml:space="preserve"><value>Dieses Programm läuft als Administrator, Windows lässt dort nichts aufnehmen.</value></data>
+  <data name="RecordBarUnnamed" xml:space="preserve"><value>Ein Element ohne id, Beschriftung oder Klasse lässt sich nicht wiederfinden und fehlt in der Aufnahme.</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>de</value></data>
 </root>
