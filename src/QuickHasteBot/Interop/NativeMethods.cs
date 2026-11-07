@@ -39,6 +39,10 @@ internal static partial class NativeMethods
     public const long WS_EX_TOOLWINDOW = 0x00000080;
     public const long WS_EX_NOACTIVATE = 0x08000000;
 
+    // Antwort auf WM_MOUSEACTIVATE: ein Klick in die Schritt-Leiste aktiviert sie nicht
+    public const int WM_MOUSEACTIVATE = 0x0021;
+    public const int MA_NOACTIVATE = 3;
+
     public const int DWMWA_CLOAK = 13;
     public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     public const int DWMWCP_ROUND = 2;

@@ -34,6 +34,7 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
+            StepBarShowsStepsAndResult();
         }
         finally
         {
@@ -816,6 +817,65 @@ public class WindowSmokeTests
         {
             viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == name);
             popup.UpdateLayout();
+        }
+    }
+
+    /// <summary>Die Leiste des Schritt-für-Schritt-Laufs: Schritte, Ergebnis, und dass sie nie aktiv wird.</summary>
+    static void StepBarShowsStepsAndResult()
+    {
+        UiLanguage.Apply("de");
+        var form = new FormBuilder();
+        var text = KeyTags.MarkTags("Freundliche Grüsse{tab}{enter}", form);
+        var steps = KeyTags.SplitWithSources(text, form);
+
+        var bar = new StepBar();
+        bar.ShowStep(steps, paste: false, index: 1, paused: true);
+        Snapshot(bar, "stepbar-paused.png");
+        var texts = Texts(bar);
+        Assert.Contains("Schritt 2 von 3", texts);
+        Assert.Contains("{tab}", texts);
+        Assert.Contains("{enter}", texts);
+        Assert.Contains("Schritt  F10", Buttons(bar));
+        Assert.Contains("Weiter  F5", Buttons(bar));
+
+        // Nie aktiv: weder beim Zeigen noch bei einem Klick
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(bar).Handle;
+        var style = (long)Interop.NativeMethods.GetWindowLongPtr(hwnd, Interop.NativeMethods.GWL_EXSTYLE);
+        Assert.NotEqual(0, style & Interop.NativeMethods.WS_EX_NOACTIVATE);
+        Assert.False(bar.IsActive);
+
+        bar.ShowStep(steps, paste: false, index: 2, paused: false);
+        bar.UpdateLayout();
+        Assert.Contains("(Ende)", Texts(bar));
+
+        bar.ShowResult("Abgebrochen bei Schritt 2", "Nichts gefunden", failed: true);
+        Snapshot(bar, "stepbar-failed.png");
+        Assert.Contains("Nichts gefunden", Texts(bar));
+        Assert.Equal(["Nochmal", "Schliessen"], Buttons(bar));
+
+        var choice = bar.WaitForChoiceAsync();
+        FindButton(bar, "Nochmal").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.True(choice.IsCompleted && choice.Result);
+        bar.Close();
+
+        static List<string> Texts(Window window) => Descendants<System.Windows.Controls.TextBlock>(window)
+            .Where(t => t.IsVisible).Select(t => t.Text).ToList();
+
+        static List<string> Buttons(Window window) => Descendants<System.Windows.Controls.Button>(window)
+            .Where(b => b.IsVisible).Select(b => (string)b.Content).ToList();
+
+        static System.Windows.Controls.Button FindButton(Window window, string text) =>
+            Descendants<System.Windows.Controls.Button>(window).Single(b => b.IsVisible && (string)b.Content == text);
+    }
+
+    static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) yield return match;
+            foreach (var nested in Descendants<T>(child))
+                yield return nested;
         }
     }
 

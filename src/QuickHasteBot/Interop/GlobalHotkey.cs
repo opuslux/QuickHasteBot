@@ -19,6 +19,11 @@ internal sealed class GlobalHotkey : IDisposable
     public const int FirstFileId = 1;
     public const int LastFileId = 0x5000;
 
+    /// <summary>Schritt für Schritt: F10 nächster Schritt, F5 weiter. Nur während eines Laufs registriert.</summary>
+    public const int StepNextId = 0x514A;
+    public const int StepContinueId = 0x514B;
+    const uint VK_F5 = 0x74, VK_F10 = 0x79;
+
     static readonly nint HWND_MESSAGE = -3;
 
     readonly HwndSource _source;
@@ -35,6 +40,34 @@ internal sealed class GlobalHotkey : IDisposable
 
     /// <summary>Ein Datei-Hotkey, mit der Id aus <see cref="Register(int, HotkeyGesture)"/>.</summary>
     public event EventHandler<int>? FilePressed;
+
+    /// <summary>F10 oder F5 im Schritt-für-Schritt-Lauf: <see cref="StepNextId"/> oder <see cref="StepContinueId"/>.</summary>
+    public event EventHandler<int>? StepPressed;
+
+    /// <summary>
+    /// F10 und F5 für den Schritt-für-Schritt-Lauf, ohne Zusatztaste. Bewusst nicht über <see cref="HotkeyGesture"/>:
+    /// das sind keine einstellbaren Hotkeys, sondern feste Tasten, nur solange der Lauf dauert.
+    /// </summary>
+    /// <returns>Was sich registrieren liess, je Taste. Belegt ein anderes Programm sie, gehen nur die Knöpfe der Leiste.</returns>
+    public (bool Next, bool Continue) RegisterStepKeys() => (RegisterKey(StepNextId, VK_F10), RegisterKey(StepContinueId, VK_F5));
+
+    public void UnregisterStepKeys()
+    {
+        Unregister(StepNextId);
+        Unregister(StepContinueId);
+    }
+
+    bool RegisterKey(int id, uint vk)
+    {
+        Unregister(id);
+        if (!RegisterHotKey(_source.Handle, id, MOD_NOREPEAT, vk))
+        {
+            Log.Info($"Taste 0x{vk:X2} für Schritt für Schritt ist belegt (Win32-Fehler {System.Runtime.InteropServices.Marshal.GetLastPInvokeError()})");
+            return false;
+        }
+        _registered.Add(id);
+        return true;
+    }
 
     public HotkeyGesture? Current { get; private set; }
 
@@ -101,6 +134,11 @@ internal sealed class GlobalHotkey : IDisposable
         {
             handled = true;
             FilePressed?.Invoke(this, id);
+        }
+        else if (id is StepNextId or StepContinueId)
+        {
+            handled = true;
+            StepPressed?.Invoke(this, id);
         }
         return 0;
     }

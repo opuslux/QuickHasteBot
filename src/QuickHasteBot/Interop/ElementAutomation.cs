@@ -80,6 +80,23 @@ internal static class ElementAutomation
         }
     }
 
+    /// <summary>
+    /// Wo das Element gerade steht (physische Pixel), für den Rahmen im Schritt-für-Schritt-Lauf. Sucht einmal, ohne zu
+    /// warten. Null, wenn es (noch) nicht da ist.
+    /// </summary>
+    public static Rect? Bounds(ElementSelector selector, nint window)
+    {
+        if (window == 0) return null;
+        try
+        {
+            return Find(AutomationElement.FromHandle(window), selector)?.Current.BoundingRectangle is { IsEmpty: false } bounds ? bounds : null;
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Das erste passende Element unter <paramref name="root"/>, oder das n-te bei index=.</summary>
     public static AutomationElement? Find(AutomationElement root, ElementSelector selector)
     {
