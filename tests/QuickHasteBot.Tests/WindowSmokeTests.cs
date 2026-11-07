@@ -415,6 +415,20 @@ public class WindowSmokeTests
         Assert.False(menu.IsOpen);
 
         // Kommentar: auf eine eigene Zeile, die Notiz markiert zum Überschreiben
+        // Jeder Tag hat eine Beschreibung (in der Sprache der Oberfläche, nicht der Name des Texts)
+        var tags = menu.Items.OfType<System.Windows.Controls.MenuItem>()
+            .Where(i => i.Header is string header && header.StartsWith('{')).ToList();
+        Assert.All(tags, t => Assert.False(string.IsNullOrEmpty(t.InputGestureText) || t.InputGestureText.StartsWith("Tag"), (string)t.Header));
+        Assert.Contains(tags, t => t.InputGestureText == "Pfeil hoch");
+
+        // Der Filter findet auch die englischen Texte
+        filter.Text = "comment";
+        Assert.Equal(["{# Notiz}"], Visible());
+        filter.Text = "arrow";
+        Assert.Equal(["{up}", "{down}", "{left}", "{right}"], Visible());
+        filter.Text = "keys reload";
+        Assert.Equal(["{f5}"], Visible());
+
         filter.Text = "kommentar";
         Assert.Equal(["{# Notiz}"], Visible());
         editor.BodyInput.Text = "Hallo";
