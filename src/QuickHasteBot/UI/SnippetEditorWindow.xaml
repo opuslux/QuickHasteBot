@@ -154,6 +154,8 @@
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                 <Button x:Name="TestButton" Content="{x:Static ui:Strings.EditorTest}" MinWidth="100"
                         ToolTip="{x:Static ui:Strings.EditorTestToolTip}" Click="OnTest" />
+                <Button x:Name="StepButton" Content="{x:Static ui:Strings.EditorStepRun}" MinWidth="100" Margin="8,0,0,0"
+                        ToolTip="{x:Static ui:Strings.EditorStepRunToolTip}" Click="OnStepRun" />
                 <Button x:Name="SaveButton" Content="{x:Static ui:Strings.EditorSave}" MinWidth="100" Margin="8,0,0,0"
                         Style="{DynamicResource AccentButtonStyle}" ToolTip="Ctrl+S" Click="OnSave" />
                 <Button Content="{x:Static ui:Strings.Close}" MinWidth="100" Margin="8,0,0,0" Click="OnCloseClick" />

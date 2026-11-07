@@ -125,6 +125,37 @@ public class KeyTagsTests
         Assert.Equal("«Max»{enter}", Show("Max{enter}\n"));
 
     [Fact]
+    public void Each_tag_on_its_own_line_sends_no_line_breaks() =>
+        Assert.Equal("{window,process=chrome}{set,#personen,\"5\"}{click,name=Zeit;type=button}",
+            Show("{window,process=chrome}\r\n{set,#personen,\"5\"}\r\n{click,name=Zeit;type=button}\r\n"));
+
+    [Fact]
+    public void Text_on_its_own_line_between_tags_loses_only_the_layout_breaks()
+    {
+        Assert.Equal("{focus,#name}«Max Muster»{tab}«Müller»", Show("{focus,#name}\r\nMax Muster\r\n{tab}\r\nMüller"));
+        Assert.Equal("{tab}«Max»{enter}", Show("{tab}\nMax\n{enter}"));
+    }
+
+    [Fact]
+    public void Breaks_inside_the_text_are_still_sent() =>
+        Assert.Equal("{focus,#text}«Grüsse\r\n\r\nMax»{tab}", Show("{focus,#text}\r\nGrüsse\r\n\r\nMax\r\n{tab}"));
+
+    [Fact]
+    public void Blank_lines_and_indentation_between_tags_are_layout_too() =>
+        Assert.Equal("{tab}{enter}{tab}", Show("{tab}\r\n\r\n    {enter}\r\n\t{tab}"));
+
+    [Fact]
+    public void Spaces_at_a_tag_without_a_break_are_still_sent()
+    {
+        Assert.Equal("{tab}« »{tab}", Show("{tab} {tab}"));
+        Assert.Equal("«Max »{tab}« Müller»", Show("Max {tab} Müller"));
+    }
+
+    [Fact]
+    public void A_real_new_line_at_a_tag_is_a_key() =>
+        Assert.Equal("{tab}{shift+enter}«Max»", Show("{tab}{shift+enter}\r\nMax"));
+
+    [Fact]
     public void Text_without_tags_has_no_markers()
     {
         var form = new FormBuilder();

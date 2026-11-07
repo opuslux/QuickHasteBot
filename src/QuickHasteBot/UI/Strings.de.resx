@@ -324,6 +324,37 @@ Details stehen in QuickHasteBot.log.</value></data>
   <data name="NewFolderConfirm" xml:space="preserve"><value>Erstellen</value></data>
   <data name="NewFolderErrorFormat" xml:space="preserve"><value>Der Ordner konnte nicht erstellt werden:
 {0}</value></data>
+  <!-- Schritt für Schritt: Editor -->
+  <data name="EditorStepRun" xml:space="preserve"><value>Schritt für Schritt</value></data>
+  <data name="EditorStepRunToolTip" xml:space="preserve"><value>Danach ins Zielfeld klicken: Der ganze Baustein läuft dort und hält vor jedem Schritt an. F10 führt den nächsten Schritt aus, F5 läuft bis zum nächsten Haltepunkt. Haltepunkte setzt ein Klick in den linken Rand (F9).</value></data>
+  <data name="EditorStepRunStop" xml:space="preserve"><value>Lauf beenden</value></data>
+  <data name="EditorStartsWithWindowFormat" xml:space="preserve"><value>Beginnt mit {0}, darum ohne Klick ins Zielfeld.</value></data>
+  <data name="EditorStepRunning" xml:space="preserve"><value>Schritt für Schritt: F10 nächster Schritt, F5 bis zum nächsten Haltepunkt, Esc gedrückt halten stoppt. Der Text ist solange gesperrt.</value></data>
+  <data name="EditorStepRunEnded" xml:space="preserve"><value>Schritt für Schritt beendet.</value></data>
+  <data name="EditorStepRunFailed" xml:space="preserve"><value>Schritt für Schritt beim rot markierten Schritt abgebrochen.</value></data>
+  <data name="EditorBreakpointToolTip" xml:space="preserve"><value>Haltepunkt: Klick setzt oder entfernt ihn (F9)</value></data>
+  <!-- Schritt für Schritt: Leiste am Zielfenster -->
+  <data name="StepBarTitle" xml:space="preserve"><value>Schritt für Schritt</value></data>
+  <data name="StepBarStepFormat" xml:space="preserve"><value>Schritt {0} von {1}</value></data>
+  <data name="StepBarPaused" xml:space="preserve"><value>angehalten · Esc gedrückt halten stoppt</value></data>
+  <data name="StepBarRunning" xml:space="preserve"><value>läuft…</value></data>
+  <data name="StepBarNow" xml:space="preserve"><value>Jetzt</value></data>
+  <data name="StepBarThen" xml:space="preserve"><value>Danach</value></data>
+  <data name="StepBarEnd" xml:space="preserve"><value>(Ende)</value></data>
+  <data name="StepBarPaste" xml:space="preserve"><value>Einfügen</value></data>
+  <data name="StepBarNext" xml:space="preserve"><value>Schritt</value></data>
+  <data name="StepBarContinue" xml:space="preserve"><value>Weiter</value></data>
+  <data name="StepBarStop" xml:space="preserve"><value>Stopp</value></data>
+  <data name="StepBarAgain" xml:space="preserve"><value>Nochmal</value></data>
+  <data name="StepBarClose" xml:space="preserve"><value>Schliessen</value></data>
+  <data name="StepBarDrag" xml:space="preserve"><value>Ziehen zum Verschieben</value></data>
+  <data name="StepBarKeysTakenFormat" xml:space="preserve"><value>{0} ist von einem anderen Programm belegt, die Knöpfe gehen trotzdem.</value></data>
+  <data name="StepBarFieldNotFound" xml:space="preserve"><value>Das Feld ist noch nicht da. Der Schritt wartet ein paar Sekunden darauf.</value></data>
+  <data name="StepBarDoneFormat" xml:space="preserve"><value>Durchgelaufen, {0} Schritte.</value></data>
+  <data name="StepBarStopped" xml:space="preserve"><value>Gestoppt.</value></data>
+  <data name="StepBarTimedOutFormat" xml:space="preserve"><value>{0} Minuten ohne Eingabe.</value></data>
+  <data name="StepBarFailedFormat" xml:space="preserve"><value>Abgebrochen bei Schritt {0}</value></data>
+  <data name="StepBarError" xml:space="preserve"><value>Nicht gelaufen</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>de</value></data>
 </root>

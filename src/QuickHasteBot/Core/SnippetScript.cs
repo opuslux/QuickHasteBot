@@ -79,16 +79,24 @@ public static partial class SnippetScript
         RegisterHelpers(engine, context);
 
         var block = 0;
+        var form = context.Form;
         return Block().Replace(text, match =>
         {
             block++;
             var code = match.Groups[1].Value;
-            if (string.IsNullOrWhiteSpace(code)) return "";
+            form?.BeginScript(match.Index, match.Length);
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                form?.EndScript(match.Index, match.Length, 0);
+                return "";
+            }
 
             try
             {
                 var result = engine.Evaluate(code);
-                return result.IsUndefined() || result.IsNull() ? "" : TypeConverter.ToString(result);
+                var output = result.IsUndefined() || result.IsNull() ? "" : TypeConverter.ToString(result);
+                form?.EndScript(match.Index, match.Length, output.Length);
+                return output;
             }
             catch (TimeoutException ex)
             {

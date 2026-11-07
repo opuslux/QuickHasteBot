@@ -80,6 +80,23 @@ internal static class ElementAutomation
         }
     }
 
+    /// <summary>
+    /// Wo das Element gerade steht (physische Pixel), für den Rahmen im Schritt-für-Schritt-Lauf. Sucht einmal, ohne zu
+    /// warten. Null, wenn es (noch) nicht da ist.
+    /// </summary>
+    public static Rect? Bounds(ElementSelector selector, nint window)
+    {
+        if (window == 0) return null;
+        try
+        {
+            return Find(AutomationElement.FromHandle(window), selector)?.Current.BoundingRectangle is { IsEmpty: false } bounds ? bounds : null;
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>Das erste passende Element unter <paramref name="root"/>, oder das n-te bei index=.</summary>
     public static AutomationElement? Find(AutomationElement root, ElementSelector selector)
     {
@@ -182,6 +199,13 @@ internal static class ElementAutomation
             return new(ElementOutcome.Done);
         }
 
+        // Schreibgeschütztes Feld, das eine Liste aufklappt (Auswahlfelder aus Web-Bibliotheken): Eintippen ginge ins
+        // Leere, darum lieber melden, dass die Option fehlt
+        if (Pattern<ExpandCollapsePattern>(element, ExpandCollapsePattern.Pattern) is not null)
+            return SelectOption(element, value)
+                ? new(ElementOutcome.Done)
+                : new(ElementOutcome.Failed, Error: $"no option \"{value}\" in the list");
+
         element.SetFocus();
         return new(ElementOutcome.TypeInstead, value);
     }
@@ -190,6 +214,7 @@ internal static class ElementAutomation
     /// Option mit diesem Namen auswählen. Erst ohne Aufklappen (Browser haben die Optionen auch zugeklappt im Baum),
     /// nur wenn sie fehlt aufklappen. Firefox lässt nicht direkt auswählen: dann false, und es wird eingetippt,
     /// was die Option im fokussierten Dropdown wählt. Ein offenes Dropdown würde das Eintippen schlucken.
+    /// Web-Bibliotheken hängen die Liste oft ans Ende der Seite statt unter das Feld: dann dort suchen (<see cref="PickFromPopup"/>).
     /// </summary>
     static bool SelectOption(AutomationElement box, string value)
     {
@@ -202,7 +227,7 @@ internal static class ElementAutomation
         {
             expand.Expand();
             Thread.Sleep(200);
-            return TrySelect(box, value) ?? false;
+            return TrySelect(box, value) ?? PickFromPopup(box, value);
         }
         catch (Exception ex) when (ex is InvalidOperationException or ElementNotAvailableException or COMException)
         {
@@ -221,6 +246,95 @@ internal static class ElementAutomation
             catch (Exception ex) when (ex is InvalidOperationException or ElementNotAvailableException or COMException)
             {
             }
+        }
+    }
+
+    /// <summary>
+    /// Die aufgeklappte Liste steht nicht unter dem Feld: die Option im ganzen Dokument suchen. Klappt das Aufklappen
+    /// per UIA nicht und lässt sich nichts eintippen, mit einem echten Klick aufs Feld öffnen. Auswählen per UIA, sonst
+    /// mit einem echten Klick auf die Option. True nur, wenn die Wahl nachweislich angekommen ist.
+    /// </summary>
+    static bool PickFromPopup(AutomationElement box, string value)
+    {
+        var option = PopupOption(box, value, 400);
+        if (option is null && Pattern<ValuePattern>(box, ValuePattern.Pattern) is null or { Current.IsReadOnly: true }
+            && box.TryGetClickablePoint(out var point))
+        {
+            MouseClick(point);
+            option = PopupOption(box, value, 800);
+        }
+        if (option is null) return false;
+
+        if (Pattern<SelectionItemPattern>(option, SelectionItemPattern.Pattern) is { } item)
+        {
+            try
+            {
+                item.Select();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ElementNotAvailableException or COMException)
+            {
+            }
+            if (Chosen(box, option, value)) return true;
+        }
+        if (!option.TryGetClickablePoint(out var optionPoint))
+        {
+            Pattern<ScrollItemPattern>(option, ScrollItemPattern.Pattern)?.ScrollIntoView();
+            if (!option.TryGetClickablePoint(out optionPoint)) return false;
+        }
+        MouseClick(optionPoint);
+        return Chosen(box, option, value);
+    }
+
+    static readonly Condition OptionTypes = new OrCondition(
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ListItem),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.MenuItem),
+        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.DataItem));
+
+    /// <summary>Eine Listenoption mit diesem Namen im Dokument des Felds, sichtbare zuerst. Wartet bis <paramref name="wait"/> ms.</summary>
+    static AutomationElement? PopupOption(AutomationElement box, string value, int wait)
+    {
+        var root = DocumentOf(box);
+        var condition = new AndCondition(OptionTypes, new PropertyCondition(AutomationElement.NameProperty, value, PropertyConditionFlags.IgnoreCase));
+        var deadline = Environment.TickCount64 + wait;
+        while (true)
+        {
+            var found = root.FindAll(TreeScope.Descendants, condition).Cast<AutomationElement>().OrderBy(e => e.Current.IsOffscreen).FirstOrDefault();
+            if (found is not null || Environment.TickCount64 > deadline) return found;
+            Thread.Sleep(50);
+        }
+    }
+
+    /// <summary>Die Webseite (bzw. der iframe), in der das Feld steht, sonst sein Fenster.</summary>
+    static AutomationElement DocumentOf(AutomationElement element)
+    {
+        var walker = TreeWalker.ControlViewWalker;
+        var current = element;
+        while (walker.GetParent(current) is { } parent && parent != AutomationElement.RootElement)
+        {
+            current = parent;
+            if (current.Current.ControlType == ControlType.Document) break;
+        }
+        return current;
+    }
+
+    /// <summary>Ob die Option gewählt ist: als ausgewählt gemeldet, oder das Feld zeigt jetzt ihren Namen. Wartet kurz.</summary>
+    static bool Chosen(AutomationElement box, AutomationElement option, string value)
+    {
+        var deadline = Environment.TickCount64 + 600;
+        while (true)
+        {
+            try
+            {
+                if (Pattern<SelectionItemPattern>(option, SelectionItemPattern.Pattern) is { Current.IsSelected: true }) return true;
+            }
+            catch (Exception ex) when (ex is ElementNotAvailableException or COMException)
+            {
+                // Liste schon zu, die Option gibt es nicht mehr: das Feld entscheidet
+            }
+            var shown = Pattern<ValuePattern>(box, ValuePattern.Pattern)?.Current.Value ?? box.Current.Name;
+            if (string.Equals(shown?.Trim(), value.Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+            if (Environment.TickCount64 > deadline) return false;
+            Thread.Sleep(50);
         }
     }
 

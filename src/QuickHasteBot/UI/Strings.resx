@@ -324,6 +324,37 @@ Details are in QuickHasteBot.log.</value></data>
   <data name="NewFolderConfirm" xml:space="preserve"><value>Create</value></data>
   <data name="NewFolderErrorFormat" xml:space="preserve"><value>The folder could not be created:
 {0}</value></data>
+  <!-- Schritt für Schritt: Editor -->
+  <data name="EditorStepRun" xml:space="preserve"><value>Step by step</value></data>
+  <data name="EditorStepRunToolTip" xml:space="preserve"><value>Then click into the target field: the whole snippet runs there and pauses before each step. F10 runs the next step, F5 runs to the next breakpoint. Click the left margin to set a breakpoint (F9).</value></data>
+  <data name="EditorStepRunStop" xml:space="preserve"><value>Stop run</value></data>
+  <data name="EditorStartsWithWindowFormat" xml:space="preserve"><value>Starts with {0}, no click into the target field needed.</value></data>
+  <data name="EditorStepRunning" xml:space="preserve"><value>Step by step: F10 next step, F5 to the next breakpoint, hold Esc to stop. The text is locked meanwhile.</value></data>
+  <data name="EditorStepRunEnded" xml:space="preserve"><value>Step by step ended.</value></data>
+  <data name="EditorStepRunFailed" xml:space="preserve"><value>Step by step stopped at the step marked in red.</value></data>
+  <data name="EditorBreakpointToolTip" xml:space="preserve"><value>Breakpoint: click to set or remove (F9)</value></data>
+  <!-- Schritt für Schritt: Leiste am Zielfenster -->
+  <data name="StepBarTitle" xml:space="preserve"><value>Step by step</value></data>
+  <data name="StepBarStepFormat" xml:space="preserve"><value>Step {0} of {1}</value></data>
+  <data name="StepBarPaused" xml:space="preserve"><value>paused · hold Esc to stop</value></data>
+  <data name="StepBarRunning" xml:space="preserve"><value>running…</value></data>
+  <data name="StepBarNow" xml:space="preserve"><value>Now</value></data>
+  <data name="StepBarThen" xml:space="preserve"><value>Then</value></data>
+  <data name="StepBarEnd" xml:space="preserve"><value>(end)</value></data>
+  <data name="StepBarPaste" xml:space="preserve"><value>Paste</value></data>
+  <data name="StepBarNext" xml:space="preserve"><value>Step</value></data>
+  <data name="StepBarContinue" xml:space="preserve"><value>Continue</value></data>
+  <data name="StepBarStop" xml:space="preserve"><value>Stop</value></data>
+  <data name="StepBarAgain" xml:space="preserve"><value>Again</value></data>
+  <data name="StepBarClose" xml:space="preserve"><value>Close</value></data>
+  <data name="StepBarDrag" xml:space="preserve"><value>Drag to move</value></data>
+  <data name="StepBarKeysTakenFormat" xml:space="preserve"><value>{0} is used by another program, the buttons still work.</value></data>
+  <data name="StepBarFieldNotFound" xml:space="preserve"><value>The field isn't there yet. The step waits for it for a few seconds.</value></data>
+  <data name="StepBarDoneFormat" xml:space="preserve"><value>Done, {0} steps ran.</value></data>
+  <data name="StepBarStopped" xml:space="preserve"><value>Stopped.</value></data>
+  <data name="StepBarTimedOutFormat" xml:space="preserve"><value>No input for {0} minutes.</value></data>
+  <data name="StepBarFailedFormat" xml:space="preserve"><value>Stopped at step {0}</value></data>
+  <data name="StepBarError" xml:space="preserve"><value>Didn't run</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>en</value></data>
 </root>

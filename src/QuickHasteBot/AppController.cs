@@ -267,18 +267,24 @@ internal sealed class AppController : IDisposable
     }
 
     /// <summary>Warum ein Baustein nicht (ganz) eingefügt wurde, für eine Meldung.</summary>
-    internal sealed record RunProblem(string Message, MessageBoxImage Icon);
+    /// <param name="Step">Der Schritt (ab 0), bei dem es passiert ist, falls bekannt.</param>
+    /// <param name="Stopped">Nur mit Step-Gate: der Lauf wurde gestoppt (Esc, Gate), kein Fehler. Ohne Gate gibt es dafür null.</param>
+    internal sealed record RunProblem(string Message, MessageBoxImage Icon, int? Step = null, bool Stopped = false);
 
     /// <summary>
     /// Bringt einen Bausteintext ins Zielfenster: Tasten-Tags markieren, Skripte auswerten, dann als Formular-Baustein
     /// ausführen oder einfügen. Auch für den Testlauf im Editor, mit dem ungespeicherten Text.
     /// </summary>
-    /// <returns>Null, wenn alles geklappt hat (oder mit Esc gestoppt wurde).</returns>
-    internal async Task<RunProblem?> RunTextAsync(string text, string name, bool alternate, nint targetWindow, string? logPath = null)
+    /// <param name="gate">Schritt für Schritt: bekommt die Schritte samt Stelle im Text und darf vor jedem anhalten.
+    /// Ein Baustein ohne Tasten-Tags ist dabei ein einziger Schritt, der alles einfügt.</param>
+    /// <returns>Null, wenn alles geklappt hat (oder ohne Gate mit Esc gestoppt wurde).</returns>
+    internal async Task<RunProblem?> RunTextAsync(string text, string name, bool alternate, nint targetWindow, string? logPath = null,
+        IStepGate? gate = null)
     {
         // Tasten-Tags werden zu Markern, bevor Skripte laufen: was ein Skript ausgibt oder aus der Zwischenablage kommt,
         // wird so nie als Tag gelesen, nur key() im Skript erzeugt bewusst Tasten
         text = KeyTags.StripMarkers(text);
+        var sourceLength = text.Length;
         var form = Settings.EvaluateKeyTags ? new FormBuilder() : null;
         if (form is not null)
             text = KeyTags.MarkTags(text, form);
@@ -301,15 +307,57 @@ internal sealed class AppController : IDisposable
 
         if (form is not null && KeyTags.HasMarkers(text))
         {
-            var result = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
-            return FormMessage(result, name) is { } message ? new(message, MessageBoxImage.Information) : null;
+            var steps = KeyTags.SplitWithSources(text, form);
+            gate?.Planned(steps, paste: false);
+            var result = await _paste.RunFormAsync(steps.Select(s => s.Step).ToList(), targetWindow, Settings.KeyTagsWindowGuard, gate);
+            if (gate is not null && result.Outcome == FormOutcome.EscapePressed)
+                return new("", MessageBoxImage.Information, result.StepIndex, Stopped: true);
+            return FormMessage(result, name) is { } message ? new(message, MessageBoxImage.Information, result.StepIndex) : null;
+        }
+
+        if (gate is not null)
+        {
+            gate.Planned([new SourcedStep(new TextStep(text), new SourceSpan(0, sourceLength))], paste: true);
+            switch (await gate.BeforeStepAsync(0))
+            {
+                case StepDecision.Stop:
+                    return new("", MessageBoxImage.Information, 0, Stopped: true);
+                case StepDecision.RunAfterPause when !await PasteService.ResumeAsync(targetWindow):
+                    return new(string.Format(Strings.FormWindowChangedFormat, name), MessageBoxImage.Information, 0);
+            }
         }
 
         var mode = alternate ? AppSettings.Other(Settings.PasteMode) : Settings.PasteMode;
         if (!await _paste.PasteAsync(text, mode, targetWindow))
             return new(string.Format(Strings.TargetElevatedFormat, name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
-                MessageBoxImage.Information);
+                MessageBoxImage.Information, gate is null ? null : 0);
         return null;
+    }
+
+    /// <summary>
+    /// Beginnt der Text mit {window,…} oder {start,…}, holt er sein Fenster selbst: dann dieses Tag, sonst null. Der
+    /// Editor wartet dann nicht auf den Klick ins Zielfeld.
+    /// </summary>
+    internal string? StartWindowTag(string text) => StartWindowTag(text, Settings.EvaluateKeyTags, Settings.EvaluateScripts);
+
+    /// <summary>Wie <see cref="StartWindowTag(string)"/>. Skripte sehen eine leere Zwischenablage, ein Skriptfehler gibt null.</summary>
+    internal static string? StartWindowTag(string text, bool keyTags, bool scripts)
+    {
+        if (!keyTags) return null;
+        var form = new FormBuilder();
+        text = KeyTags.MarkTags(KeyTags.StripMarkers(text), form);
+        if (scripts && SnippetScript.HasBlocks(text))
+        {
+            try
+            {
+                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, "", Form: form));
+            }
+            catch (SnippetScriptException)
+            {
+                return null;
+            }
+        }
+        return KeyTags.HasMarkers(text) && PasteService.StartWindowStep(KeyTags.Split(text, form)) is { } step ? KeyTags.Describe(step) : null;
     }
 
     /// <param name="Text">Was eingefügt würde, Tasten als lesbare Tags wie {tab}.</param>

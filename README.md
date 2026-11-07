@@ -272,6 +272,17 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and [`{start,notepad}`](#other-programs-window-and-start) starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them), and Caps Lock and Num Lock are left out on purpose, since they would stay switched.
 
 - **Line breaks** in the text are sent as Shift+Enter: a new line in a multi-line field or chat box that doesn't submit the form. Only `{enter}` submits. A single line break at the very end of the file is ignored.
+- **Line breaks at a tag are only layout** and are not sent: right after a tag, right before a tag (spaces in between don't matter), and blank lines or indentation between two tags. So every tag can go on a line of its own:
+
+  ```
+  {window,process=chrome}
+  {set,name=Guests,"5"}
+  {focus,#name}
+  Max Muster
+  {tab}
+  ```
+
+  types only "Max Muster" between the tags. Line breaks inside the text stay. For a real new line at a tag, write `{shift+enter}` or `{enter}`. "Insert into editor" in the element picker puts each tag on a line of its own.
 - **With scripts:** tags and `{{ … }}` blocks can be mixed freely, e.g. `{{ user }}{tab}{{ date() }}{enter}`, and variables carry over as usual. Inside a script, `key()` and `wait()` press keys, e.g. `{{ ['Max', 'Müller'].join(key('tab')) + key('enter') }}`. What a script returns or what comes from the clipboard is never read as a tag, so a copied `{enter}` can't submit anything. A literal tag is written as `{{ '{tab}' }}`.
 - **Stopping:** holding Esc stops a snippet between two steps.
 - **Turning off:** with "Press key tags like {tab} and {enter}" off in the settings (`EvaluateKeyTags`), tags are pasted as is.
@@ -296,7 +307,7 @@ Instead of counting `{tab}`s, a snippet can address a field directly, in the win
 |---|---|
 | `{focus,element}` | Puts the cursor into the field, typing continues there |
 | `{click,element}` | Clicks a button, link, tab or checkbox; without anything to click, a real mouse click on it |
-| `{set,element,"value"}` | Fills a field directly, picks a dropdown option by its text, sets a checkbox to `on`/`off`. Where that isn't possible (e.g. dropdowns in Firefox, autocomplete fields), it focuses the element and types the value instead |
+| `{set,element,"value"}` | Fills a field directly, picks a dropdown option by its text, sets a checkbox to `on`/`off`. Dropdowns built by web libraries, whose list opens elsewhere on the page, are opened and the option is clicked; if it isn't there, the snippet stops with a message. Where none of this is possible (e.g. dropdowns in Firefox, autocomplete fields), it focuses the element and types the value instead |
 
 The element is described like this, parts combined with `;`:
 
@@ -315,7 +326,7 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 **Element picker:** "Pick element" in the editor or "Pick element…" in the tray menu opens a small window that stays on top.
 
 1. Hold the mouse button on its crosshair and drag it onto a field, button or link. A red frame shows what is under the pointer, with its type, id, name, class and value.
-2. Let go. The picker checks which selectors find exactly that element, the most stable first (a real id before the label; ids that web apps generate anew on every load, like `:r3:` or `mui-12345`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`.
+2. Let go. The picker checks which selectors find exactly that element, the most stable first (a real id before the label; ids that web apps generate anew on every load, like `:r3:`, `mui-12345` or `mantine-2hi08ejzc`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`.
 3. Optionally pick another selector or action (their tooltips explain each tag) and edit the tag; it is copied again.
 4. **Test** runs the tag right away in the program the element was picked in, like a snippet would (so a click really clicks), and shows whether it worked or why not.
 

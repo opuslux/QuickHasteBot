@@ -22,7 +22,8 @@ internal enum FormOutcome
 
 /// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
 /// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/> und <see cref="FormOutcome.StartFailed"/>: warum.</param>
-internal sealed record FormResult(FormOutcome Outcome, string? Step = null, string? Error = null);
+/// <param name="StepIndex">Bei einem Abbruch der Schritt (ab 0), bei dem es passiert ist.</param>
+internal sealed record FormResult(FormOutcome Outcome, string? Step = null, string? Error = null, int? StepIndex = null);
 
 internal sealed class PasteService
 {
@@ -119,10 +120,20 @@ internal sealed class PasteService
     /// und Tasten in derselben Eingabe-Warteschlange und damit in der richtigen Reihenfolge ankommen.
     /// Bricht ab, wenn die echte Esc-Taste gedrückt ist oder (mit Fensterschutz) ein anderes Fenster in den Vordergrund kommt.
     /// </summary>
-    public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard)
+    /// <param name="gate">Darf vor jedem Schritt anhalten (Schritt für Schritt). Nach einer Pause kommt das Fenster, das
+    /// vorher vorne war, zurück nach vorne, sonst bricht der Lauf ab.</param>
+    /// <summary>
+    /// Der Schritt, mit dem ein Baustein sein Fenster selbst nach vorne holt ({window,…}, {start,…} oder ein Element-Tag
+    /// mit Fenster), falls er so beginnt. Pausen und {guard} davor zählen nicht. Sonst null.
+    /// </summary>
+    internal static FormStep? StartWindowStep(IReadOnlyList<FormStep> steps) =>
+        steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is { } first
+        && first is WindowStep or StartStep or ElementStep { Selector.Window: not null } ? first : null;
+
+    public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard, IStepGate? gate = null)
     {
         // Beginnt der Baustein mit {window,…} oder {start,…}, ist das Fenster vom Hotkey egal
-        var startsWithWindow = steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is WindowStep or StartStep or ElementStep { Selector.Window: not null };
+        var startsWithWindow = StartWindowStep(steps) is not null;
         if (!startsWithWindow && !await WindowFocus.ActivateAndWaitAsync(targetWindow))
         {
             // Anders als beim Einfügen nicht einfach ans aktuelle Fenster senden, {enter} & Co. könnten dort Schaden anrichten
@@ -142,6 +153,17 @@ internal sealed class PasteService
 
         for (var i = 0; i < steps.Count; i++)
         {
+            if (gate is not null)
+            {
+                var front = GetForegroundWindow();
+                switch (await gate.BeforeStepAsync(i))
+                {
+                    case StepDecision.Stop:
+                        return Aborted(FormOutcome.EscapePressed, i);
+                    case StepDecision.RunAfterPause when !await ResumeAsync(front):
+                        return Aborted(FormOutcome.WindowChanged, i);
+                }
+            }
             if (EscapeDown())
                 return Aborted(FormOutcome.EscapePressed, i);
             if (guarded && WindowChanged(ref guardWindow))
@@ -302,8 +324,23 @@ internal sealed class PasteService
         FormResult Aborted(FormOutcome outcome, int step, string? error = null)
         {
             Log.Info($"Formular-Baustein abgebrochen ({outcome}) bei Schritt {step + 1} von {steps.Count}");
-            return new FormResult(outcome, step < steps.Count ? KeyTags.Describe(steps[step]) : null, error);
+            return new FormResult(outcome, step < steps.Count ? KeyTags.Describe(steps[step]) : null, error, step);
         }
+    }
+
+    /// <summary>
+    /// Nach einer Pause im Schritt-für-Schritt-Lauf: das Fenster, das vorher vorne war, zurückholen. Inzwischen war
+    /// vielleicht der Editor vorne. Dann wie beim Start warten, bis keine Zusatztaste mehr gedrückt ist.
+    /// </summary>
+    internal static async Task<bool> ResumeAsync(nint window)
+    {
+        if (window != 0 && GetForegroundWindow() != window && !await WindowFocus.ActivateAndWaitAsync(window))
+        {
+            Log.Info("Zielfenster nach der Pause nicht zurückgeholt, Schritt-für-Schritt-Lauf abgebrochen");
+            return false;
+        }
+        await WaitForModifiersReleasedAsync();
+        return true;
     }
 
     static INPUT[] KeyPress(KeyStep key)

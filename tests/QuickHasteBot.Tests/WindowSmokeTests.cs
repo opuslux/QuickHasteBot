@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.Rendering;
 using QuickHasteBot.Core;
+using QuickHasteBot.Interop;
 using QuickHasteBot.UI;
 
 namespace QuickHasteBot.Tests;
@@ -34,6 +35,11 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
+            StepBarShowsStepsAndResult();
+            EditorStepByStep();
+            EditorStartsWithWindow();
+            SetPicksFromAListElsewhere();
+            EditorInsertsPickedTagsOnTheirOwnLine();
             EditorWrapToggle();
         }
         finally
@@ -511,6 +517,15 @@ public class WindowSmokeTests
         Assert.Equal(ElementAction.Set, ElementPickerWindow.DefaultAction("ComboBox"));
         Assert.Equal(ElementAction.Focus, ElementPickerWindow.DefaultAction("Edit"));
         Snapshot(picker, "element-picker.png");
+
+        // Der Tag steht über die ganze Breite über den Knöpfen, ein langer umbricht statt abgeschnitten zu werden
+        picker.ResultPanel.Visibility = Visibility.Visible;
+        picker.TagOutput.Text = "{window,process=chrome}{click,name=Zeit;type=button;window=process=chrome}";
+        picker.UpdateLayout();
+        Snapshot(picker, "element-picker-result.png");
+        Assert.Equal(picker.ResultPanel.ActualWidth, picker.TagOutput.ActualWidth, 1);
+        Assert.True(picker.CopyButton.TranslatePoint(new Point(), picker.TagOutput).Y >= picker.TagOutput.ActualHeight);
+        Assert.True(picker.TagOutput.ActualHeight > 2 * picker.TagOutput.FontSize * 1.2, "langer Tag umbrochen");
         picker.Close();
 
         // Fehler: rot, nichts zu kopieren
@@ -868,6 +883,295 @@ public class WindowSmokeTests
         {
             viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == name);
             popup.UpdateLayout();
+        }
+    }
+
+    /// <summary>Die Leiste des Schritt-für-Schritt-Laufs: Schritte, Ergebnis, und dass sie nie aktiv wird.</summary>
+    static void StepBarShowsStepsAndResult()
+    {
+        UiLanguage.Apply("de");
+        var form = new FormBuilder();
+        var text = KeyTags.MarkTags("Freundliche Grüsse{tab}{enter}", form);
+        var steps = KeyTags.SplitWithSources(text, form);
+
+        var bar = new StepBar();
+        bar.ShowStep(steps, paste: false, index: 1, paused: true);
+        Snapshot(bar, "stepbar-paused.png");
+        var texts = Texts(bar);
+        Assert.Contains("Schritt 2 von 3", texts);
+        Assert.Contains("{tab}", texts);
+        Assert.Contains("{enter}", texts);
+        Assert.Contains("Schritt  F10", Buttons(bar));
+        Assert.Contains("Weiter  F5", Buttons(bar));
+
+        // „Jetzt“ in der Farbe der Editor-Markierung: angehalten gelb, läuft blau
+        Assert.Same(StepColors.For(StepMark.Paused).Fill, NowBox(bar).Background);
+        bar.ShowNote("Feld nicht da");
+        Assert.Same(bar.FindResource("SystemFillColorCautionBrush"), Text(bar, "Feld nicht da").Foreground);
+
+        // Nie aktiv: weder beim Zeigen noch bei einem Klick
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(bar).Handle;
+        var style = (long)Interop.NativeMethods.GetWindowLongPtr(hwnd, Interop.NativeMethods.GWL_EXSTYLE);
+        Assert.NotEqual(0, style & Interop.NativeMethods.WS_EX_NOACTIVATE);
+        Assert.False(bar.IsActive);
+
+        bar.ShowStep(steps, paste: false, index: 2, paused: false);
+        bar.UpdateLayout();
+        Assert.Contains("(Ende)", Texts(bar));
+        Assert.Same(StepColors.For(StepMark.Running).Fill, NowBox(bar).Background);
+
+        bar.ShowResult("Fertig", null, StepResult.Done);
+        Assert.Same(bar.FindResource("SystemFillColorSuccessBrush"), Text(bar, "Fertig").Foreground);
+        bar.ShowResult("Gestoppt", null, StepResult.Stopped);
+        Assert.Same(bar.FindResource("SystemFillColorCautionBrush"), Text(bar, "Gestoppt").Foreground);
+        bar.ShowResult("Abgebrochen bei Schritt 2", "Nichts gefunden", StepResult.Failed);
+        Snapshot(bar, "stepbar-failed.png");
+        Assert.Same(bar.FindResource("SystemFillColorCriticalBrush"), Text(bar, "Abgebrochen bei Schritt 2").Foreground);
+        Assert.Contains("Nichts gefunden", Texts(bar));
+        Assert.Equal(["Nochmal", "Schliessen"], Buttons(bar));
+
+        var choice = bar.WaitForChoiceAsync();
+        FindButton(bar, "Nochmal").RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.True(choice.IsCompleted && choice.Result);
+        bar.Close();
+
+        static List<string> Texts(Window window) => Descendants<System.Windows.Controls.TextBlock>(window)
+            .Where(t => t.IsVisible).Select(t => t.Text).ToList();
+
+        static System.Windows.Controls.TextBlock Text(Window window, string text) =>
+            Descendants<System.Windows.Controls.TextBlock>(window).Single(t => t.IsVisible && t.Text == text);
+
+        static System.Windows.Controls.Border NowBox(Window window) =>
+            Descendants<System.Windows.Controls.Border>(window).Single(b => b.Child is System.Windows.Controls.TextBlock { Text: "{tab}" or "{enter}" } && b.IsVisible);
+
+        static List<string> Buttons(Window window) => Descendants<System.Windows.Controls.Button>(window)
+            .Where(b => b.IsVisible).Select(b => (string)b.Content).ToList();
+
+        static System.Windows.Controls.Button FindButton(Window window, string text) =>
+            Descendants<System.Windows.Controls.Button>(window).Single(b => b.IsVisible && (string)b.Content == text);
+    }
+
+    /// <summary>Editor: Knopf, Haltepunkte im Rand (Klick und F9), Markierung des Schritts, Sperre während des Laufs.</summary>
+    static void EditorStepByStep()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        const string text = "Grüsse{tab}\r\nMax{enter}\r\n{{ 'MfG' + key('tab') }}";
+        editor.BodyInput.Text = text;
+        Snapshot(editor, "editor-step.png");
+
+        Assert.Equal("Schritt für Schritt", editor.StepButton.Content);
+        Assert.Contains(editor.Breakpoints, editor.BodyInput.TextArea.LeftMargins);
+
+        // Klick in den Rand auf Höhe der zweiten Zeile, F9 an der Schreibmarke in der dritten
+        var document = editor.BodyInput.Document;
+        var view = editor.BodyInput.TextArea.TextView;
+        view.EnsureVisualLines();
+        var secondLine = view.GetVisualLine(2)!;
+        var y = secondLine.GetTextLineVisualYPosition(secondLine.TextLines[0], VisualYPosition.TextMiddle) - view.VerticalOffset;
+        Assert.Equal(2, editor.Breakpoints.LineAt(y)?.LineNumber);
+        editor.Breakpoints.Toggle(editor.Breakpoints.LineAt(y)!);
+        editor.BodyInput.CaretOffset = document.GetLineByNumber(3).Offset;
+        editor.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(editor)!, 0, Key.F9) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal([2, 3], editor.Breakpoints.Lines);
+        editor.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(editor)!, 0, Key.F9) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal([2], editor.Breakpoints.Lines);
+
+        // Welcher Schritt welchen Haltepunkt trifft
+        var form = new FormBuilder();
+        var steps = KeyTags.SplitWithSources(SnippetScript.Render(KeyTags.MarkTags(text, form), SnippetScriptTests.Context with { Form = form }), form);
+        // Der Umbruch nach {enter} ist nur Layout, "MfG" steht ganz in Zeile 3
+        Assert.Equal([null, null, 2, 2, null, null], steps.Select(s => editor.BreakpointLine(text, s.Source)));
+
+        // Haltepunkte wandern mit dem Text
+        editor.BodyInput.Document.Insert(0, "Neu\r\n");
+        Assert.Equal([3], editor.Breakpoints.Lines);
+        editor.BodyInput.Document.Remove(0, 5);
+        Assert.Equal([2], editor.Breakpoints.Lines);
+        Assert.Equal(text, editor.BodyInput.Text);
+
+        // Der Schritt wird markiert, während des Laufs ist der Text gesperrt
+        editor.LockForStepRun(true);
+        Assert.True(editor.BodyInput.IsReadOnly);
+        Assert.False(editor.TestButton.IsEnabled);
+        Assert.Equal("Lauf beenden", editor.StepButton.Content);
+        editor.ShowStep(text, new StepView(3, steps[3].Source, StepMark.Paused));
+        Assert.Equal(StepMark.Paused, editor.StepMarker.Mark);
+        Assert.Equal("{enter}", text.Substring(editor.StepMarker.Segment!.StartOffset, editor.StepMarker.Segment.Length));
+        Snapshot(editor, "editor-step-paused.png");
+        editor.ShowStep(text, new StepView(5, steps[5].Source, StepMark.Failed));
+        Assert.Equal("{{ 'MfG' + key('tab') }}", text.Substring(editor.StepMarker.Segment!.StartOffset, editor.StepMarker.Segment.Length));
+        editor.LockForStepRun(false);
+        Assert.False(editor.BodyInput.IsReadOnly);
+        Assert.True(editor.TestButton.IsEnabled);
+        Assert.Equal("Schritt für Schritt", editor.StepButton.Content);
+
+        // Rot bleibt bis zur nächsten Änderung
+        Assert.Equal(StepMark.Failed, editor.StepMarker.Mark);
+        editor.BodyInput.Document.Insert(0, "x");
+        Assert.Equal(StepMark.None, editor.StepMarker.Mark);
+
+        // Nichts geändert, was gespeichert werden müsste: ohne Rückfrage zu
+        editor.BodyInput.Text = "";
+        editor.Close();
+    }
+
+    /// <summary>Beginnt der Text mit {window,…}, starten „Testen“ und „Schritt für Schritt“ ohne Klick ins Zielfeld.</summary>
+    static void EditorStartsWithWindow()
+    {
+        // Wie in der App: nach await weiter auf dem UI-Thread
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+        try
+        {
+            EditorStartsWithWindowRun();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    static void EditorStartsWithWindowRun()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        // Ein Programm, das es nicht gibt: es wird nie etwas getippt
+        editor.BodyInput.Text = "{window,process=qhb-gibt-es-nicht}Grüsse";
+        Snapshot(editor, "editor-starts-with-window.png");
+        var click = new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent);
+
+        // Schritt für Schritt hält gleich vor {window} an, ohne Banner „Ins Zielfeld klicken“
+        editor.StepButton.RaiseEvent(click);
+        Assert.Equal(Visibility.Collapsed, editor.TestBanner.Visibility);
+        Assert.StartsWith("Beginnt mit {window,process=qhb-gibt-es-nicht}", editor.StatusText.Text);
+        Assert.True(PumpUntil(() => editor.StepMarker.Mark == StepMark.Paused, TimeSpan.FromSeconds(5)));
+        Assert.Equal("{window,process=qhb-gibt-es-nicht}", editor.BodyInput.Text.Substring(editor.StepMarker.Segment!.StartOffset, editor.StepMarker.Segment.Length));
+        editor.StepButton.RaiseEvent(click); // Lauf beenden
+        Assert.True(PumpUntil(() => (string)editor.StepButton.Content == "Schritt für Schritt", TimeSpan.FromSeconds(5)));
+
+        // Testen läuft sofort, scheitert hier am fehlenden Fenster
+        editor.TestButton.RaiseEvent(click);
+        Assert.Equal(Visibility.Collapsed, editor.TestBanner.Visibility);
+        Assert.StartsWith("Beginnt mit {window,process=qhb-gibt-es-nicht}", editor.StatusText.Text);
+        Assert.True(PumpUntil(() => !editor.StatusText.Text.StartsWith("Beginnt mit"), TimeSpan.FromSeconds(15)));
+        Assert.Equal(Visibility.Collapsed, editor.TestBanner.Visibility);
+
+        // Ohne {window} am Anfang wie bisher: erst ins Zielfeld klicken
+        editor.BodyInput.Text = "Grüsse{window,process=qhb-gibt-es-nicht}";
+        editor.StepButton.RaiseEvent(click);
+        Assert.Equal(Visibility.Visible, editor.TestBanner.Visibility);
+        editor.StepButton.RaiseEvent(click); // Warten abbrechen
+        Assert.True(PumpUntil(() => editor.TestBanner.Visibility == Visibility.Collapsed, TimeSpan.FromSeconds(5)));
+
+        editor.BodyInput.Text = "";
+        editor.Close();
+    }
+
+    /// <summary>„In Editor einfügen“ aus dem Picker: jeder Tag auf eine eigene Zeile, ohne Leerzeilen.</summary>
+    static void EditorInsertsPickedTagsOnTheirOwnLine()
+    {
+        using var dir = new TempDirectory();
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        Snapshot(editor, "editor-insert-tag.png");
+        var body = editor.BodyInput;
+
+        // Leerer Editor, dann am Ende: jeder Tag eine Zeile, die Schreibmarke danach auf der neuen leeren Zeile
+        editor.InsertTag("{window,process=chrome}");
+        editor.InsertTag("{set,name=Personen,\"5\"}");
+        Assert.Equal("{window,process=chrome}\r\n{set,name=Personen,\"5\"}\r\n", body.Text);
+        Assert.Equal(body.Text.Length, body.CaretOffset);
+
+        // Am Ende einer Zeile mitten im Text: Umbruch davor, keine Leerzeile danach
+        body.CaretOffset = "{window,process=chrome}".Length;
+        editor.InsertTag("{click,name=Zeit}");
+        Assert.Equal("{window,process=chrome}\r\n{click,name=Zeit}\r\n{set,name=Personen,\"5\"}\r\n", body.Text);
+
+        // Am Anfang einer Zeile: Umbruch danach
+        body.CaretOffset = 0;
+        editor.InsertTag("{delay,100}");
+        Assert.StartsWith("{delay,100}\r\n{window,process=chrome}\r\n", body.Text);
+
+        // Mitten im Text: ohne Umbruch
+        body.Text = "MaxMuster";
+        body.CaretOffset = 3;
+        editor.InsertTag("{tab}");
+        Assert.Equal("Max{tab}Muster", body.Text);
+
+        // Die Umbrüche sind nur Layout: gesendet werden nur die Tags
+        body.Text = "";
+        editor.InsertTag("{window,process=chrome}");
+        editor.InsertTag("{click,name=Zeit}");
+        Assert.Equal("{window,process=chrome}{click,name=Zeit}", controller.Preview(body.Text).Text);
+
+        body.Text = "";
+        editor.Close();
+    }
+
+    /// <summary>{set} bei einem Auswahlfeld, dessen Liste nicht unter dem Feld steht, sondern woanders im Fenster.</summary>
+    static void SetPicksFromAListElsewhere()
+    {
+        var list = new System.Windows.Controls.ListBox { Name = "liste" };
+        foreach (var option in new[] { "3", "4", "5" })
+            list.Items.Add(new System.Windows.Controls.ListBoxItem { Content = option });
+        var box = new PopupSelect(list) { Name = "personen", Width = 120 };
+        var window = new Window
+        {
+            Width = 300, Height = 300, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.StackPanel { Children = { box, new System.Windows.Controls.TextBlock { Text = "Weiter unten:" }, list } },
+        };
+        Snapshot(window, "popup-select.png");
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        // UIA ruft zurück in dieses Fenster: auf einem anderen Thread, der UI-Thread läuft weiter
+        ElementResult Set(string value)
+        {
+            Assert.True(KeyTags.TryParse($"set,#personen,\"{value}\"", null, out var steps, out var error), error);
+            var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(15)));
+            return run.Result;
+        }
+
+        Assert.Equal(ElementOutcome.Done, Set("5").Outcome);
+        Assert.Equal("5", box.Text);
+        Assert.False(box.IsOpen);
+
+        // Gibt es die Option nicht, wird das gemeldet statt ins schreibgeschützte Feld getippt
+        var missing = Set("9");
+        Assert.Equal(ElementOutcome.Failed, missing.Outcome);
+        Assert.Contains("\"9\"", missing.Error);
+        Assert.Equal("5", box.Text);
+        Assert.False(box.IsOpen);
+        window.Close();
+    }
+
+    /// <summary>Den Dispatcher laufen lassen, bis <paramref name="done"/> zutrifft oder die Zeit um ist.</summary>
+    static bool PumpUntil(Func<bool> done, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (!done() && DateTime.UtcNow < deadline)
+        {
+            var frame = new DispatcherFrame();
+            Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, () => frame.Continue = false);
+            Dispatcher.PushFrame(frame);
+            Thread.Sleep(20);
+        }
+        return done();
+    }
+
+    static IEnumerable<T> Descendants<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) yield return match;
+            foreach (var nested in Descendants<T>(child))
+                yield return nested;
         }
     }
 
