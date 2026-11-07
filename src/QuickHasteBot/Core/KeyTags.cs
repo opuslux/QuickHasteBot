@@ -39,24 +39,115 @@ public enum ElementAction { Focus, Click, Set }
 /// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
 public sealed record ElementStep(ElementAction Action, ElementSelector Selector, string? Value) : FormStep;
 
+/// <summary>Eine Stelle im Bausteintext, so wie er an <see cref="KeyTags.MarkTags"/> ging.</summary>
+public readonly record struct SourceSpan(int Start, int Length)
+{
+    public int End => Start + Length;
+
+    public static SourceSpan FromBounds(int start, int end) => new(start, Math.Max(0, end - start));
+}
+
+/// <summary>Ein Schritt und die Stelle im Bausteintext, aus der er stammt: für den Schritt-für-Schritt-Lauf im Editor.</summary>
+public sealed record SourcedStep(FormStep Step, SourceSpan Source);
+
 /// <summary>
 /// Sammelt die Schritte eines Formular-Bausteins. Im Text stehen statt der Schritte unsichtbare Marker
 /// (Zeichen aus der Private Use Area), damit Tags und key() aus Skripten in einer geordneten Liste landen,
 /// ohne dass die Skript-Engine davon wissen muss.
+/// Merkt sich ausserdem, woher jeder Schritt im Bausteintext stammt: ein Tag von seiner genauen Stelle, key() und
+/// Co. vom ganzen {{ … }}-Block. Dafür zeichnen <see cref="KeyTags.MarkTags"/> und <see cref="SnippetScript.Render"/>
+/// auf, was sie ersetzt haben. Pro Builder je ein Durchgang.
 /// </summary>
 public sealed class FormBuilder
 {
     readonly List<FormStep> _steps = [];
+    readonly List<SourceSpan> _sources = [];
+    SourceSpan? _block;
+
+    /// <summary>Bausteintext → Text mit Markern statt Tags.</summary>
+    internal TextMap Tags { get; } = new();
+
+    /// <summary>Text mit Markern → Text mit Skript-Ausgaben statt {{ … }}.</summary>
+    internal TextMap Scripts { get; } = new();
 
     public IReadOnlyList<FormStep> Steps => _steps;
 
-    public string Marker(FormStep step)
+    /// <param name="source">Wo der Tag im Bausteintext steht. Ohne Angabe der Skriptblock, der gerade läuft.</param>
+    public string Marker(FormStep step, SourceSpan? source = null)
     {
         _steps.Add(step);
+        _sources.Add(source ?? _block ?? default);
         return KeyTags.MarkerStart + (_steps.Count - 1).ToString(CultureInfo.InvariantCulture) + KeyTags.MarkerEnd;
     }
 
-    public string Markers(IEnumerable<FormStep> steps) => string.Concat(steps.Select(Marker));
+    public string Markers(IEnumerable<FormStep> steps, SourceSpan? source = null) =>
+        string.Concat(steps.Select(step => Marker(step, source)));
+
+    internal SourceSpan SourceOf(int step) => _sources[step];
+
+    /// <summary>Ein {{ … }}-Block (Stelle im Text mit Markern) beginnt, key() und Co. stammen ab jetzt von dort.</summary>
+    internal void BeginScript(int index, int length) => _block = Tags.Back(index, index + length);
+
+    /// <summary>Der Block ist durch <paramref name="outputLength"/> Zeichen Ausgabe ersetzt.</summary>
+    internal void EndScript(int index, int length, int outputLength)
+    {
+        Scripts.Replaced(index, length, outputLength);
+        _block = null;
+    }
+
+    /// <summary>Woher ein Stück des fertigen Texts stammt. Text aus einem Skript zählt mit dem ganzen Block.</summary>
+    internal SourceSpan SourceOfText(int start, int end)
+    {
+        var marked = Scripts.Back(start, end);
+        return Tags.Back(marked.Start, marked.End);
+    }
+}
+
+/// <summary>
+/// Was ein Durchgang über einen Text ersetzt hat, in der Reihenfolge der Ersetzungen. Führt Stellen im Ergebnis auf
+/// die Eingabe zurück: ausserhalb von Ersetzungen verschoben, innerhalb auf die ganze ersetzte Stelle.
+/// </summary>
+internal sealed class TextMap
+{
+    readonly List<(int OutStart, int OutEnd, int InStart, int InEnd)> _replaced = [];
+    int _shift; // Ausgabe minus Eingabe nach der letzten Ersetzung
+
+    public void Replaced(int inStart, int inLength, int outLength)
+    {
+        var outStart = inStart + _shift;
+        _replaced.Add((outStart, outStart + outLength, inStart, inStart + inLength));
+        _shift += outLength - inLength;
+    }
+
+    public SourceSpan Back(int start, int end)
+    {
+        var from = BackStart(start);
+        return SourceSpan.FromBounds(from, Math.Max(from, BackEnd(end)));
+    }
+
+    int BackStart(int pos)
+    {
+        var shift = 0;
+        foreach (var r in _replaced)
+        {
+            if (r.OutStart <= pos && pos < r.OutEnd) return r.InStart;
+            if (r.OutEnd > pos) break;
+            shift = r.OutEnd - r.InEnd;
+        }
+        return pos - shift;
+    }
+
+    int BackEnd(int pos)
+    {
+        var shift = 0;
+        foreach (var r in _replaced)
+        {
+            if (r.OutStart < pos && pos <= r.OutEnd) return r.InEnd;
+            if (r.OutEnd >= pos) break;
+            shift = r.OutEnd - r.InEnd;
+        }
+        return pos - shift;
+    }
 }
 
 /// <summary>
@@ -138,7 +229,11 @@ public static partial class KeyTags
         Candidate().Replace(text, match =>
         {
             if (!match.Groups[1].Success) return match.Value; // Skriptblock
-            return TryParse(match.Groups[1].Value, null, out var steps, out _) ? form.Markers(steps) : match.Value;
+            if (!TryParse(match.Groups[1].Value, null, out var steps, out _)) return match.Value;
+
+            var markers = form.Markers(steps, new SourceSpan(match.Index, match.Length));
+            form.Tags.Replaced(match.Index, match.Length, markers.Length);
+            return markers;
         });
 
     /// <summary>
@@ -388,44 +483,53 @@ public static partial class KeyTags
     /// Zerlegt den fertigen Text an den Markern in Schritte. Ein Umbruch ganz am Ende fällt weg,
     /// den hängen Editoren oft an und er würde nach dem letzten Feld noch eine Zeile einfügen.
     /// </summary>
-    public static IReadOnlyList<FormStep> Split(string text, FormBuilder form)
+    public static IReadOnlyList<FormStep> Split(string text, FormBuilder form) =>
+        SplitWithSources(text, form).Select(s => s.Step).ToList();
+
+    /// <summary>
+    /// Wie <see cref="Split"/>, dazu woher jeder Schritt im Bausteintext stammt. Text zwischen zwei Tags ist ein
+    /// Schritt, samt den Skriptblöcken, deren Ausgabe darin steht.
+    /// </summary>
+    public static IReadOnlyList<SourcedStep> SplitWithSources(string text, FormBuilder form)
     {
-        var steps = new List<FormStep>();
+        var steps = new List<SourcedStep>();
+        var lastTextStart = 0;
         var pos = 0;
         while (pos < text.Length)
         {
             var start = text.IndexOf(MarkerStart, pos);
             if (start < 0)
             {
-                AddText(text[pos..]);
+                AddText(pos, text.Length);
                 break;
             }
-            AddText(text[pos..start]);
+            AddText(pos, start);
 
             var end = text.IndexOf(MarkerEnd, start);
             if (end < 0) break; // abgeschnittener Marker, kann nur aus Skripten stammen
             if (int.TryParse(text.AsSpan(start + 1, end - start - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
                 && index < form.Steps.Count)
-                steps.Add(form.Steps[index]);
+                steps.Add(new(form.Steps[index], form.SourceOf(index)));
             pos = end + 1;
         }
 
-        if (steps.Count > 0 && steps[^1] is TextStep last)
+        if (steps.Count > 0 && steps[^1].Step is TextStep last)
         {
             var trimmed = last.Text.EndsWith("\r\n", StringComparison.Ordinal) ? last.Text[..^2]
                 : last.Text.EndsWith('\n') || last.Text.EndsWith('\r') ? last.Text[..^1]
                 : last.Text;
             if (trimmed.Length == 0)
                 steps.RemoveAt(steps.Count - 1);
-            else
-                steps[^1] = new TextStep(trimmed);
+            else if (trimmed.Length < last.Text.Length)
+                steps[^1] = new(new TextStep(trimmed), form.SourceOfText(lastTextStart, lastTextStart + trimmed.Length));
         }
         return steps;
 
-        void AddText(string part)
+        void AddText(int from, int to)
         {
-            if (part.Length > 0)
-                steps.Add(new TextStep(part));
+            if (to <= from) return;
+            steps.Add(new(new TextStep(text[from..to]), form.SourceOfText(from, to)));
+            lastTextStart = from;
         }
     }
 
