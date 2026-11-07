@@ -70,7 +70,12 @@ public static partial class SnippetSyntax
         var spans = new List<SyntaxSpan>();
         foreach (Match match in KeyTags.Candidate().Matches(text))
         {
-            if (!match.Groups[1].Success)
+            if (match.Groups["note"].Success)
+            {
+                // Kommentare gehören zu den Tags: ohne Tags sind sie Text
+                if (keyTags) spans.Add(new(match.Index, match.Length, SyntaxKind.Comment));
+            }
+            else if (!match.Groups[1].Success)
             {
                 if (scripts) Script(spans, text, match.Index, match.Length);
             }
@@ -118,6 +123,7 @@ public static partial class SnippetSyntax
 
         static TestScope? Single(Match match)
         {
+            if (match.Groups["note"].Success) return null; // ein Kommentar läuft nicht, also alles
             if (!match.Groups[1].Success) return TestScope.Script;
             var name = KeyTags.NamePart().Match(match.Groups[1].Value);
             return name.Success && KeyTags.IsTagName(name.Groups[1].Value) ? TestScope.Tag : null;

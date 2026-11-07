@@ -150,6 +150,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagWeek" xml:space="preserve"><value>Kalenderwoche</value></data>
   <data name="TagClipboard" xml:space="preserve"><value>Text der Zwischenablage</value></data>
   <data name="TagUser" xml:space="preserve"><value>Windows-Benutzer</value></data>
+  <data name="TagComment" xml:space="preserve"><value>Kommentar: eine Notiz für dich, wird nicht eingefügt</value></data>
+  <data name="TagCommentText" xml:space="preserve"><value>Notiz</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Mit Standardprogramm öffnen</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>Neuer Baustein…</value></data>
   <data name="UseBuiltInEditor" xml:space="preserve"><value>Bausteine im eingebauten Editor bearbeiten</value></data>
