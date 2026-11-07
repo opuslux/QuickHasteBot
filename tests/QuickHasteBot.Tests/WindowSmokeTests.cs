@@ -464,6 +464,15 @@ public class WindowSmokeTests
         Assert.Equal(ElementAction.Set, ElementPickerWindow.DefaultAction("ComboBox"));
         Assert.Equal(ElementAction.Focus, ElementPickerWindow.DefaultAction("Edit"));
         Snapshot(picker, "element-picker.png");
+
+        // Der Tag steht über die ganze Breite über den Knöpfen, ein langer umbricht statt abgeschnitten zu werden
+        picker.ResultPanel.Visibility = Visibility.Visible;
+        picker.TagOutput.Text = "{window,process=chrome}{click,name=Zeit;type=button;window=process=chrome}";
+        picker.UpdateLayout();
+        Snapshot(picker, "element-picker-result.png");
+        Assert.Equal(picker.ResultPanel.ActualWidth, picker.TagOutput.ActualWidth, 1);
+        Assert.True(picker.CopyButton.TranslatePoint(new Point(), picker.TagOutput).Y >= picker.TagOutput.ActualHeight);
+        Assert.True(picker.TagOutput.ActualHeight > 2 * picker.TagOutput.FontSize * 1.2, "langer Tag umbrochen");
         picker.Close();
 
         // Fehler: rot, nichts zu kopieren
