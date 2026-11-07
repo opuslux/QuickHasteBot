@@ -165,7 +165,7 @@ public static class Recording
     }
 
     /// <summary>
-    /// Text, der genau so getippt wird. Enthält er etwas, das als Tag oder Skript gelesen würde ({tab}, {{), steht er
+    /// Text, der genau so getippt wird. Enthält er etwas, das als Tag oder Skript gelesen würde ({tab}, {{, ein Kommentar {# … }), steht er
     /// als JavaScript-Text in {{ '…' }}: Was ein Skript ausgibt, wird nie als Tag gelesen.
     /// </summary>
     internal static string Literal(string text)
@@ -188,6 +188,8 @@ public static class Recording
         return js.Append("' }}").ToString();
     }
 
+    /// <summary>Ein Tag oder ein Kommentar {# … }, der beim Einfügen wegfiele.</summary>
     static bool HasTag(string text) =>
-        KeyTags.Candidate().Matches(text).Any(m => m.Groups[1].Success && KeyTags.TryParse(m.Groups[1].Value, null, out _, out _));
+        KeyTags.Candidate().Matches(text).Any(m => m.Groups["note"].Success
+            || m.Groups[1].Success && KeyTags.TryParse(m.Groups[1].Value, null, out _, out _));
 }

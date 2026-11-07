@@ -132,6 +132,8 @@ public class RecordingTests
     [InlineData("{name} bleibt Text")]
     [InlineData("Taste {tab} wörtlich")]
     [InlineData("Skript {{ 1+1 }} wörtlich")]
+    [InlineData("Kommentar {# bleibt} wörtlich")]
+    [InlineData("{# ganze Zeile}")]
     [InlineData("Klammern }} und {{ und '\\ gemischt {enter}")]
     [InlineData("{\"json\": {\"a\": 1}}")]
     public void Typed_text_arrives_exactly_as_recorded(string value)
