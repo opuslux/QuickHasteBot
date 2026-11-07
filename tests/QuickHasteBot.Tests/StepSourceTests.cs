@@ -27,6 +27,10 @@ public class StepSourceTests
         Assert.Equal(["MfG", "{tab}", "Ende"], Sources("MfG{tab}Ende\r\n"));
 
     [Fact]
+    public void Layout_breaks_at_tags_are_not_part_of_the_text_step() =>
+        Assert.Equal(["{tab}", "Max", "{enter}"], Sources("{tab}\r\nMax\r\n{enter}"));
+
+    [Fact]
     public void Tags_with_quoted_arguments_cover_the_whole_tag() =>
         Assert.Equal(["{set,#x,\"a, b}\"}", "{click,name=Senden}"], Sources("{set,#x,\"a, b}\"}{click,name=Senden}"));
 

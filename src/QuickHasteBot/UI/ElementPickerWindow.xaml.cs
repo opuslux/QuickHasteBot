@@ -227,7 +227,7 @@ internal partial class ElementPickerWindow : Window
     void OnInsert(object sender, RoutedEventArgs e)
     {
         if (_app.ActiveEditor is not { } editor || TagOutput.Text.Length == 0) return;
-        editor.Insert(TagOutput.Text);
+        editor.InsertTag(TagOutput.Text);
         editor.Activate();
     }
 

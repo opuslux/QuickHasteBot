@@ -500,6 +500,9 @@ public static partial class KeyTags
     /// <summary>
     /// Zerlegt den fertigen Text an den Markern in Schritte. Ein Umbruch ganz am Ende fällt weg,
     /// den hängen Editoren oft an und er würde nach dem letzten Feld noch eine Zeile einfügen.
+    /// Umbrüche an einem Tag sind nur Layout und werden nicht gesendet: direkt nach einem Tag, direkt vor einem Tag
+    /// (Leerzeichen dazwischen zählen nicht) und Leerzeilen zwischen zwei Tags. So darf jedes Tag auf einer eigenen
+    /// Zeile stehen. Eine echte neue Zeile dort ist {enter} bzw. {shift+enter}.
     /// </summary>
     public static IReadOnlyList<FormStep> Split(string text, FormBuilder form) =>
         SplitWithSources(text, form).Select(s => s.Step).ToList();
@@ -513,15 +516,17 @@ public static partial class KeyTags
         var steps = new List<SourcedStep>();
         var lastTextStart = 0;
         var pos = 0;
+        var afterTag = false;
         while (pos < text.Length)
         {
             var start = text.IndexOf(MarkerStart, pos);
             if (start < 0)
             {
-                AddText(pos, text.Length);
+                AddText(pos, text.Length, afterTag, beforeTag: false);
                 break;
             }
-            AddText(pos, start);
+            AddText(pos, start, afterTag, beforeTag: true);
+            afterTag = true;
 
             var end = text.IndexOf(MarkerEnd, start);
             if (end < 0) break; // abgeschnittener Marker, kann nur aus Skripten stammen
@@ -543,12 +548,37 @@ public static partial class KeyTags
         }
         return steps;
 
-        void AddText(int from, int to)
+        void AddText(int from, int to, bool afterTag, bool beforeTag)
         {
+            var layout = false;
+            if (afterTag && LayoutBreakAfter(text, from, to) is var after && after > from)
+                (from, layout) = (after, true);
+            if (beforeTag && LayoutBreakBefore(text, from, to) is var before && before < to)
+                (to, layout) = (before, true);
             if (to <= from) return;
+            // Was zwischen zwei Tags nach dem Abziehen der Umbrüche bleibt, nur Leerzeilen oder Einrückung: auch Layout
+            if (layout && text.AsSpan(from, to - from).IsWhiteSpace()) return;
             steps.Add(new(new TextStep(text[from..to]), form.SourceOfText(from, to)));
             lastTextStart = from;
         }
+    }
+
+    /// <summary>Hinter Leerzeichen und einem Umbruch am Anfang von text[from..to], sonst <paramref name="from"/>.</summary>
+    static int LayoutBreakAfter(string text, int from, int to)
+    {
+        var i = from;
+        while (i < to && text[i] is ' ' or '\t') i++;
+        if (i < to && text[i] == '\r') return i + 1 < to && text[i + 1] == '\n' ? i + 2 : i + 1;
+        return i < to && text[i] == '\n' ? i + 1 : from;
+    }
+
+    /// <summary>Wo ein Umbruch samt folgender Leerzeichen am Ende von text[from..to] beginnt, sonst <paramref name="to"/>.</summary>
+    static int LayoutBreakBefore(string text, int from, int to)
+    {
+        var i = to;
+        while (i > from && text[i - 1] is ' ' or '\t') i--;
+        if (i > from && text[i - 1] == '\n') return i - 1 > from && text[i - 2] == '\r' ? i - 2 : i - 1;
+        return i > from && text[i - 1] == '\r' ? i - 1 : to;
     }
 
     /// <summary>Wie der Schritt als Tag aussieht, für die Vorschau im KI-Fenster.</summary>

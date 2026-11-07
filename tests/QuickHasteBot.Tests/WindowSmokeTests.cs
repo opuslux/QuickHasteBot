@@ -39,6 +39,7 @@ public class WindowSmokeTests
             EditorStepByStep();
             EditorStartsWithWindow();
             SetPicksFromAListElsewhere();
+            EditorInsertsPickedTagsOnTheirOwnLine();
         }
         finally
         {
@@ -929,8 +930,8 @@ public class WindowSmokeTests
         // Welcher Schritt welchen Haltepunkt trifft
         var form = new FormBuilder();
         var steps = KeyTags.SplitWithSources(SnippetScript.Render(KeyTags.MarkTags(text, form), SnippetScriptTests.Context with { Form = form }), form);
-        // "\r\nMfG" beginnt mit dem Umbruch am Ende von Zeile 2, F5 hält dort trotzdem nur einmal (siehe StepSession)
-        Assert.Equal([null, null, 2, 2, 2, null], steps.Select(s => editor.BreakpointLine(text, s.Source)));
+        // Der Umbruch nach {enter} ist nur Layout, "MfG" steht ganz in Zeile 3
+        Assert.Equal([null, null, 2, 2, null, null], steps.Select(s => editor.BreakpointLine(text, s.Source)));
 
         // Haltepunkte wandern mit dem Text
         editor.BodyInput.Document.Insert(0, "Neu\r\n");
@@ -1016,6 +1017,47 @@ public class WindowSmokeTests
         Assert.True(PumpUntil(() => editor.TestBanner.Visibility == Visibility.Collapsed, TimeSpan.FromSeconds(5)));
 
         editor.BodyInput.Text = "";
+        editor.Close();
+    }
+
+    /// <summary>„In Editor einfügen“ aus dem Picker: jeder Tag auf eine eigene Zeile, ohne Leerzeilen.</summary>
+    static void EditorInsertsPickedTagsOnTheirOwnLine()
+    {
+        using var dir = new TempDirectory();
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        Snapshot(editor, "editor-insert-tag.png");
+        var body = editor.BodyInput;
+
+        // Leerer Editor, dann am Ende: jeder Tag eine Zeile, die Schreibmarke danach auf der neuen leeren Zeile
+        editor.InsertTag("{window,process=chrome}");
+        editor.InsertTag("{set,name=Personen,\"5\"}");
+        Assert.Equal("{window,process=chrome}\r\n{set,name=Personen,\"5\"}\r\n", body.Text);
+        Assert.Equal(body.Text.Length, body.CaretOffset);
+
+        // Am Ende einer Zeile mitten im Text: Umbruch davor, keine Leerzeile danach
+        body.CaretOffset = "{window,process=chrome}".Length;
+        editor.InsertTag("{click,name=Zeit}");
+        Assert.Equal("{window,process=chrome}\r\n{click,name=Zeit}\r\n{set,name=Personen,\"5\"}\r\n", body.Text);
+
+        // Am Anfang einer Zeile: Umbruch danach
+        body.CaretOffset = 0;
+        editor.InsertTag("{delay,100}");
+        Assert.StartsWith("{delay,100}\r\n{window,process=chrome}\r\n", body.Text);
+
+        // Mitten im Text: ohne Umbruch
+        body.Text = "MaxMuster";
+        body.CaretOffset = 3;
+        editor.InsertTag("{tab}");
+        Assert.Equal("Max{tab}Muster", body.Text);
+
+        // Die Umbrüche sind nur Layout: gesendet werden nur die Tags
+        body.Text = "";
+        editor.InsertTag("{window,process=chrome}");
+        editor.InsertTag("{click,name=Zeit}");
+        Assert.Equal("{window,process=chrome}{click,name=Zeit}", controller.Preview(body.Text).Text);
+
+        body.Text = "";
         editor.Close();
     }
 

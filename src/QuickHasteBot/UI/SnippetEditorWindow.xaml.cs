@@ -298,6 +298,29 @@ internal partial class SnippetEditorWindow : Window
         BodyInput.Focus();
     }
 
+    /// <summary>
+    /// Ein Tag aus dem Picker auf eine eigene Zeile: Umbruch davor, wenn die Zeile schon etwas enthält, und danach, wenn
+    /// noch etwas folgt oder es die letzte Zeile ist. Diese Umbrüche sind nur Layout und werden nicht gesendet
+    /// (<see cref="KeyTags.SplitWithSources"/>). Mitten im Text wird der Tag ohne Umbruch eingefügt.
+    /// </summary>
+    internal void InsertTag(string tag)
+    {
+        var document = BodyInput.Document;
+        var start = BodyInput.SelectionStart;
+        var end = start + BodyInput.SelectionLength;
+        var startLine = document.GetLineByOffset(start);
+        var endLine = document.GetLineByOffset(end);
+        var before = !string.IsNullOrWhiteSpace(document.GetText(startLine.Offset, start - startLine.Offset));
+        var after = !string.IsNullOrWhiteSpace(document.GetText(end, endLine.EndOffset - end));
+        if (before && after)
+        {
+            Insert(tag);
+            return;
+        }
+        var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, startLine.LineNumber);
+        Insert((before ? newLine : "") + tag + (after || endLine.NextLine is null ? newLine : ""));
+    }
+
     void OnTagsClick(object sender, RoutedEventArgs e)
     {
         var menu = TagMenu();
