@@ -133,8 +133,9 @@ public sealed partial record ElementSelector(
     };
 
     // React (:r3:), GUIDs, lange Zahlen mitten in Buchstaben (mui-12345, input_1699457) und zufällige Buchstaben-Ziffern-
-    // Folgen (mantine-2hi08ejzc: mindestens 7 Zeichen, 2 Ziffern, Ziffer und Buchstabe gemischt) wechseln bei jedem Laden
-    [GeneratedRegex(@"^:[a-z0-9]+:$|[0-9a-f]{8}-[0-9a-f]{4}-|[a-z][-_]?\d{4,}|\d{4,}[-_]?[a-z]|(?:^|[-_])(?=[a-z0-9]{7,}(?:$|[-_]))(?=(?:[a-z]*\d){2})(?=[a-z0-9]*\d[a-z])(?=[a-z0-9]*[a-z]\d)", RegexOptions.IgnoreCase)]
+    // Folgen (k3x9q2mz: mindestens 7 Zeichen, 2 Ziffern, Ziffer und Buchstabe gemischt) wechseln bei jedem Laden.
+    // Dazu Präfixe von Bibliotheken, die ihre ids immer selbst erzeugen (mantine-b1omqnnct, radix-:r2:, ember123).
+    [GeneratedRegex(@"^(?:mantine|radix|headlessui|react-aria\d*|downshift|chakra)-|^(?:ember|ui-id-|j_idt)\d|^:[a-z0-9]+:$|[0-9a-f]{8}-[0-9a-f]{4}-|[a-z][-_]?\d{4,}|\d{4,}[-_]?[a-z]|(?:^|[-_])(?=[a-z0-9]{7,}(?:$|[-_]))(?=(?:[a-z]*\d){2})(?=[a-z0-9]*\d[a-z])(?=[a-z0-9]*[a-z]\d)", RegexOptions.IgnoreCase)]
     private static partial Regex GeneratedId();
 
     /// <summary>
