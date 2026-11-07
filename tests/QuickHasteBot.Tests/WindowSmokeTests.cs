@@ -34,12 +34,50 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
+            EditorWrapToggle();
         }
         finally
         {
             app.Shutdown();
         }
     });
+
+    /// <summary>Umbruch-Schalter unten rechts im Editor, wie in der Textvorschau des Popups, und Shift+Mausrad.</summary>
+    static void EditorWrapToggle()
+    {
+        using var dir = new TempDirectory();
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        editor.BodyInput.Text = "Kurz\r\n" + new string('x', 400);
+        Snapshot(editor, "editor-wrap.png");
+
+        // Standard wie bisher: umgebrochen, der Schalter an
+        Assert.True(editor.BodyInput.WordWrap);
+        Assert.True(editor.WrapToggle.IsChecked);
+        Assert.Equal(Strings.WrapTooltip, editor.WrapToggle.ToolTip);
+
+        // Aus: ungebrochen und waagrecht scrollbar, auch mit Shift+Mausrad. Gilt sofort und wird gespeichert.
+        editor.WrapToggle.IsChecked = false;
+        editor.WrapToggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.False(editor.BodyInput.WordWrap);
+        Assert.Equal(System.Windows.Controls.ScrollBarVisibility.Auto, editor.BodyInput.HorizontalScrollBarVisibility);
+        Assert.False(controller.Settings.WrapEditor);
+        Assert.Contains(@"""WrapEditor"": false", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        editor.UpdateLayout();
+        Assert.True(ShiftWheel.GetHorizontal(editor.BodyInput));
+        Assert.True(ShiftWheel.Scroll(ShiftWheel.Viewer(editor.BodyInput)!, -120, ModifierKeys.Shift));
+        editor.UpdateLayout();
+        Assert.True(editor.BodyInput.HorizontalOffset > 0);
+
+        // Ein Editor, der danach aufgeht, übernimmt die Einstellung
+        var next = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        Assert.False(next.BodyInput.WordWrap);
+        Assert.False(next.WrapToggle.IsChecked);
+        next.Close();
+
+        editor.BodyInput.Text = "";
+        editor.Close();
+    }
 
     /// <summary>Blättern, Suchen und Kopfzeile, dazu die deutschen Texte.</summary>
     static void German()
@@ -98,6 +136,13 @@ public class WindowSmokeTests
         // Bei einem Text unten rechts in der Vorschau der Stift zum Bearbeiten, bei Ordnern und Weblinks nicht
         Assert.True(popup.EditPreviewButton.IsVisible);
         Assert.Equal("Diesen Baustein im Editor bearbeiten (Strg+O)", popup.EditPreviewButton.ToolTip);
+        // Shift+Mausrad scrollt die ungebrochene Vorschau waagrecht, ohne Shift bleibt es beim normalen Rad
+        Assert.True(ShiftWheel.GetHorizontal(popup.DetailScroll));
+        Assert.False(ShiftWheel.Scroll(popup.DetailScroll, -120, ModifierKeys.None));
+        Assert.True(ShiftWheel.Scroll(popup.DetailScroll, -120, ModifierKeys.Shift));
+        popup.UpdateLayout();
+        Assert.True(popup.DetailScroll.HorizontalOffset > 0);
+        popup.DetailScroll.ScrollToHorizontalOffset(0);
 
         // Aus der Suche heraus führt ein Ordner von rechts in den Blätter-Modus
         viewModel.Query = "grüsse";

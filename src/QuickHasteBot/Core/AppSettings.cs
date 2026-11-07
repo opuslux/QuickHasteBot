@@ -94,6 +94,9 @@ public sealed class AppSettings
     /// <summary>Lange Zeilen in der Textvorschau umbrechen statt horizontal scrollen.</summary>
     public bool WrapPreview { get; set; }
 
+    /// <summary>Lange Zeilen im Editor umbrechen (Standard), sonst horizontal scrollen.</summary>
+    public bool WrapEditor { get; set; } = true;
+
     /// <summary>Das Popup öffnet im zuletzt angezeigten Ordner statt oben, mit dem damals markierten Eintrag.</summary>
     public bool RememberFolder { get; set; }
 

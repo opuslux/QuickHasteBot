@@ -331,7 +331,7 @@
                                  PreviewMouseRightButtonUp="OnListRightButtonUp" />
 
                         <!-- Text, Adresse oder Hinweis. Lange Zeilen eines Textes nur auf Wunsch umbrochen, sonst wird horizontal gescrollt. -->
-                        <ScrollViewer x:Name="DetailScroll" Focusable="False" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="DetailScroll" Focusable="False" VerticalScrollBarVisibility="Auto" ui:ShiftWheel.Horizontal="True">
                             <ScrollViewer.Style>
                                 <Style TargetType="ScrollViewer" BasedOn="{StaticResource {x:Type ScrollViewer}}">
                                     <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
