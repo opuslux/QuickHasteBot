@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -57,6 +58,17 @@ internal partial class SearchPopup : Window
             DetailScroll.ScrollToHome();
             if (_viewModel.DetailItems.Count > 0)
                 DetailList.ScrollIntoView(_viewModel.DetailItems[0]);
+
+            // Ein Ordnerinhalt rechts darf das Popup höher machen, statt zu scrollen. Immer neu messen: Füllt schon
+            // die alte Liste die Höhe, meldet die neue dieselbe Wunschhöhe und das Layout merkte nichts.
+            DetailHost.Grow = _viewModel.ShowDetailItems;
+            DetailHost.InvalidateMeasure();
+        };
+        // Neue Liste links (Öffnen, Suchen, anderer Ordner): die rechte Spalte gibt die Höhe wieder frei
+        _viewModel.Items.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+                DetailHost.ResetGrowth();
         };
         // Egal wie das Popup zugeht (Einfügen, Esc, Klick daneben): Ordner fürs nächste Öffnen merken
         IsVisibleChanged += (_, e) =>
