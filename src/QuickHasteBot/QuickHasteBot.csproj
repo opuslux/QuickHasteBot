@@ -15,6 +15,8 @@
     <Product>QuickHasteBot</Product>
     <Description>Textbausteine per Hotkey suchen und einfügen</Description>
     <Authors>opuslux</Authors>
+    <Copyright>Copyright © 2026 opuslux</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <!-- Nur falls git fehlt, sonst kommt die Version vom letzten Tag (siehe VersionFromGit unten) -->
     <Version>0.0.0-dev</Version>
 

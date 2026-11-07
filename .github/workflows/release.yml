@@ -65,8 +65,10 @@ jobs:
     - name: Create Zip Archives
       shell: pwsh
       run: |
-        Copy-Item README.md publish -ErrorAction SilentlyContinue
-        Copy-Item README.md publish-standalone -ErrorAction SilentlyContinue
+        # README, Lizenz und Drittlizenzen gehören in jede ZIP (fehlt eine Datei, bricht der Schritt ab)
+        foreach ($dir in 'publish', 'publish-standalone') {
+            Copy-Item README.md, LICENSE, THIRD-PARTY-NOTICES.md $dir -ErrorAction Stop
+        }
         $zipName = "QuickHasteBot-${{ env.FULL_VERSION }}-win-x64.zip"
         $standaloneZipName = "QuickHasteBot-${{ env.FULL_VERSION }}-win-x64-standalone.zip"
         Compress-Archive -Path "publish\*" -DestinationPath $zipName
