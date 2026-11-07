@@ -59,16 +59,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Stift in der Textvorschau: in Akzentfarbe, damit man ihn neben dem Text findet -->
-        <Style x:Key="EditButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
-            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorSecondaryBrush}" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
         <!-- Linker und rechter Fensterrand zum Ändern der Breite, unsichtbar bis auf den Mauszeiger -->
         <Style x:Key="ResizeEdge" TargetType="Thumb">
             <Setter Property="Width" Value="6" />
@@ -380,7 +370,7 @@
                             <StackPanel Orientation="Horizontal">
                                 <ToggleButton Style="{StaticResource IconToggle}" Content="&#xE751;"
                                               IsChecked="{Binding WrapPreview}" ToolTip="{x:Static ui:Strings.WrapTooltip}" />
-                                <Button x:Name="EditPreviewButton" Style="{StaticResource EditButton}" Content="&#xE70F;" Margin="2,0,0,0"
+                                <Button x:Name="EditPreviewButton" Style="{StaticResource IconButton}" Content="&#xE70F;" Margin="2,0,0,0"
                                         ToolTip="{x:Static ui:Strings.EditPreviewTooltip}" Click="OnEditPreviewClick" />
                             </StackPanel>
                         </Border>

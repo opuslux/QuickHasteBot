@@ -136,6 +136,8 @@ public class WindowSmokeTests
         // Bei einem Text unten rechts in der Vorschau der Stift zum Bearbeiten, bei Ordnern und Weblinks nicht
         Assert.True(popup.EditPreviewButton.IsVisible);
         Assert.Equal("Diesen Baustein im Editor bearbeiten (Strg+O)", popup.EditPreviewButton.ToolTip);
+        // Grau wie die übrigen Symbole: Akzentfarbe hiesse „eingeschaltet“ wie beim Umbruch
+        Assert.Same(popup.FindResource("TextFillColorTertiaryBrush"), popup.EditPreviewButton.Foreground);
         // Shift+Mausrad scrollt die ungebrochene Vorschau waagrecht, ohne Shift bleibt es beim normalen Rad
         Assert.True(ShiftWheel.GetHorizontal(popup.DetailScroll));
         Assert.False(ShiftWheel.Scroll(popup.DetailScroll, -120, ModifierKeys.None));
