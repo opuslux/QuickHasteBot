@@ -322,24 +322,19 @@ internal sealed class AppController : IDisposable
 
         if (form is not null && KeyTags.HasMarkers(text))
         {
-            var steps = KeyTags.SplitWithSources(text, form).ToList();
-            gate?.Planned(steps, paste: false);
-            var result = await _paste.RunFormAsync(steps.Select(s => s.Step).ToList(), targetWindow, Settings.KeyTagsWindowGuard, gate,
+            var result = await _paste.RunFormAsync(KeyTags.SplitWithSources(text, form), targetWindow, Settings.KeyTagsWindowGuard, gate,
                 session is null ? null : ExpandAsync);
             if (gate is not null && result.Outcome == FormOutcome.EscapePressed)
                 return new("", MessageBoxImage.Information, result.StepIndex, Stopped: true);
             return FormMessage(result, name) is { } message ? new(message, MessageBoxImage.Information, result.StepIndex) : null;
 
-            // Ein zurückgestellter Block, jetzt an der Reihe: auswerten (run() wartet im Hintergrund) und seine Schritte
-            // auch für den Schritt-für-Schritt-Lauf dahinter einsetzen
-            async Task<Expansion> ExpandAsync(DeferredStep deferred, int index)
+            // Ein zurückgestellter Block, jetzt an der Reihe: auswerten (run() wartet im Hintergrund). Seine Schritte setzt
+            // der Lauf dahinter ein.
+            async Task<Expansion> ExpandAsync(DeferredStep deferred, SourceSpan source)
             {
                 try
                 {
-                    var added = await Task.Run(() => session.Evaluate(deferred, steps[index].Source));
-                    steps.InsertRange(index + 1, added);
-                    gate?.Planned([.. steps], paste: false);
-                    return new Expansion([.. added.Select(s => s.Step)]);
+                    return new Expansion(await Task.Run(() => session.Evaluate(deferred, source)));
                 }
                 catch (SnippetScriptException ex)
                 {
@@ -469,7 +464,7 @@ internal sealed class AppController : IDisposable
         if (!KeyTags.HasMarkers(text))
             return Strings.PickerTestNoTag;
 
-        var result = await _paste.RunFormAsync(KeyTags.Split(text, form), targetWindow, Settings.KeyTagsWindowGuard);
+        var result = await _paste.RunFormAsync(KeyTags.SplitWithSources(text, form), targetWindow, Settings.KeyTagsWindowGuard);
         return result.Outcome switch
         {
             FormOutcome.Completed => null,

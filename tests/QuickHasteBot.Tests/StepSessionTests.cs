@@ -173,9 +173,8 @@ public class StepSessionTests
     [Fact]
     public async Task It_drives_a_real_run_step_by_step()
     {
-        FormStep[] steps = [new WaitStep(1), new DelayStep(5), new GuardStep(false)];
+        var steps = TestSteps.Sourced(new WaitStep(1), new DelayStep(5), new GuardStep(false));
         var session = new StepSession(_ => null, () => false, Short);
-        session.Planned(steps.Select((s, i) => new SourcedStep(s, new SourceSpan(i, 1))).ToList(), paste: false);
 
         var run = new PasteService().RunFormAsync(steps, 0, windowGuard: false, session);
         await Paused(session, 0);

@@ -9,18 +9,21 @@ namespace QuickHasteBot.Tests;
 /// </summary>
 public class StepGateTests
 {
-    static readonly FormStep[] Quiet = [new WaitStep(1), new DelayStep(5), new GuardStep(false)];
+    static readonly SourcedStep[] Quiet = TestSteps.Sourced(new WaitStep(1), new DelayStep(5), new GuardStep(false));
 
-    sealed class RecordingGate(int stopAt = -1) : IStepGate
+    internal sealed class RecordingGate(int stopAt = -1) : IStepGate
     {
         public List<int> Seen { get; } = [];
         public List<SourcedStep>? Steps { get; private set; }
         public bool? Paste { get; private set; }
+        public bool PlannedBeforeFirstStep { get; private set; }
 
         public void Planned(IReadOnlyList<SourcedStep> steps, bool paste) => (Steps, Paste) = (steps.ToList(), paste);
 
         public Task<StepDecision> BeforeStepAsync(int step)
         {
+            if (Seen.Count == 0)
+                PlannedBeforeFirstStep = Steps is not null;
             Seen.Add(step);
             return Task.FromResult(step == stopAt ? StepDecision.Stop : StepDecision.Run);
         }
@@ -33,6 +36,16 @@ public class StepGateTests
         var result = await new PasteService().RunFormAsync(Quiet, 0, windowGuard: false, gate);
         Assert.Equal(FormOutcome.Completed, result.Outcome);
         Assert.Equal([0, 1, 2], gate.Seen);
+    }
+
+    [Fact]
+    public async Task The_run_hands_its_steps_to_the_gate_first()
+    {
+        var gate = new RecordingGate();
+        await new PasteService().RunFormAsync(Quiet, 0, windowGuard: false, gate);
+        Assert.True(gate.PlannedBeforeFirstStep);
+        Assert.Equal(Quiet, gate.Steps);
+        Assert.False(gate.Paste);
     }
 
     [Fact]

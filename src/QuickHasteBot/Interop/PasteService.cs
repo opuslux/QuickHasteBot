@@ -25,9 +25,10 @@ internal enum FormOutcome
 /// <summary>
 /// Was ein zurückgestellter Skriptblock (<see cref="DeferredStep"/>) ergeben hat: seine Schritte, oder warum nicht.
 /// </summary>
+/// <param name="Steps">Die Ausgabe des Blocks als Schritte, mit Herkunft für den Schritt-für-Schritt-Lauf.</param>
 /// <param name="Error">Die Meldung für den Benutzer, wenn der Block fehlgeschlagen ist.</param>
 /// <param name="Cancelled">Esc beim Warten auf run().</param>
-internal sealed record Expansion(IReadOnlyList<FormStep> Steps, string? Error = null, bool Cancelled = false);
+internal sealed record Expansion(IReadOnlyList<SourcedStep> Steps, string? Error = null, bool Cancelled = false);
 
 /// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
 /// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/> und <see cref="FormOutcome.StartFailed"/>: warum.</param>
@@ -125,30 +126,33 @@ internal sealed class PasteService
     }
 
     /// <summary>
-    /// Führt einen Formular-Baustein aus (Text und Tasten-Tags, siehe <see cref="KeyTags"/>). Immer getippt, damit Text
-    /// und Tasten in derselben Eingabe-Warteschlange und damit in der richtigen Reihenfolge ankommen.
-    /// Bricht ab, wenn die echte Esc-Taste gedrückt ist oder (mit Fensterschutz) ein anderes Fenster in den Vordergrund kommt.
-    /// </summary>
-    /// <param name="gate">Darf vor jedem Schritt anhalten (Schritt für Schritt). Nach einer Pause kommt das Fenster, das
-    /// vorher vorne war, zurück nach vorne, sonst bricht der Lauf ab.</param>
-    /// <summary>
     /// Der Schritt, mit dem ein Baustein sein Fenster selbst nach vorne holt ({window,…}, {start,…} oder ein Element-Tag
     /// mit Fenster), falls er so beginnt. Pausen und {guard} davor zählen nicht. Sonst null.
     /// </summary>
-    internal static FormStep? StartWindowStep(IReadOnlyList<FormStep> steps) =>
+    internal static FormStep? StartWindowStep(IEnumerable<FormStep> steps) =>
         steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is { } first
         && first is WindowStep or StartStep or ElementStep { Selector.Window: not null } ? first : null;
 
+    /// <summary>
+    /// Führt einen Formular-Baustein aus (Text und Tasten-Tags, siehe <see cref="KeyTags"/>). Immer getippt, damit Text
+    /// und Tasten in derselben Eingabe-Warteschlange und damit in der richtigen Reihenfolge ankommen.
+    /// Bricht ab, wenn die echte Esc-Taste gedrückt ist oder (mit Fensterschutz) ein anderes Fenster in den Vordergrund kommt.
+    /// Der Lauf hält die einzige Schrittliste: Er meldet sie dem <paramref name="gate"/> und erweitert sie um die Schritte
+    /// zurückgestellter Blöcke.
+    /// </summary>
+    /// <param name="gate">Darf vor jedem Schritt anhalten (Schritt für Schritt). Nach einer Pause kommt das Fenster, das
+    /// vorher vorne war, zurück nach vorne, sonst bricht der Lauf ab.</param>
     /// <param name="expand">
-    /// Wertet einen zurückgestellten Skriptblock aus, wenn der Lauf dort ankommt (run() an seiner Stelle). Seine Schritte
-    /// kommen direkt dahinter. Ohne werden solche Blöcke übersprungen.
+    /// Wertet einen zurückgestellten Skriptblock aus, wenn der Lauf dort ankommt (run() an seiner Stelle), mit der Herkunft
+    /// des Blocks. Seine Schritte kommen direkt dahinter. Ohne werden solche Blöcke übersprungen.
     /// </param>
-    public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> plannedSteps, nint targetWindow, bool windowGuard, IStepGate? gate = null,
-        Func<DeferredStep, int, Task<Expansion>>? expand = null)
+    public async Task<FormResult> RunFormAsync(IReadOnlyList<SourcedStep> plannedSteps, nint targetWindow, bool windowGuard, IStepGate? gate = null,
+        Func<DeferredStep, SourceSpan, Task<Expansion>>? expand = null)
     {
         var steps = plannedSteps.ToList();
+        gate?.Planned([.. steps], paste: false);
         // Beginnt der Baustein mit {window,…} oder {start,…}, ist das Fenster vom Hotkey egal
-        var startsWithWindow = StartWindowStep(steps) is not null;
+        var startsWithWindow = StartWindowStep(steps.Select(s => s.Step)) is not null;
         if (!startsWithWindow && !await WindowFocus.ActivateAndWaitAsync(targetWindow))
         {
             // Anders als beim Einfügen nicht einfach ans aktuelle Fenster senden, {enter} & Co. könnten dort Schaden anrichten
@@ -185,8 +189,9 @@ internal sealed class PasteService
                 return Aborted(FormOutcome.WindowChanged, i);
 
             // {window,…} vor dem Element: Programm nach vorne holen, dann dort suchen. {start,…} startet es vorher, falls nötig.
+            var step = steps[i].Step;
             var searchWindow = GetForegroundWindow();
-            var window = steps[i] switch
+            var window = step switch
             {
                 WindowStep w => w.Window,
                 StartStep s => s.Window,
@@ -195,7 +200,7 @@ internal sealed class PasteService
             };
             if (window is not null)
             {
-                var (hwnd, failure) = await BringToFrontAsync(window, i, steps[i] as StartStep);
+                var (hwnd, failure) = await BringToFrontAsync(window, i, step as StartStep);
                 if (failure is not null) return failure;
                 searchWindow = hwnd;
                 guardWindow = RootOwner(hwnd);
@@ -203,10 +208,10 @@ internal sealed class PasteService
             }
 
             // Programme mit Administratorrechten nehmen von uns nichts an (UIPI), ohne dass Windows es meldet
-            if (steps[i] is TextStep or KeyStep or ElementStep && Blocked(searchWindow))
+            if (step is TextStep or KeyStep or ElementStep && Blocked(searchWindow))
                 return Aborted(FormOutcome.Elevated, i, ProcessAccess.ProcessName(searchWindow));
 
-            switch (steps[i])
+            switch (step)
             {
                 case TextStep text when charDelay == 0:
                     await TypeAsync(text.Text, shiftEnter: true);
@@ -282,12 +287,13 @@ internal sealed class PasteService
                 {
                     // Ein sichtbares Konsolenfenster kommt nach vorne: danach das Fenster von vorher zurückholen
                     var front = GetForegroundWindow();
-                    var expansion = await expand(deferred, i);
+                    var expansion = await expand(deferred, steps[i].Source);
                     if (expansion.Cancelled)
                         return Aborted(FormOutcome.EscapePressed, i);
                     if (expansion.Error is not null)
                         return Aborted(FormOutcome.ScriptFailed, i, expansion.Error);
                     steps.InsertRange(i + 1, expansion.Steps);
+                    gate?.Planned([.. steps], paste: false);
                     if (GetForegroundWindow() != front && !await ResumeAsync(front))
                         return Aborted(FormOutcome.WindowChanged, i);
                     break;
@@ -354,7 +360,7 @@ internal sealed class PasteService
         FormResult Aborted(FormOutcome outcome, int step, string? error = null)
         {
             Log.Info($"Formular-Baustein abgebrochen ({outcome}) bei Schritt {step + 1} von {steps.Count}");
-            return new FormResult(outcome, step < steps.Count ? KeyTags.Describe(steps[step]) : null, error, step);
+            return new FormResult(outcome, step < steps.Count ? KeyTags.Describe(steps[step].Step) : null, error, step);
         }
     }
 
