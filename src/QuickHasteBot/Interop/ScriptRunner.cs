@@ -15,6 +15,8 @@ namespace QuickHasteBot.Interop;
 internal static class ScriptRunner
 {
     const int PollInterval = 50;
+    /// <summary>So lange wird nach dem Ende noch auf den Rest der Ausgabe gewartet (ms).</summary>
+    const int OutputGrace = 1000;
 
     static ScriptRunner() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
@@ -51,8 +53,8 @@ internal static class ScriptRunner
             if (!wait) return new RunResult(null, "", "");
 
             // Beide Ausgaben gleichzeitig lesen, sonst bleibt das Skript bei vollem Puffer stehen
-            var output = process.StandardOutput.ReadToEndAsync();
-            var errors = process.StandardError.ReadToEndAsync();
+            var output = new Collector(process.StandardOutput);
+            var errors = new Collector(process.StandardError);
             var deadline = Environment.TickCount64 + request.WaitSeconds * 1000L;
             while (!process.WaitForExit(PollInterval))
             {
@@ -67,9 +69,64 @@ internal static class ScriptRunner
                     throw new RunFailedException($"{name} didn't finish within {request.WaitSeconds} s");
                 }
             }
-            process.WaitForExit(); // bis die Ausgabe ganz gelesen ist
+
+            // Startet das Skript selbst ein Programm (start app.exe), erbt dieses die Ausgabeleitung, und sie geht erst
+            // mit ihm zu. Darum nur kurz auf den Rest warten und nehmen, was angekommen ist.
+            var rest = Environment.TickCount64 + OutputGrace;
+            while (!(output.Done && errors.Done) && Environment.TickCount64 < rest)
+            {
+                if (cancelled())
+                {
+                    Log.Info($"run(): Warten auf die Ausgabe von {request.File} mit Esc abgebrochen");
+                    throw new OperationCanceledException();
+                }
+                Thread.Sleep(PollInterval);
+            }
+            if (!(output.Done && errors.Done))
+                Log.Info($"run(): {request.File} ist fertig, ein von ihm gestartetes Programm hält die Ausgabe noch offen");
             Log.Info($"run(): {request.File} fertig mit {process.ExitCode}");
-            return new RunResult(process.ExitCode, output.Result, errors.Result);
+            return new RunResult(process.ExitCode, output.Text, errors.Text);
+        }
+    }
+
+    /// <summary>
+    /// Liest eine Ausgabe auf einem eigenen Thread bis zu ihrem Ende. Anders als ReadToEndAsync gibt es das bisher
+    /// Gelesene auch, wenn das Ende nicht kommt. Der Leser bleibt offen, solange jemand in die Leitung schreibt: So bricht
+    /// einem weiterlaufenden Skript oder Programm die Ausgabe nicht weg. Ein eigener Thread statt des Threadpools, damit
+    /// das Lesen nicht hinter anderer Arbeit ansteht.
+    /// </summary>
+    sealed class Collector
+    {
+        readonly StringBuilder _text = new();
+        volatile bool _done;
+
+        public Collector(StreamReader reader) =>
+            new Thread(() => Read(reader)) { IsBackground = true, Name = "run() output" }.Start();
+
+        public bool Done => _done;
+
+        public string Text
+        {
+            get { lock (_text) return _text.ToString(); }
+        }
+
+        void Read(StreamReader reader)
+        {
+            var buffer = new char[4096];
+            try
+            {
+                int read;
+                while ((read = reader.Read(buffer, 0, buffer.Length)) > 0)
+                    lock (_text) _text.Append(buffer, 0, read);
+            }
+            catch (Exception ex) when (ex is IOException or ObjectDisposedException)
+            {
+                // Leitung weg: Was da ist, gilt
+            }
+            finally
+            {
+                _done = true;
+            }
         }
     }
 

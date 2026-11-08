@@ -86,6 +86,29 @@ public class ScriptRunnerTests
     }
 
     [Fact]
+    public void Program_started_by_the_script_does_not_hold_it_up()
+    {
+        // ping erbt die Fehlerausgabe und hält sie 7 s offen, das Skript selbst ist sofort fertig
+        using var dir = new TempDirectory();
+        var path = Batch(dir, "starter.bat", "@echo hallo\n@start \"\" /b ping -n 8 127.0.0.1 >nul\n@exit /b 4\n");
+        var watch = Stopwatch.StartNew();
+        var result = Run(path, wait: 5);
+        Assert.True(watch.Elapsed.TotalSeconds < 3, $"took {watch.Elapsed.TotalSeconds:0.0} s");
+        Assert.Equal(4, result.Code);
+        Assert.Equal("hallo", result.Out.Trim());
+    }
+
+    [Fact]
+    public void Escape_works_while_a_started_program_holds_the_output()
+    {
+        using var dir = new TempDirectory();
+        var path = Batch(dir, "starter.bat", "@start \"\" /b ping -n 8 127.0.0.1 >nul\n");
+        var watch = Stopwatch.StartNew();
+        Assert.Throws<OperationCanceledException>(() => Run(path, cancelled: () => watch.ElapsedMilliseconds > 300));
+        Assert.True(watch.Elapsed.TotalSeconds < 1.5, $"took {watch.Elapsed.TotalSeconds:0.0} s");
+    }
+
+    [Fact]
     public void No_wait_only_starts()
     {
         using var dir = new TempDirectory();
