@@ -31,7 +31,24 @@
                 <Image Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico" Width="32" Height="32" Margin="0,0,12,0" />
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="QuickHasteBot" FontSize="20" FontWeight="SemiBold" />
-                    <TextBlock x:Name="VersionText" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <!-- Rechts neben der Version: das README als Hilfe -->
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="VersionText" FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="·" FontSize="12" Margin="6,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="HelpLink" Text="{x:Static ui:Strings.Help}" FontSize="12" Cursor="Hand"
+                                   ToolTip="{x:Static ui:Strings.HelpToolTip}" MouseLeftButtonUp="OnHelpClick">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="TextDecorations" Value="Underline" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
             </StackPanel>
 

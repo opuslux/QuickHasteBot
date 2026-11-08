@@ -518,6 +518,8 @@ internal partial class SnippetEditorWindow : Window
 
     void OnAiClick(object sender, RoutedEventArgs e) => _app.ShowAiPrompt();
 
+    void OnHelpClick(object sender, RoutedEventArgs e) => _app.ShowHelp(HelpWindow.EditorAnchor);
+
     // --- Speichern ---
 
     void OnSave(object sender, RoutedEventArgs e) => Save();
@@ -951,6 +953,9 @@ internal partial class SnippetEditorWindow : Window
         {
             case Key.S when ctrl:
                 Save();
+                break;
+            case Key.F1:
+                _app.ShowHelp(HelpWindow.EditorAnchor);
                 break;
             case Key.F5:
                 OnTest(this, e);

@@ -1,0 +1,15 @@
+<Window x:Class="QuickHasteBot.UI.HelpWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:QuickHasteBot.UI"
+        Title="{x:Static ui:Strings.HelpTitle}"
+        Icon="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
+        Width="920" Height="760" MinWidth="480" MinHeight="320"
+        WindowStartupLocation="CenterScreen"
+        PreviewKeyDown="OnPreviewKeyDown">
+
+    <!-- Das README als Dokument: markierbar, Ctrl+F sucht, Ctrl+Mausrad zoomt -->
+    <FlowDocumentScrollViewer x:Name="Viewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              IsToolBarVisible="False" MinZoom="60" MaxZoom="200" Zoom="100" />
+</Window>

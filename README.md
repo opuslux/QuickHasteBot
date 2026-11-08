@@ -36,7 +36,7 @@ The exe is not code-signed, so Windows SmartScreen may warn the first time you s
 
 **The hotkey** that opens the popup is **Ctrl+Shift+Y** by default. To change it, open the settings (double-click the tray icon, or Ctrl+, in the popup), click the hotkey field under **General → Hotkey** and press the new combination. It must include Ctrl, Alt, Shift or Win; if another program already uses it, the settings say so right away. The hotkey is stored as `Hotkey` in `settings.json` and applies immediately.
 
-The tray menu also opens the snippets folder, the [element picker](#elements-focus-click-set) and the [AI prompt for scripts](#writing-a-block-with-ai). To start with Windows, enable "Start with Windows" in the settings.
+The tray menu also opens the snippets folder, the [element picker](#elements-focus-click-set), the [AI prompt for scripts](#writing-a-block-with-ai) and this manual as **Help**, which the settings (next to the version) and the editor (**Help** button or F1) open as well. To start with Windows, enable "Start with Windows" in the settings.
 
 ## Snippets
 
