@@ -67,6 +67,8 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="FormStartedWindowNotFoundFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} hat das Programm gestartet, aber innerhalb von {2} Sekunden ist kein Fenster davon aufgetaucht.
 
 Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unter einem anderen Namen (ein Starter oder eine Store-App, z.B. calc), starte es von Hand und nimm stattdessen {{window,title=…}}.</value></data>
+  <data name="FormScriptFailedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Das Skript in Block {1} ist fehlgeschlagen.
+{2}</value></data>
   <data name="TargetElevatedFormat" xml:space="preserve"><value>«{0}» kommt nicht an {1} heran: Es läuft mit Administratorrechten, und Windows lässt normale Programme dort keine Tasten senden.
 
 {1} ohne Administratorrechte starten (in der Verknüpfung: Eigenschaften › Erweitert/Kompatibilität › «Als Administrator ausführen» ausschalten). QuickHasteBot selbst braucht keine.</value></data>
@@ -163,6 +165,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagTime" xml:space="preserve"><value>aktuelle Uhrzeit</value></data>
   <data name="TagGuid" xml:space="preserve"><value>eindeutige Nummer (GUID)</value></data>
   <data name="TagComment" xml:space="preserve"><value>Kommentar, wird nicht eingefügt</value></data>
+  <data name="TagRun" xml:space="preserve"><value>Skript oder Programm ausführen</value></data>
   <data name="TagCommentText" xml:space="preserve"><value>Notiz</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Mit Standardprogramm öffnen</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>Neuer Baustein…</value></data>

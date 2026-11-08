@@ -222,12 +222,34 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
 | `focus(el)`, `click(el)`, `set(el, value)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`. |
 | `window(app)` | Like [`{window,…}`](#other-programs-window-and-start): `window('crm')`. |
+| `run(file, args, options)` | Runs a script or program right where it stands and waits for it: `run('d:/scripts/number.bat')`. The result has `code`, `out` and `err`; as text it is its output. See [Running scripts](#running-scripts). |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
+- **A line of blocks that prints nothing goes away**, line break included, like a comment line. So assignments and checks can stand on lines of their own, and a line can depend on a condition: `{{ vip ? 'Priority handling' : '' }}` on its own line appears only for VIPs. If the blocks print something, the line stays as written. Empty lines you type yourself stay.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 - If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts`).
+
+### Running scripts
+
+`run()` starts a script or program at its place in the snippet, waits until it is done, and hands over what it printed and its exit code:
+
+```
+{focus,#customer}Muster{tab}
+{{ const r = run('d:/scripts/number.bat', '2026', { wait: 30, hidden: true }) }}
+{{ if (r.code != 0) throw new Error('number.bat says ' + r.code + ': ' + r.err) }}
+{focus,#number}{{ r.out.trim() }}
+```
+
+- **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. The script runs in its own folder. Slashes work in paths, so there are no `\` to double in JavaScript.
+- **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`.
+- **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
+- **The result** `r` has `code` (exit code), `out` (what it printed) and `err` (error output), read in the code page of the command prompt. As text it is `out`, so `{{ run('date.bat') }}` types the output right away. Assigned with `const`, it prints nothing and stays available to every later block.
+- **Checking the result:** `throw new Error('…')` stops the snippet with that message, as in any block.
+- **At its place:** blocks are normally all evaluated before the first key is sent. If a tag comes before the first `run()`, that block and all later ones are evaluated only when the snippet gets there, so the script runs after what comes before it and later blocks see its result. In the preview such blocks show as written, and in step-by-step runs each block (or line of blocks) is a step of its own; what it prints appears as steps behind it.
+- **Focus:** if the script's window comes to the front, the window that was in front before is brought back afterwards. Holding Esc stops the wait.
+- The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. Every start and exit code is written to the log.
 
 ### Writing a block with AI
 
@@ -266,7 +288,7 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 | `{ctrl+a}` `{shift+tab}` `{ctrl+shift+end}` | Combinations with `ctrl`, `alt`, `shift`, `win`, plus any key above or a single letter or digit |
 | `{tab,3}` | Repeats a key |
 | `{wait,500}` | Pauses 500 ms, e.g. until a dropdown opens or a page has loaded (at most 10 s) |
-| `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms that lose characters (default: 30 ms after keys, none between characters) |
+| `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms and programs that lose or mix up characters, such as Notepad in Windows 11 (`{delay,30}`) (default: 30 ms after keys, none between characters) |
 | `{clear}` | `{ctrl+a}{del}`: empties a prefilled field before typing |
 | `{guard,off}` `{guard,on}` | Turns the [window guard](#window-guard) off or on from here |
 
@@ -390,7 +412,7 @@ A recording starts with `{window,process=…}` for the program it was made in, s
 - `{start,notepad}`: a program name that Windows knows (as in Win+R, e.g. `notepad`, `excel`, `chrome`) or a full path, `.exe` can be left out. A second argument in quotes is passed to the program, e.g. a file to open.
 - If a window of the program is already open, it's brought to the front, and no second copy starts. Otherwise QuickHasteBot starts it the way Explorer does with a double-click, waits up to 30 seconds for its window and until it accepts input, then the snippet goes on. Holding Esc stops the wait.
 - The window is recognized by the program's name, like `{window,process=…}`. Programs that open their window under another name (launchers, Store apps such as `calc`) aren't found this way: start them by hand and use `{window,title=…}`.
-- Only programs (`.exe`) start, no scripts (`.bat`, `.ps1`, …) or shortcuts. And only a `{start,…}` written in the snippet itself starts anything: there is no script helper for it, and `{start,…}` in a script's result or on the clipboard stays text. Every start is written to the log.
+- Only programs (`.exe`) start, no scripts (`.bat`, `.ps1`, …) or shortcuts; for those, use [`run()`](#running-scripts), which runs a script, waits for it and reads its output, but doesn't bring a window to the front. Only a `{start,…}` written in the snippet itself starts anything: `{start,…}` in a script's result or on the clipboard stays text. Every start is written to the log.
 - A program that asks for administrator rights shows Windows' prompt. After that, Windows doesn't let QuickHasteBot send it keys (see below).
 
 ### Programs running as administrator

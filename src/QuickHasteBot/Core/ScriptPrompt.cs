@@ -52,7 +52,9 @@ public static class ScriptPrompt
         Task "long date": {{ date('dddd, dd. MMMM yyyy') }}
         Task "date and time": {{ date('dd.MM.yyyy') + ' ' + time('HH:mm') }}
         """.ReplaceLineEndings("\n")
-        .Replace("{helpers}", string.Join("\n", SnippetScript.Helpers.Select(h => $"  {h.Signature}: {h.Description}")));
+        // run() nicht: Die KI soll keine Programme starten, und die Adresse bliebe sonst nicht kurz genug
+        .Replace("{helpers}", string.Join("\n", SnippetScript.Helpers.Where(h => !h.Signature.StartsWith("run(", StringComparison.Ordinal))
+            .Select(h => $"  {h.Signature}: {h.Description}")));
 
     /// <param name="template">Inhalt von ai-prompt.txt, ohne Datei oder ohne {task} der eingebaute Prompt.</param>
     public static string Build(string task, string? template)
