@@ -295,7 +295,7 @@ internal partial class SnippetEditorWindow : Window
             return;
         }
         PreviewLabel.Text = preview.IsForm ? Strings.EditorPreviewForm : Strings.EditorPreviewPaste;
-        PreviewText.Text = preview.Text.Length == 0 ? Strings.EditorPreviewEmpty : preview.Text;
+        PreviewText.Text = preview.Text.Length == 0 ? Strings.EditorPreviewEmpty : TabStops.Expand(preview.Text);
         PreviewText.SetResourceReference(TextBlock.ForegroundProperty,
             preview.Text.Length == 0 ? "TextFillColorTertiaryBrush" : "TextFillColorPrimaryBrush");
     }

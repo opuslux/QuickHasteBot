@@ -339,7 +339,9 @@
                                     </Style.Triggers>
                                 </Style>
                             </ScrollViewer.Style>
-                            <TextBlock Text="{Binding DetailText}" Margin="6,4"
+                            <!-- Tags und Skripte in denselben Farben wie im Editor (SyntaxColors) -->
+                            <TextBlock x:Name="DetailTextBlock" ui:SyntaxColors.Spans="{Binding DetailSpans}"
+                                       ui:SyntaxColors.Text="{Binding DetailText}" Margin="6,4"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">

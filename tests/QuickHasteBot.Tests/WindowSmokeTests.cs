@@ -35,6 +35,7 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
+            PopupPreviewColors();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
             EditorStartsWithWindow();
@@ -1455,6 +1456,62 @@ public class WindowSmokeTests
             if (FindDescendant<T>(child) is { } nested) return nested;
         }
         return null!;
+    }
+
+    /// <summary>Die Textvorschau im Popup färbt Tags und Skripte wie der Editor, Hinweise bleiben einfarbig.</summary>
+    static void PopupPreviewColors()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"structure\Formular.txt", "Max{tab}{{ 6 * 7 }}{tab,x}");
+        dir.File(@"structure\Links\Intranet.url", "[InternetShortcut]\r\nURL=https://intranet.example.com");
+        using var controller = new AppController(new AppPaths(dir.Path));
+
+        var popup = new SearchPopup(controller);
+        var viewModel = (SearchPopupViewModel)popup.DataContext;
+        viewModel.Reset();
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "Formular");
+        Snapshot(popup, "popup-colors.png");
+
+        var runs = popup.DetailTextBlock.Inlines.OfType<System.Windows.Documents.Run>().ToList();
+        Assert.Equal("Max{tab}{{ 6 * 7 }}{tab,x}", string.Concat(runs.Select(r => r.Text)));
+        Assert.Same(SnippetHighlighting.BrushFor(SyntaxKind.Key, dark: false), runs.Single(r => r.Text == "{tab}").Foreground);
+        Assert.Equal(FontWeights.Bold, runs.First(r => r.Text == "{{").FontWeight);
+        Assert.Same(SnippetHighlighting.ErrorUnderline, runs.Single(r => r.Text == "{tab,x}").TextDecorations);
+        Assert.Equal(new FontFamily("Cascadia Mono, Consolas"), popup.DetailTextBlock.FontFamily);
+
+        // Dunkel: die hellen Farben aus dem Editor, beim nächsten Zeigen
+        UiTheme.Apply(AppTheme.Dark);
+        try
+        {
+            popup.Hide();
+            Snapshot(popup, "popup-colors-dark.png");
+            var tab = popup.DetailTextBlock.Inlines.OfType<System.Windows.Documents.Run>().First(r => r.Text == "{tab}");
+            Assert.Same(SnippetHighlighting.BrushFor(SyntaxKind.Key, dark: true), tab.Foreground);
+        }
+        finally
+        {
+            UiTheme.Apply(AppTheme.Light);
+        }
+
+        // Ein Weblink zeigt einen Hinweis, ohne Farben
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "Links");
+        viewModel.EnterFolder(viewModel.Selected!.Snippet);
+        Assert.Equal("Öffnet https://intranet.example.com", popup.DetailTextBlock.Text);
+        Assert.Empty(viewModel.DetailSpans);
+        popup.Close();
+
+        // Tabs stehen in beiden Vorschauen wie im Editor, Tabstopp alle 4 Zeichen
+        dir.File(@"structure\Spalten.txt", "Datum:\tA\r\nZufälliger Satz:\tB");
+        controller.Library.Reload();
+        viewModel.Reset();
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "Spalten");
+        Assert.Equal("Datum:  A\r\nZufälliger Satz:    B".ReplaceLineEndings(), viewModel.DetailText);
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        editor.BodyInput.Text = "Datum:\tA";
+        editor.UpdatePreview();
+        Assert.Equal("Datum:  A", editor.PreviewText.Text);
+        editor.BodyInput.Text = "";
+        editor.Close();
     }
 
     static void Snapshot(Window window, string fileName)
