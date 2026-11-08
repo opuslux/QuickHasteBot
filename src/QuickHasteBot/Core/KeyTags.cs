@@ -39,6 +39,13 @@ public enum ElementAction { Focus, Click, Set }
 /// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
 public sealed record ElementStep(ElementAction Action, ElementSelector Selector, string? Value) : FormStep;
 
+/// <summary>
+/// Ein {{ … }}-Block, der erst ausgewertet wird, wenn der Lauf dort ankommt: der erste mit run() und alle danach
+/// (<see cref="ScriptSession.RenderStaged"/>). Seine Ausgabe kommt dann als Schritte dazu.
+/// </summary>
+/// <param name="Block">Die Nummer des Blocks, für Fehlermeldungen.</param>
+public sealed record DeferredStep(int Block, string Code) : FormStep;
+
 /// <summary>Eine Stelle im Bausteintext, so wie er an <see cref="KeyTags.MarkTags"/> ging.</summary>
 public readonly record struct SourceSpan(int Start, int Length)
 {
@@ -94,6 +101,11 @@ public sealed class FormBuilder
         Scripts.Replaced(index, length, outputLength);
         _block = null;
     }
+
+    /// <summary>Ein zurückgestellter Block (<see cref="DeferredStep"/>) läuft, key() und Co. stammen von dort.</summary>
+    internal void BeginDeferred(SourceSpan source) => _block = source;
+
+    internal void EndDeferred() => _block = null;
 
     /// <summary>Woher ein Stück des fertigen Texts stammt. Text aus einem Skript zählt mit dem ganzen Block.</summary>
     internal SourceSpan SourceOfText(int start, int end)
@@ -556,8 +568,14 @@ public static partial class KeyTags
     /// <summary>
     /// Wie <see cref="Split"/>, dazu woher jeder Schritt im Bausteintext stammt. Text zwischen zwei Tags ist ein
     /// Schritt, samt den Skriptblöcken, deren Ausgabe darin steht.
+    /// Ein zurückgestellter Block (<see cref="DeferredStep"/>) zählt dabei nicht als Tag: Seine Ausgabe ist meist Text,
+    /// Umbrüche daneben bleiben darum, wie wenn er vorher ausgewertet worden wäre.
     /// </summary>
-    public static IReadOnlyList<SourcedStep> SplitWithSources(string text, FormBuilder form)
+    /// <param name="output">
+    /// Die Ausgabe eines zurückgestellten Blocks statt eines ganzen Bausteins: Alle Schritte stammen von dieser Stelle,
+    /// und ein Umbruch am Ende bleibt (er ist nicht das Ende der Datei).
+    /// </param>
+    public static IReadOnlyList<SourcedStep> SplitWithSources(string text, FormBuilder form, SourceSpan? output = null)
     {
         var steps = new List<SourcedStep>();
         var lastTextStart = 0;
@@ -566,23 +584,23 @@ public static partial class KeyTags
         while (pos < text.Length)
         {
             var start = text.IndexOf(MarkerStart, pos);
-            if (start < 0)
+            var end = start < 0 ? -1 : text.IndexOf(MarkerEnd, start);
+            if (start < 0 || end < 0) // keiner mehr, oder abgeschnitten (kann nur aus Skripten stammen)
             {
-                AddText(pos, text.Length, afterTag, beforeTag: false);
+                AddText(pos, start < 0 ? text.Length : start, afterTag, beforeTag: false);
                 break;
             }
-            AddText(pos, start, afterTag, beforeTag: true);
-            afterTag = true;
-
-            var end = text.IndexOf(MarkerEnd, start);
-            if (end < 0) break; // abgeschnittener Marker, kann nur aus Skripten stammen
-            if (int.TryParse(text.AsSpan(start + 1, end - start - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
-                && index < form.Steps.Count)
-                steps.Add(new(form.Steps[index], form.SourceOf(index)));
+            var step = int.TryParse(text.AsSpan(start + 1, end - start - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
+                && index < form.Steps.Count ? form.Steps[index] : null;
+            var isTag = step is not DeferredStep;
+            AddText(pos, start, afterTag, beforeTag: isTag);
+            afterTag = isTag;
+            if (step is not null)
+                steps.Add(new(step, output ?? form.SourceOf(index)));
             pos = end + 1;
         }
 
-        if (steps.Count > 0 && steps[^1].Step is TextStep last)
+        if (output is null && steps.Count > 0 && steps[^1].Step is TextStep last)
         {
             var trimmed = last.Text.EndsWith("\r\n", StringComparison.Ordinal) ? last.Text[..^2]
                 : last.Text.EndsWith('\n') || last.Text.EndsWith('\r') ? last.Text[..^1]
@@ -604,7 +622,7 @@ public static partial class KeyTags
             if (to <= from) return;
             // Was zwischen zwei Tags nach dem Abziehen der Umbrüche bleibt, nur Leerzeilen oder Einrückung: auch Layout
             if (layout && text.AsSpan(from, to - from).IsWhiteSpace()) return;
-            steps.Add(new(new TextStep(text[from..to]), form.SourceOfText(from, to)));
+            steps.Add(new(new TextStep(text[from..to]), output ?? form.SourceOfText(from, to)));
             lastTextStart = from;
         }
     }
@@ -639,6 +657,7 @@ public static partial class KeyTags
         ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
         WindowStep w => WindowTag(w.Window),
         StartStep s => StartTag(s),
+        DeferredStep d => "{{" + d.Code + "}}",
         _ => "",
     };
 

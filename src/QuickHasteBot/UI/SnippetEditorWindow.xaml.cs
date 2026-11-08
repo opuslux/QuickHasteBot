@@ -388,7 +388,8 @@ internal partial class SnippetEditorWindow : Window
             [
                 new("{{ date() }}", Strings.TagDate), new("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), new("{{ time() }}"),
                 new("{{ isoweek() }}", Strings.TagWeek), new("{{ clipboard }}", Strings.TagClipboard), new("{{ user }}", Strings.TagUser),
-                new("{{ guid() }}"),
+                new("{{ guid() }}"), null,
+                new("{{ const r = run('d:/scripts/file.bat') }}", Strings.TagRun, "d:/scripts/file.bat", OwnLine: true),
             ]),
         ];
 

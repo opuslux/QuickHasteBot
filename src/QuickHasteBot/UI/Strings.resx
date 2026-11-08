@@ -67,6 +67,8 @@ The element picker (crosshair in the popup or tray menu) shows how the element c
   <data name="FormStartedWindowNotFoundFormat" xml:space="preserve"><value>"{0}" was stopped: {1} started the program, but no window of it came up within {2} seconds.
 
 The window is recognized by the program's name. If the program opens its window under another name (a launcher or a Store app, e.g. calc), start it by hand and use {{window,title=…}} instead.</value></data>
+  <data name="FormScriptFailedFormat" xml:space="preserve"><value>"{0}" was stopped: the script in block {1} failed.
+{2}</value></data>
   <data name="TargetElevatedFormat" xml:space="preserve"><value>"{0}" can't reach {1}: it runs as administrator, and Windows doesn't let normal programs send keys to it.
 
 Start {1} without administrator rights (in its shortcut: Properties › Advanced/Compatibility › turn off "Run as administrator"). QuickHasteBot itself doesn't need them.</value></data>
@@ -150,6 +152,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagWeek" xml:space="preserve"><value>calendar week</value></data>
   <data name="TagClipboard" xml:space="preserve"><value>clipboard text</value></data>
   <data name="TagUser" xml:space="preserve"><value>Windows user</value></data>
+  <data name="TagRun" xml:space="preserve"><value>run a script or program</value></data>
   <data name="TagComment" xml:space="preserve"><value>Comment: a note to yourself, not pasted</value></data>
   <data name="TagCommentText" xml:space="preserve"><value>note</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Open with default program</value></data>

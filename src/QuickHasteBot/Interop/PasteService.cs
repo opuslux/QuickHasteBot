@@ -18,7 +18,16 @@ internal enum FormOutcome
     StartFailed,
     /// <summary>{start,…}: gestartet, aber in <see cref="WindowFinder.StartTimeout"/> kein Fenster mit dem Programmnamen.</summary>
     StartedWindowNotFound,
+    /// <summary>Ein zurückgestellter Skriptblock (run()) ist fehlgeschlagen, die fertige Meldung steht in Error.</summary>
+    ScriptFailed,
 }
+
+/// <summary>
+/// Was ein zurückgestellter Skriptblock (<see cref="DeferredStep"/>) ergeben hat: seine Schritte, oder warum nicht.
+/// </summary>
+/// <param name="Error">Die Meldung für den Benutzer, wenn der Block fehlgeschlagen ist.</param>
+/// <param name="Cancelled">Esc beim Warten auf run().</param>
+internal sealed record Expansion(IReadOnlyList<FormStep> Steps, string? Error = null, bool Cancelled = false);
 
 /// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
 /// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/> und <see cref="FormOutcome.StartFailed"/>: warum.</param>
@@ -130,8 +139,14 @@ internal sealed class PasteService
         steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is { } first
         && first is WindowStep or StartStep or ElementStep { Selector.Window: not null } ? first : null;
 
-    public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> steps, nint targetWindow, bool windowGuard, IStepGate? gate = null)
+    /// <param name="expand">
+    /// Wertet einen zurückgestellten Skriptblock aus, wenn der Lauf dort ankommt (run() an seiner Stelle). Seine Schritte
+    /// kommen direkt dahinter. Ohne werden solche Blöcke übersprungen.
+    /// </param>
+    public async Task<FormResult> RunFormAsync(IReadOnlyList<FormStep> plannedSteps, nint targetWindow, bool windowGuard, IStepGate? gate = null,
+        Func<DeferredStep, int, Task<Expansion>>? expand = null)
     {
+        var steps = plannedSteps.ToList();
         // Beginnt der Baustein mit {window,…} oder {start,…}, ist das Fenster vom Hotkey egal
         var startsWithWindow = StartWindowStep(steps) is not null;
         if (!startsWithWindow && !await WindowFocus.ActivateAndWaitAsync(targetWindow))
@@ -263,6 +278,21 @@ internal sealed class PasteService
                     break;
                 }
 
+                case DeferredStep deferred when expand is not null:
+                {
+                    // Ein sichtbares Konsolenfenster kommt nach vorne: danach das Fenster von vorher zurückholen
+                    var front = GetForegroundWindow();
+                    var expansion = await expand(deferred, i);
+                    if (expansion.Cancelled)
+                        return Aborted(FormOutcome.EscapePressed, i);
+                    if (expansion.Error is not null)
+                        return Aborted(FormOutcome.ScriptFailed, i, expansion.Error);
+                    steps.InsertRange(i + 1, expansion.Steps);
+                    if (GetForegroundWindow() != front && !await ResumeAsync(front))
+                        return Aborted(FormOutcome.WindowChanged, i);
+                    break;
+                }
+
                 case GuardStep guard:
                     guarded = guard.On;
                     guardOff = !guard.On;
@@ -355,7 +385,7 @@ internal sealed class PasteService
         return inputs.ToArray();
     }
 
-    static bool EscapeDown() => (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
+    internal static bool EscapeDown() => (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
 
     /// <summary>
     /// Ein anderes Programm ist vorne. Dialoge des Zielfensters zählen nicht als Wechsel (gleicher Besitzer),

@@ -424,6 +424,18 @@ public class WindowSmokeTests
         Assert.Equal("Notiz", editor.BodyInput.SelectedText);
         editor.UpdatePreview();
         Assert.Equal("Hallo", editor.PreviewText.Text);
+
+        // run(): auf eine eigene Zeile, der Pfad markiert. Die Vorschau startet nichts und zeigt den Block, wie er dasteht.
+        filter.Text = "ausführen";
+        Assert.Equal(["{{ const r = run('d:/scripts/file.bat') }}"], Visible());
+        editor.BodyInput.Text = "{tab}";
+        editor.BodyInput.Select(5, 0);
+        filter.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(filter)!, 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.Equal("{tab}\r\n{{ const r = run('d:/scripts/file.bat') }}\r\n", editor.BodyInput.Text);
+        Assert.Equal("d:/scripts/file.bat", editor.BodyInput.SelectedText);
+        editor.BodyInput.Text = "{tab}{{ const r = run('x.bat') }}{{ r.out }}";
+        editor.UpdatePreview();
+        Assert.Equal("{tab}{{ const r = run('x.bat') }}{{ r.out }}", editor.PreviewText.Text);
         filter.Text = "";
         Assert.Equal(["Tasten", "Ablauf", "Elemente und Fenster", "Skript"], Visible());
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Jint;
 using Jint.Native;
+using Jint.Native.Object;
 using Jint.Runtime;
 using Jint.Runtime.Interop;
 
@@ -13,7 +14,21 @@ namespace QuickHasteBot.Core;
 /// </summary>
 /// <param name="TimeZone">Zeitzone für die Datumsmethoden, ohne Angabe die von Windows.</param>
 /// <param name="Form">Nimmt die Tasten aus key() und wait() auf. Ohne: Tasten-Tags sind ausgeschaltet, key() meldet einen Fehler.</param>
-public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null, FormBuilder? Form = null);
+/// <param name="Run">
+/// Führt run() wirklich aus (blockiert bis zum Ende oder zur Wartezeit). Ohne, z.B. in der Vorschau, startet run() nichts
+/// und liefert ein leeres Ergebnis.
+/// </param>
+public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null,
+    FormBuilder? Form = null, Func<RunRequest, RunResult>? Run = null);
+
+/// <summary>Was run() starten soll. <paramref name="WaitSeconds"/> 0: nur starten, nicht warten.</summary>
+public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden);
+
+/// <param name="Code">Der Rückgabewert, null, wenn nicht gewartet wurde.</param>
+public sealed record RunResult(int? Code, string Out, string Err);
+
+/// <summary>run() konnte nicht starten, oder das Skript war nach der Wartezeit nicht fertig: Der Baustein bricht ab.</summary>
+public sealed class RunFailedException(string message) : Exception(message);
 
 /// <param name="block">Nummer des fehlerhaften {{ … }}-Blocks, ab 1 gezählt.</param>
 public sealed class SnippetScriptException(int block, string message, Exception inner) : Exception(message, inner)
@@ -53,10 +68,20 @@ public static partial class SnippetScript
         ("click(el)", "click a button or link"),
         ("set(el, value)", "fill a field or dropdown, checkbox 'on'/'off'"),
         ("window(app)", "bring a program to the front"),
+        ("run(file, args?, {wait, hidden}?)", "runs a script or program right here and waits (wait in seconds, default 60); returns {code, out, err}, as text its output"),
     ];
 
+    /// <summary>So lange wartet run() ohne Angabe, in Sekunden.</summary>
+    public const int DefaultRunWait = 60;
+
     [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
-    private static partial Regex Block();
+    internal static partial Regex Block();
+
+    [GeneratedRegex(@"\brun\s*\(")]
+    private static partial Regex RunCall();
+
+    /// <summary>Ob der Code eines Blocks run() aufruft. Ein falscher Treffer schadet nicht, der Block läuft dann nur später.</summary>
+    public static bool CallsRun(string code) => RunCall().IsMatch(code);
 
     public static bool HasBlocks(string text) => text.Contains("{{");
 
@@ -67,8 +92,13 @@ public static partial class SnippetScript
     public static string Render(string text, ScriptContext context)
     {
         if (!HasBlocks(text)) return text;
+        using var session = new ScriptSession(context);
+        return session.Render(text);
+    }
 
-        using var engine = new Engine(options =>
+    internal static Engine CreateEngine(ScriptContext context)
+    {
+        var engine = new Engine(options =>
         {
             options.TimeoutInterval(Timeout);
             options.LimitMemory(MemoryLimit);
@@ -77,36 +107,30 @@ public static partial class SnippetScript
             options.TimeSystem = new FixedClock(context.Now, new DefaultTimeSystem(context.TimeZone ?? TimeZoneInfo.Local, context.Culture));
         });
         RegisterHelpers(engine, context);
+        return engine;
+    }
 
-        var block = 0;
-        var form = context.Form;
-        return Block().Replace(text, match =>
+    /// <summary>Ein Block, wie ihn der Baustein ausgibt: undefined und null geben nichts aus.</summary>
+    internal static string Evaluate(Engine engine, string code, int block)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return "";
+        try
         {
-            block++;
-            var code = match.Groups[1].Value;
-            form?.BeginScript(match.Index, match.Length);
-            if (string.IsNullOrWhiteSpace(code))
-            {
-                form?.EndScript(match.Index, match.Length, 0);
-                return "";
-            }
-
-            try
-            {
-                var result = engine.Evaluate(code);
-                var output = result.IsUndefined() || result.IsNull() ? "" : TypeConverter.ToString(result);
-                form?.EndScript(match.Index, match.Length, output.Length);
-                return output;
-            }
-            catch (TimeoutException ex)
-            {
-                throw new SnippetScriptException(block, $"Timeout after {Timeout.TotalMilliseconds:0} ms", ex);
-            }
-            catch (Exception ex)
-            {
-                throw new SnippetScriptException(block, ex.Message, ex);
-            }
-        });
+            var result = engine.Evaluate(code);
+            return result.IsUndefined() || result.IsNull() ? "" : TypeConverter.ToString(result);
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Esc beim Warten auf run(): wie Esc sonst, kein Fehler
+        }
+        catch (TimeoutException ex)
+        {
+            throw new SnippetScriptException(block, $"Timeout after {Timeout.TotalMilliseconds:0} ms", ex);
+        }
+        catch (Exception ex)
+        {
+            throw new SnippetScriptException(block, ex.Message, ex);
+        }
     }
 
     static void RegisterHelpers(Engine engine, ScriptContext context)
@@ -142,8 +166,42 @@ public static partial class SnippetScript
         Function("set", 2, args => ElementMarker(context, "set", [Format(args, 0) ?? "", Format(args, 1) ?? ""]));
         Function("window", 1, args => ElementMarker(context, "window", [Format(args, 0) ?? ""]));
 
+        // run(datei, argumente, { wait, hidden }): startet ein Skript oder Programm und wartet darauf. Das Ergebnis
+        // { code, out, err } gibt als Text seine Ausgabe her, so tippt {{ run('nummer.bat') }} direkt die Ausgabe.
+        engine.SetValue("__run", new ClrFunction(engine, "__run", (_, args) => Run(engine, context, args), 3));
+        engine.Execute("function run(file, args, options) { const r = __run(file, args, options); r.toString = function () { return this.out; }; return r; }");
+
         void Function(string name, int length, Func<JsValue[], string> body) =>
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
+    }
+
+    static JsValue Run(Engine engine, ScriptContext context, JsValue[] args)
+    {
+        var file = Format(args, 0);
+        if (string.IsNullOrWhiteSpace(file))
+            throw new ArgumentException("run needs a file, e.g. run('d:/scripts/number.bat')");
+        // Zweites Argument: die Argumente als Text, oder gleich die Optionen
+        var second = Arguments.At(args, 1);
+        var options = second is ObjectInstance ? second : Arguments.At(args, 2);
+        var arguments = second is ObjectInstance ? null : Format(args, 1);
+        var wait = DefaultRunWait;
+        var hidden = false;
+        if (options is ObjectInstance o)
+        {
+            if (o.Get("wait") is { } w && !w.IsUndefined())
+                wait = Math.Max(0, (int)Math.Round(TypeConverter.ToNumber(w)));
+            hidden = TypeConverter.ToBoolean(o.Get("hidden"));
+        }
+
+        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden)) ?? new RunResult(0, "", "");
+        // Das Warten zählt nicht zur Zeitgrenze eines Blocks, die gilt nur für JavaScript
+        engine.Constraints.Reset();
+        return JsObject.CreateFromEntries(engine,
+        [
+            new("code", result.Code is { } code ? JsNumber.Create(code) : JsValue.Null),
+            new("out", new JsString(result.Out)),
+            new("err", new JsString(result.Err)),
+        ]);
     }
 
     static string FormMarker(ScriptContext context, string spec, int? count)

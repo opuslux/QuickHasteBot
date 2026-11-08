@@ -289,13 +289,24 @@ internal sealed class AppController : IDisposable
         if (form is not null)
             text = KeyTags.MarkTags(text, form);
 
-        if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
+        using var session = Settings.EvaluateScripts && SnippetScript.HasBlocks(text)
+            ? new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture,
+                // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
+                SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "",
+                Form: form, Run: request => ScriptRunner.Run(request, PasteService.EscapeDown)))
+            : null;
+        if (session is not null)
         {
-            // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
-            var clipboard = SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
             try
             {
-                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form));
+                // run() an seiner Stelle: Steht davor schon ein Tag, werden die Blöcke ab dem ersten run() erst
+                // ausgewertet, wenn der Lauf dort ankommt. Sonst passiert vorher nichts, und alles läuft jetzt.
+                if (form is not null && ScriptSession.NeedsStaging(text))
+                    text = session.RenderStaged(text);
+                else if (ScriptSession.UsesRun(text))
+                    text = await Task.Run(() => session.Render(text)); // run() wartet, die Oberfläche nicht
+                else
+                    text = session.Render(text);
             }
             catch (SnippetScriptException ex)
             {
@@ -303,16 +314,43 @@ internal sealed class AppController : IDisposable
                 Log.Error($"Skript in Block {ex.Block} fehlgeschlagen: {logPath ?? name}", ex);
                 return new(string.Format(Strings.ScriptErrorFormat, ex.Block, name, ex.Message), MessageBoxImage.Warning);
             }
+            catch (OperationCanceledException)
+            {
+                return gate is null ? null : new("", MessageBoxImage.Information, 0, Stopped: true); // Esc beim Warten auf run()
+            }
         }
 
         if (form is not null && KeyTags.HasMarkers(text))
         {
-            var steps = KeyTags.SplitWithSources(text, form);
+            var steps = KeyTags.SplitWithSources(text, form).ToList();
             gate?.Planned(steps, paste: false);
-            var result = await _paste.RunFormAsync(steps.Select(s => s.Step).ToList(), targetWindow, Settings.KeyTagsWindowGuard, gate);
+            var result = await _paste.RunFormAsync(steps.Select(s => s.Step).ToList(), targetWindow, Settings.KeyTagsWindowGuard, gate,
+                session is null ? null : ExpandAsync);
             if (gate is not null && result.Outcome == FormOutcome.EscapePressed)
                 return new("", MessageBoxImage.Information, result.StepIndex, Stopped: true);
             return FormMessage(result, name) is { } message ? new(message, MessageBoxImage.Information, result.StepIndex) : null;
+
+            // Ein zurückgestellter Block, jetzt an der Reihe: auswerten (run() wartet im Hintergrund) und seine Schritte
+            // auch für den Schritt-für-Schritt-Lauf dahinter einsetzen
+            async Task<Expansion> ExpandAsync(DeferredStep deferred, int index)
+            {
+                try
+                {
+                    var added = await Task.Run(() => session.Evaluate(deferred, steps[index].Source));
+                    steps.InsertRange(index + 1, added);
+                    gate?.Planned([.. steps], paste: false);
+                    return new Expansion([.. added.Select(s => s.Step)]);
+                }
+                catch (SnippetScriptException ex)
+                {
+                    Log.Error($"Skript in Block {ex.Block} fehlgeschlagen: {logPath ?? name}", ex);
+                    return new Expansion([], string.Format(Strings.FormScriptFailedFormat, name, ex.Block, ex.Message));
+                }
+                catch (OperationCanceledException)
+                {
+                    return new Expansion([], Cancelled: true);
+                }
+            }
         }
 
         if (gate is not null)
@@ -381,7 +419,9 @@ internal sealed class AppController : IDisposable
             var clipboard = SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
             try
             {
-                text = SnippetScript.Render(text, new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form));
+                // Ohne Run startet run() nichts. Blöcke ab dem ersten run() zeigt die Vorschau, wie sie dastehen.
+                using var session = new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form));
+                text = form is not null && ScriptSession.UsesRun(text) ? session.RenderStaged(text) : session.Render(text);
             }
             catch (SnippetScriptException ex)
             {
@@ -405,6 +445,7 @@ internal sealed class AppController : IDisposable
         FormOutcome.Elevated => string.Format(Strings.TargetElevatedFormat, name, result.Error),
         FormOutcome.StartFailed => string.Format(Strings.FormStartFailedFormat, name, result.Step, result.Error),
         FormOutcome.StartedWindowNotFound => string.Format(Strings.FormStartedWindowNotFoundFormat, name, result.Step, WindowFinder.StartTimeout.TotalSeconds),
+        FormOutcome.ScriptFailed => result.Error,
         _ => null,
     };
 
