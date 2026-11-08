@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.RegularExpressions;
 using Jint;
 
 namespace QuickHasteBot.Core;
@@ -39,7 +41,7 @@ public sealed class ScriptSession : IDisposable
     /// </summary>
     public static bool NeedsStaging(string marked)
     {
-        foreach (System.Text.RegularExpressions.Match match in SnippetScript.Block().Matches(marked))
+        foreach (Match match in SnippetScript.Block().Matches(marked))
         {
             if (SnippetScript.CallsRun(match.Groups[1].Value))
                 return KeyTags.HasMarkers(marked[..match.Index]);
@@ -54,24 +56,89 @@ public sealed class ScriptSession : IDisposable
     string Render(string text, bool staged)
     {
         if (!SnippetScript.HasBlocks(text)) return text;
-        var form = _context.Form;
-        if (staged && form is null)
+        if (staged && _context.Form is null)
             throw new InvalidOperationException("staged scripts need key tags");
+        return Expand(text, ref _block, staged, _context.Form);
+    }
 
+    /// <summary>
+    /// Ersetzt die Blöcke durch ihre Ausgabe. Eine Zeile, die nur aus Blöcken besteht und nichts ausgibt, fällt samt
+    /// Umbruch weg (wie ein Kommentar), so hinterlassen Zuweisungen und Prüfungen keine Leerzeilen. Gestaffelt wird
+    /// ab dem ersten Block mit run() zurückgestellt, eine solche Zeile als Ganzes.
+    /// </summary>
+    /// <param name="block">Die Nummer des letzten Blocks davor, zählt weiter.</param>
+    /// <param name="form">Zeichnet Ersetzungen und die Herkunft von key() & Co. auf. Null beim Auswerten eines
+    /// zurückgestellten Blocks, dessen Herkunft schon feststeht.</param>
+    string Expand(string text, ref int block, bool staged, FormBuilder? form)
+    {
+        var blocks = SnippetScript.Block().Matches(text);
+        if (blocks.Count == 0) return text;
+
+        var result = new StringBuilder(text.Length);
+        var pos = 0;
         var deferring = false;
-        return SnippetScript.Block().Replace(text, match =>
+        for (var i = 0; i < blocks.Count;)
         {
-            var block = ++_block;
-            var code = match.Groups[1].Value;
-            form?.BeginScript(match.Index, match.Length);
-            string output;
-            if (staged && (deferring |= SnippetScript.CallsRun(code)))
-                output = form!.Marker(new DeferredStep(block, code)); // Herkunft: der ganze Block
+            // Blöcke mit nur Leerzeichen dazwischen, allein auf ihrer Zeile: eine Zeile. Sonst ein Block für sich.
+            var last = i;
+            while (last + 1 < blocks.Count && IsBlank(text, End(blocks[last]), blocks[last + 1].Index))
+                last++;
+            var (start, end) = KeyTags.WholeLine(text, blocks[i].Index, End(blocks[last]));
+            var line = start != blocks[i].Index || end != End(blocks[last]);
+            if (line)
+                start = Math.Max(start, pos); // der Umbruch davor gehörte schon zur Zeile davor
             else
-                output = SnippetScript.Evaluate(_engine, code, block);
-            form?.EndScript(match.Index, match.Length, output.Length);
-            return output;
-        });
+                (last, start, end) = (i, blocks[i].Index, End(blocks[i]));
+            var unit = blocks.Skip(i).Take(last - i + 1).ToList();
+            result.Append(text, pos, start - pos);
+
+            if (staged && (deferring |= unit.Any(m => SnippetScript.CallsRun(m.Groups[1].Value))))
+            {
+                // Herkunft: der ganze Block oder die ganze Zeile
+                form!.BeginScript(start, end - start);
+                var marker = form.Marker(new DeferredStep(block + 1, text[start..end]));
+                form.EndScript();
+                form.Scripts.Replaced(start, end - start, marker.Length);
+                result.Append(marker);
+                block += unit.Count;
+            }
+            else
+            {
+                var outputs = new List<string>(unit.Count);
+                foreach (var m in unit)
+                {
+                    form?.BeginScript(m.Index, m.Length);
+                    outputs.Add(SnippetScript.Evaluate(_engine, m.Groups[1].Value, ++block));
+                    form?.EndScript();
+                }
+
+                if (line && outputs.All(o => o.Length == 0))
+                    form?.Scripts.Replaced(start, end - start, 0);
+                else
+                {
+                    var p = start;
+                    for (var k = 0; k < unit.Count; k++)
+                    {
+                        result.Append(text, p, unit[k].Index - p).Append(outputs[k]);
+                        form?.Scripts.Replaced(unit[k].Index, unit[k].Length, outputs[k].Length);
+                        p = End(unit[k]);
+                    }
+                    result.Append(text, p, end - p);
+                }
+            }
+            pos = end;
+            i = last + 1;
+        }
+        return result.Append(text, pos, text.Length - pos).ToString();
+
+        static int End(Match match) => match.Index + match.Length;
+
+        static bool IsBlank(string text, int from, int to)
+        {
+            for (var i = from; i < to; i++)
+                if (text[i] is not (' ' or '\t')) return false;
+            return true;
+        }
     }
 
     /// <summary>
@@ -86,7 +153,8 @@ public sealed class ScriptSession : IDisposable
         form.BeginDeferred(source);
         try
         {
-            return KeyTags.SplitWithSources(SnippetScript.Evaluate(_engine, step.Code, step.Block), form, source);
+            var block = step.Block - 1;
+            return KeyTags.SplitWithSources(Expand(step.Text, ref block, staged: false, form: null), form, source);
         }
         finally
         {

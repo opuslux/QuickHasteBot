@@ -84,6 +84,51 @@ public class ScriptSessionTests
     public void Run_needs_a_file() =>
         Assert.Contains("needs a file", Assert.Throws<SnippetScriptException>(() => Render("{{ run() }}")).Message);
 
+    // --- Zeilen nur aus Blöcken ---
+
+    [Theory]
+    [InlineData("A\r\n{{ const x = 1 }}\r\nB{{ x }}", "A\r\nB1")]
+    [InlineData("A\n  {{ const a = 1 }} {{ const b = 2 }}\t\nB{{ a + b }}", "A\nB3")] // mehrere, eingerückt
+    [InlineData("A\r\n{{ '' }}\r\nB", "A\r\nB")] // bedingte Zeile, Bedingung falsch
+    [InlineData("A\r\n{{ 'x' }}\r\nB", "A\r\nx\r\nB")] // Bedingung wahr: Zeile bleibt, wie sie dasteht
+    [InlineData("A\r\n  {{ 'x' }} {{ '' }}\r\nB", "A\r\n  x \r\nB")]
+    [InlineData("A\r\n{{ const x = 1 }}", "A")] // letzte Zeile: der Umbruch davor geht mit
+    [InlineData("{{ const x = 1 }}\r\n{{ const y = 2 }}\r\nB{{ x + y }}", "B3")]
+    [InlineData("A {{ const x = 1 }}\r\nB", "A \r\nB")] // nicht allein auf der Zeile: wie bisher
+    [InlineData("A\r\n{{ const x = 1 }}B\r\nC", "A\r\nB\r\nC")]
+    [InlineData("A\r\n\r\nB", "A\r\n\r\nB")] // echte Leerzeilen bleiben
+    public void Line_of_blocks_without_output_disappears(string text, string expected) =>
+        Assert.Equal(expected, Render(text));
+
+    [Fact]
+    public void Steps_after_a_vanished_line_keep_their_place()
+    {
+        const string text = "{{ const x = 1 }}\r\n{tab}{{ x }}";
+        var form = new FormBuilder();
+        using var session = new ScriptSession(Context(form));
+        var steps = KeyTags.SplitWithSources(session.Render(KeyTags.MarkTags(text, form)), form);
+        Assert.Equal(["{tab}", "{{ x }}"], steps.Select(s => text.Substring(s.Source.Start, s.Source.Length)));
+        Assert.Equal("1", Assert.IsType<TextStep>(steps[1].Step).Text);
+    }
+
+    [Theory]
+    [InlineData("", "")] // gibt nichts aus: Zeile weg, kein Umbruch
+    [InlineData("7", " 7\r\n")] // Zeile bleibt, wie sie dasteht
+    public void Staged_line_decides_about_its_break_when_it_runs(string output, string typed)
+    {
+        const string text = "{tab}\r\n{{ const r = run('a') }} {{ r.out }}\r\nWeiter";
+        var form = new FormBuilder();
+        using var session = new ScriptSession(Context(form, _ => new RunResult(0, output, "")));
+        var steps = KeyTags.SplitWithSources(session.RenderStaged(KeyTags.MarkTags(text, form)), form);
+        var deferred = Assert.Single(steps, s => s.Step is DeferredStep);
+        Assert.Equal("{{ const r = run('a') }} {{ r.out }}", KeyTags.Describe(deferred.Step));
+        Assert.Equal(["{tab}", "{{ const r = run('a') }} {{ r.out }}", "Weiter"],
+            steps.Select(s => s.Step is TextStep t ? t.Text : KeyTags.Describe(s.Step)));
+
+        var added = session.Evaluate((DeferredStep)deferred.Step, deferred.Source);
+        Assert.Equal(typed, string.Concat(added.Select(s => ((TextStep)s.Step).Text)));
+    }
+
     // --- gestaffelt ---
 
     [Theory]
@@ -115,7 +160,8 @@ public class ScriptSessionTests
 
         var deferred = steps.Where(s => s.Step is DeferredStep).ToList();
         Assert.Equal([3, 4], deferred.Select(s => ((DeferredStep)s.Step).Block));
-        Assert.Equal("{{ const r = run('n.bat') }}", text.Substring(deferred[0].Source.Start, deferred[0].Source.Length));
+        // Der Block steht allein auf seiner Zeile: Er wird mit ihr zurückgestellt, samt Umbruch
+        Assert.Equal("{{ const r = run('n.bat') }}\r\n", text.Substring(deferred[0].Source.Start, deferred[0].Source.Length));
 
         Assert.Empty(session.Evaluate((DeferredStep)deferred[0].Step, deferred[0].Source));
         Assert.Equal("n.bat", Assert.Single(_runs).File);

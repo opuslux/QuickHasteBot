@@ -43,8 +43,12 @@ public sealed record ElementStep(ElementAction Action, ElementSelector Selector,
 /// Ein {{ … }}-Block, der erst ausgewertet wird, wenn der Lauf dort ankommt: der erste mit run() und alle danach
 /// (<see cref="ScriptSession.RenderStaged"/>). Seine Ausgabe kommt dann als Schritte dazu.
 /// </summary>
-/// <param name="Block">Die Nummer des Blocks, für Fehlermeldungen.</param>
-public sealed record DeferredStep(int Block, string Code) : FormStep;
+/// <param name="Block">Die Nummer des (ersten) Blocks, für Fehlermeldungen.</param>
+/// <param name="Text">
+/// Der Block samt {{ }}. Steht er mit anderen Blöcken allein auf einer Zeile, die ganze Zeile samt Umbruch: Sie fällt
+/// weg, wenn ihre Blöcke nichts ausgeben.
+/// </param>
+public sealed record DeferredStep(int Block, string Text) : FormStep;
 
 /// <summary>Eine Stelle im Bausteintext, so wie er an <see cref="KeyTags.MarkTags"/> ging.</summary>
 public readonly record struct SourceSpan(int Start, int Length)
@@ -95,12 +99,7 @@ public sealed class FormBuilder
     /// <summary>Ein {{ … }}-Block (Stelle im Text mit Markern) beginnt, key() und Co. stammen ab jetzt von dort.</summary>
     internal void BeginScript(int index, int length) => _block = Tags.Back(index, index + length);
 
-    /// <summary>Der Block ist durch <paramref name="outputLength"/> Zeichen Ausgabe ersetzt.</summary>
-    internal void EndScript(int index, int length, int outputLength)
-    {
-        Scripts.Replaced(index, length, outputLength);
-        _block = null;
-    }
+    internal void EndScript() => _block = null;
 
     /// <summary>Ein zurückgestellter Block (<see cref="DeferredStep"/>) läuft, key() und Co. stammen von dort.</summary>
     internal void BeginDeferred(SourceSpan source) => _block = source;
@@ -250,7 +249,7 @@ public static partial class KeyTags
             var (start, end) = (match.Index, match.Index + match.Length);
             if (match.Groups["note"].Success)
             {
-                (start, end) = CommentLine(text, start, end);
+                (start, end) = WholeLine(text, start, end);
                 start = Math.Max(start, pos); // der Umbruch davor gehörte schon zum Kommentar davor
                 replacement = "";
             }
@@ -267,11 +266,11 @@ public static partial class KeyTags
     }
 
     /// <summary>
-    /// Steht ein Kommentar allein auf seiner Zeile (Leerzeichen zählen nicht), fällt die ganze Zeile weg: samt Umbruch
-    /// danach, auf der letzten Zeile samt dem Umbruch davor. So hinterlassen Notizen keine Leerzeilen. Sonst nur der
-    /// Kommentar selbst.
+    /// Steht <paramref name="start"/> bis <paramref name="end"/> allein auf seiner Zeile (Leerzeichen zählen nicht), die
+    /// ganze Zeile: samt Umbruch danach, auf der letzten Zeile samt dem Umbruch davor. Sonst die Stelle selbst. So
+    /// hinterlassen Kommentare und Blöcke ohne Ausgabe keine Leerzeilen.
     /// </summary>
-    static (int Start, int End) CommentLine(string text, int start, int end)
+    internal static (int Start, int End) WholeLine(string text, int start, int end)
     {
         var lineStart = start;
         while (lineStart > 0 && text[lineStart - 1] is ' ' or '\t') lineStart--;
@@ -657,11 +656,11 @@ public static partial class KeyTags
         ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
         WindowStep w => WindowTag(w.Window),
         StartStep s => StartTag(s),
-        DeferredStep d => "{{" + d.Code + "}}",
+        DeferredStep d => d.Text.Trim(),
         _ => "",
     };
 
-    /// <summary>Der fertige Text mit lesbaren Tags statt Markern.</summary>
+    /// <summary>Der fertige Text mit lesbaren Tags statt Markern. Zurückgestellte Blöcke so, wie sie dastehen.</summary>
     public static string Preview(string text, FormBuilder form) =>
-        HasMarkers(text) ? string.Concat(Split(text, form).Select(Describe)) : text;
+        HasMarkers(text) ? string.Concat(Split(text, form).Select(s => s is DeferredStep d ? d.Text : Describe(s))) : text;
 }
