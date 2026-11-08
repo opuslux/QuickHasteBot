@@ -152,8 +152,20 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagWeek" xml:space="preserve"><value>Kalenderwoche</value></data>
   <data name="TagClipboard" xml:space="preserve"><value>Text der Zwischenablage</value></data>
   <data name="TagUser" xml:space="preserve"><value>Windows-Benutzer</value></data>
+  <data name="TagCancel" xml:space="preserve"><value>abbrechen, Dialog schliessen</value></data>
+  <data name="TagUp" xml:space="preserve"><value>Pfeil hoch</value></data>
+  <data name="TagDown" xml:space="preserve"><value>Pfeil runter</value></data>
+  <data name="TagLeft" xml:space="preserve"><value>Pfeil links</value></data>
+  <data name="TagRight" xml:space="preserve"><value>Pfeil rechts</value></data>
+  <data name="TagHome" xml:space="preserve"><value>Zeilenanfang</value></data>
+  <data name="TagEnd" xml:space="preserve"><value>Zeilenende</value></data>
+  <data name="TagBackspace" xml:space="preserve"><value>Zeichen links löschen</value></data>
+  <data name="TagDelete" xml:space="preserve"><value>Zeichen rechts löschen</value></data>
+  <data name="TagReload" xml:space="preserve"><value>neu laden</value></data>
+  <data name="TagTime" xml:space="preserve"><value>aktuelle Uhrzeit</value></data>
+  <data name="TagGuid" xml:space="preserve"><value>eindeutige Nummer (GUID)</value></data>
+  <data name="TagComment" xml:space="preserve"><value>Kommentar, wird nicht eingefügt</value></data>
   <data name="TagRun" xml:space="preserve"><value>Skript oder Programm ausführen</value></data>
-  <data name="TagComment" xml:space="preserve"><value>Kommentar: eine Notiz für dich, wird nicht eingefügt</value></data>
   <data name="TagCommentText" xml:space="preserve"><value>Notiz</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Mit Standardprogramm öffnen</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>Neuer Baustein…</value></data>
