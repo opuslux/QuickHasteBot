@@ -19,6 +19,12 @@ internal static class UiLanguage
         new("de", "Deutsch"),
     ];
 
+    /// <summary>
+    /// Für Tests: so tun, als hätte Windows diese Sprache. Sonst gilt die Sprache des Threads, der als erster eine Sprache
+    /// setzt, und das ist bei parallel laufenden Tests Zufall.
+    /// </summary>
+    internal static void AssumeWindowsLanguage(CultureInfo culture) => _windows = culture;
+
     public static void Apply(string code)
     {
         // Die Sprache von Windows merken, bevor wir sie zum ersten Mal ändern, für den Wechsel zurück auf "Automatisch"

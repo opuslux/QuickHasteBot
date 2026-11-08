@@ -158,10 +158,11 @@ internal static class ElementAutomation
             if (expand.Current.ExpandCollapseState == ExpandCollapseState.Collapsed) expand.Expand();
             else expand.Collapse();
         }
-        else if (element.TryGetClickablePoint(out var point))
-            MouseClick(point); // z.B. ein <div> mit onclick: nur ein echter Klick hilft
-        else
+        else if (!element.TryGetClickablePoint(out var point))
             return new(ElementOutcome.Failed, Error: "the element can't be clicked");
+        // z.B. ein <div> mit onclick: nur ein echter Klick hilft
+        else if (!MouseClick(point))
+            return new(ElementOutcome.Failed, Error: "the element is outside the screen and can't be clicked");
         return new(ElementOutcome.Done);
     }
 
@@ -258,11 +259,8 @@ internal static class ElementAutomation
     {
         var option = PopupOption(box, value, 400);
         if (option is null && Pattern<ValuePattern>(box, ValuePattern.Pattern) is null or { Current.IsReadOnly: true }
-            && box.TryGetClickablePoint(out var point))
-        {
-            MouseClick(point);
+            && box.TryGetClickablePoint(out var point) && MouseClick(point))
             option = PopupOption(box, value, 800);
-        }
         if (option is null) return false;
 
         if (Pattern<SelectionItemPattern>(option, SelectionItemPattern.Pattern) is { } item)
@@ -281,8 +279,7 @@ internal static class ElementAutomation
             Pattern<ScrollItemPattern>(option, ScrollItemPattern.Pattern)?.ScrollIntoView();
             if (!option.TryGetClickablePoint(out optionPoint)) return false;
         }
-        MouseClick(optionPoint);
-        return Chosen(box, option, value);
+        return MouseClick(optionPoint) && Chosen(box, option, value);
     }
 
     static readonly Condition OptionTypes = new OrCondition(
@@ -370,9 +367,15 @@ internal static class ElementAutomation
     static T? Pattern<T>(AutomationElement element, AutomationPattern pattern) where T : BasePattern =>
         element.TryGetCurrentPattern(pattern, out var found) ? (T)found : null;
 
-    /// <summary>Linksklick an einer Bildschirmposition, danach steht die Maus wieder, wo sie war.</summary>
-    static void MouseClick(Point point)
+    /// <summary>
+    /// Linksklick an einer Bildschirmposition, danach steht die Maus wieder, wo sie war. False ohne Klick, wenn der Punkt
+    /// auf keinem Bildschirm liegt: UIA liefert auch für Elemente in Fenstern ausserhalb einen Punkt, Windows setzt den
+    /// Zeiger dann an den Rand, und der Klick träfe ein fremdes Fenster.
+    /// </summary>
+    static bool MouseClick(Point point)
     {
+        if (MonitorFromPoint(new POINT { X = (int)point.X, Y = (int)point.Y }, MONITOR_DEFAULTTONULL) == 0)
+            return false;
         GetCursorPos(out var before);
         SetCursorPos((int)point.X, (int)point.Y);
         INPUT[] inputs =
@@ -383,6 +386,7 @@ internal static class ElementAutomation
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
         Thread.Sleep(50);
         SetCursorPos(before.X, before.Y);
+        return true;
     }
 
     // --- Picker ---
