@@ -34,6 +34,8 @@
     <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
     <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
     <PackageReference Include="Jint" Version="4.17.0" />
+    <!-- Liest das README für das Hilfe-Fenster (MarkdownDocument) -->
+    <PackageReference Include="Markdig" Version="1.5.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,6 +44,8 @@
     <EmbeddedResource Include="Assets\RoboClip.mp4" LogicalName="RoboClip.mp4" />
     <!-- Beispielordner, wird beim ersten Start in der Sprache der Oberfläche als structure angelegt (SampleStructure) -->
     <EmbeddedResource Include="Samples\**\*" LogicalName="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- Das README als Hilfe (HelpWindow), so passt es immer zur Version der exe -->
+    <EmbeddedResource Include="..\..\README.md" LogicalName="README.md" Link="README.md" />
   </ItemGroup>
 
   <!-- Oberflächentexte: Strings.resx Englisch (Standard), Strings.de.resx Deutsch. Die Klasse Strings entsteht beim Build. -->

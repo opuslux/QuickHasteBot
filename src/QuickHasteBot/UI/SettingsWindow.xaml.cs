@@ -262,6 +262,8 @@ internal partial class SettingsWindow : Window
         _app.SaveSettings();
     }
 
+    void OnHelpClick(object sender, MouseButtonEventArgs e) => _app.ShowHelp();
+
     void OnStructureInputKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)

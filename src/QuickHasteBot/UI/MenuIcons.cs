@@ -32,6 +32,8 @@ internal static class MenuIcons
     public const string Folder = "";
     public const string Check = "";
 
+    public const string Help = "";
+
     static readonly FontFamily SymbolFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
     // Dieselben Formen wie im Editor (SnippetEditorWindow.xaml)

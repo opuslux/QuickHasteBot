@@ -15,6 +15,7 @@ internal sealed class TrayIcon : IDisposable
         menu.Items.Add(MenuIcons.Item(Strings.TrayOpenStructure, MenuIcons.Glyph(MenuIcons.Explorer), app.OpenStructureFolder));
         menu.Items.Add(MenuIcons.Item(Strings.TrayElementPicker, MenuIcons.Crosshair(), app.ShowElementPicker));
         menu.Items.Add(MenuIcons.Item(Strings.TrayAiPrompt, MenuIcons.Sparkle(), app.ShowAiPrompt));
+        menu.Items.Add(MenuIcons.Item(Strings.Help, MenuIcons.Glyph(MenuIcons.Help), app.ShowHelp));
         menu.Items.Add(new Separator());
         menu.Items.Add(MenuIcons.Item(Strings.TrayExit, MenuIcons.Glyph(MenuIcons.Exit), app.Exit));
 

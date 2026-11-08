@@ -22,6 +22,7 @@ internal sealed class AppController : IDisposable
     TrayIcon? _tray;
     SettingsWindow? _settingsWindow;
     AiPromptWindow? _aiPromptWindow;
+    HelpWindow? _helpWindow;
     ElementPickerWindow? _elementPicker;
     readonly List<SnippetEditorWindow> _editors = [];
 
@@ -123,6 +124,30 @@ internal sealed class AppController : IDisposable
         if (_aiPromptWindow.WindowState == WindowState.Minimized)
             _aiPromptWindow.WindowState = WindowState.Normal;
         _aiPromptWindow.Activate();
+    }
+
+    public void ShowHelp() => ShowHelp(anchor: null);
+
+    /// <summary>Das README als Hilfe, nur ein Fenster. Mit <paramref name="anchor"/> an diesem Abschnitt, z.B. "editor".</summary>
+    public void ShowHelp(string? anchor)
+    {
+        if (_helpWindow is null)
+        {
+            var window = new HelpWindow(ShellOpen);
+            window.Closed += (_, _) =>
+            {
+                if (_helpWindow == window)
+                    _helpWindow = null;
+            };
+            _helpWindow = window;
+            window.Show();
+        }
+
+        if (anchor is not null)
+            _helpWindow.ScrollTo(anchor);
+        if (_helpWindow.WindowState == WindowState.Minimized)
+            _helpWindow.WindowState = WindowState.Normal;
+        _helpWindow.Activate();
     }
 
     /// <summary>Der zuletzt benutzte offene Editor: Picker und KI-Fenster können dort einfügen.</summary>
@@ -835,6 +860,10 @@ internal sealed class AppController : IDisposable
             oldPrompt.Close();
             ShowAiPrompt(position);
         }
+
+        // Das README gibt es nur auf Englisch, nur der Titel wechselt
+        if (_helpWindow is not null)
+            _helpWindow.Title = Strings.HelpTitle;
     }
 
     /// <summary>Gilt sofort für alle offenen Fenster, anders als die Sprache muss nichts neu aufgebaut werden.</summary>
