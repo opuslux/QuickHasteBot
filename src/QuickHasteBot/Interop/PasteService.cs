@@ -285,10 +285,8 @@ internal sealed class PasteService
 
                 case DeferredStep deferred when expand is not null:
                 {
-                    // Das Fenster soll das bisher Getippte verarbeitet haben, bevor ein Skriptfenster ihm den Fokus nimmt.
-                    // Sonst tippt es verspätet, und alle Zeichen kommen als das letzte an.
+                    // Ein sichtbares Konsolenfenster kommt nach vorne: danach das Fenster von vorher zurückholen
                     var front = GetForegroundWindow();
-                    await SettleAsync(front, keyDelay);
                     var expansion = await expand(deferred, steps[i].Source);
                     if (expansion.Cancelled)
                         return Aborted(FormOutcome.EscapePressed, i);
@@ -296,15 +294,8 @@ internal sealed class PasteService
                         return Aborted(FormOutcome.ScriptFailed, i, expansion.Error);
                     steps.InsertRange(i + 1, expansion.Steps);
                     gate?.Planned([.. steps], paste: false);
-                    if (GetForegroundWindow() != front)
-                    {
-                        // Ein sichtbares Konsolenfenster kam nach vorne: warten, bis es sich geschlossen hat, dann das
-                        // Fenster von vorher zurückholen und ihm Zeit lassen, bevor weitergetippt wird
-                        await ForegroundSettledAsync();
-                        if (!await ResumeAsync(front))
-                            return Aborted(FormOutcome.WindowChanged, i);
-                        await SettleAsync(front, keyDelay);
-                    }
+                    if (GetForegroundWindow() != front && !await ResumeAsync(front))
+                        return Aborted(FormOutcome.WindowChanged, i);
                     break;
                 }
 
@@ -377,31 +368,6 @@ internal sealed class PasteService
     /// Nach einer Pause im Schritt-für-Schritt-Lauf: das Fenster, das vorher vorne war, zurückholen. Inzwischen war
     /// vielleicht der Editor vorne. Dann wie beim Start warten, bis keine Zusatztaste mehr gedrückt ist.
     /// </summary>
-    /// <summary>
-    /// Wartet, bis <paramref name="window"/> wieder Nachrichten abarbeitet (höchstens 1 s), und gibt ihm dann wie nach
-    /// {window,…} kurz Zeit für die Eingaben in seiner Warteschlange.
-    /// </summary>
-    static async Task SettleAsync(nint window, int keyDelay)
-    {
-        if (window != 0)
-            await Task.Run(() => SendMessageTimeout(window, WM_NULL, 0, 0, SMTO_ABORTIFHUNG, 1000, out _));
-        await Task.Delay(Math.Max(keyDelay, 100));
-    }
-
-    /// <summary>Wartet, bis das Vordergrundfenster 200 ms lang dasselbe bleibt, höchstens 1,5 s.</summary>
-    static async Task ForegroundSettledAsync()
-    {
-        var deadline = Environment.TickCount64 + 1500;
-        var window = GetForegroundWindow();
-        var since = Environment.TickCount64;
-        while (Environment.TickCount64 < deadline && Environment.TickCount64 - since < 200)
-        {
-            await Task.Delay(PollInterval);
-            if (GetForegroundWindow() is var now && now != window)
-                (window, since) = (now, Environment.TickCount64);
-        }
-    }
-
     internal static async Task<bool> ResumeAsync(nint window)
     {
         if (window != 0 && GetForegroundWindow() != window && !await WindowFocus.ActivateAndWaitAsync(window))

@@ -248,7 +248,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 - **The result** `r` has `code` (exit code), `out` (what it printed) and `err` (error output), read in the code page of the command prompt. As text it is `out`, so `{{ run('date.bat') }}` types the output right away. Assigned with `const`, it prints nothing and stays available to every later block.
 - **Checking the result:** `throw new Error('…')` stops the snippet with that message, as in any block.
 - **At its place:** blocks are normally all evaluated before the first key is sent. If a tag comes before the first `run()`, that block and all later ones are evaluated only when the snippet gets there, so the script runs after what comes before it and later blocks see its result. In the preview such blocks show as written, and in step-by-step runs each block (or line of blocks) is a step of its own; what it prints appears as steps behind it.
-- **Focus:** before the script starts, the window gets a moment to take in what was typed. If the script's window comes to the front, the snippet waits until it has closed and brings the window that was in front before back. Holding Esc stops the wait.
+- **Focus:** if the script's window comes to the front, the window that was in front before is brought back afterwards. Holding Esc stops the wait.
 - The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. Every start and exit code is written to the log.
 
 ### Writing a block with AI
@@ -288,7 +288,7 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 | `{ctrl+a}` `{shift+tab}` `{ctrl+shift+end}` | Combinations with `ctrl`, `alt`, `shift`, `win`, plus any key above or a single letter or digit |
 | `{tab,3}` | Repeats a key |
 | `{wait,500}` | Pauses 500 ms, e.g. until a dropdown opens or a page has loaded (at most 10 s) |
-| `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms that lose characters (default: 30 ms after keys, none between characters) |
+| `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms and programs that lose or mix up characters, such as Notepad in Windows 11 (`{delay,30}`) (default: 30 ms after keys, none between characters) |
 | `{clear}` | `{ctrl+a}{del}`: empties a prefilled field before typing |
 | `{guard,off}` `{guard,on}` | Turns the [window guard](#window-guard) off or on from here |
 
