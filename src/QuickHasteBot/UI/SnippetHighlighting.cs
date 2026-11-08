@@ -41,7 +41,15 @@ internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisp
     static readonly Palette Dark = new(Brush("#5CB8FF"), Brush("#D49BE0"), Brush("#4EC9B0"), Brush("#CE9178"), Brush("#FF8A80"),
         Brush("#E0B060"), Brush("#6FA8E8"), Brush("#DCDCAA"), Brush("#B5CEA8"), Brush("#7FA866"));
 
-    static readonly TextDecorationCollection ErrorUnderline = CreateUnderline();
+    /// <summary>Rot gepunktet unter fehlerhaften Tags.</summary>
+    internal static readonly TextDecorationCollection ErrorUnderline = CreateUnderline();
+
+    /// <summary>Die Farbe für <paramref name="kind"/>, auch für die Textvorschau im Popup (<see cref="SyntaxColors"/>).</summary>
+    internal static Brush BrushFor(SyntaxKind kind, bool dark) => (dark ? Dark : Light).For(kind);
+
+    /// <summary>Heller Text = dunkles Theme.</summary>
+    internal static bool IsDark(Brush? foreground) =>
+        foreground is SolidColorBrush { Color: var c } && (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) > 128;
 
     readonly TextEditor _editor;
     readonly bool _keyTags;
@@ -88,12 +96,7 @@ internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisp
         _editor.TextArea.TextView.Redraw();
     }
 
-    /// <summary>Heller Text = dunkles Theme.</summary>
-    void UpdatePalette()
-    {
-        var dark = _editor.Foreground is SolidColorBrush { Color: var c } && (0.299 * c.R + 0.587 * c.G + 0.114 * c.B) > 128;
-        _palette = dark ? Dark : Light;
-    }
+    void UpdatePalette() => _palette = IsDark(_editor.Foreground) ? Dark : Light;
 
     IReadOnlyList<SyntaxSpan> Spans()
     {

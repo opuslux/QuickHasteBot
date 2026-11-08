@@ -67,6 +67,9 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     /// <summary>Der Inhalt eines Textbausteins, nicht umbrochen in Monospace. Hinweise werden umbrochen.</summary>
     public bool DetailIsText { get; private set; }
 
+    /// <summary>Tags und Skripte in <see cref="DetailText"/>, für dieselben Farben wie im Editor. Leer bei Hinweisen.</summary>
+    public IReadOnlyList<SyntaxSpan> DetailSpans { get; private set; } = [];
+
     /// <summary>Umschalter in der Textvorschau, gilt sofort und bleibt gespeichert.</summary>
     public bool WrapPreview
     {
@@ -315,7 +318,11 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         var text = snippet?.Kind == SnippetKind.Text ? app.Library.GetSearchableText(snippet) : null;
         DetailIsText = text is not null;
         OnPropertyChanged(nameof(DetailIsText));
-        DetailText = text?.ReplaceLineEndings() ?? BuildHint(snippet);
+        // Vor dem Text, damit die Vorschau mit dem neuen Text gleich die passenden Farben hat
+        text = text is null ? null : TabStops.Expand(text.ReplaceLineEndings());
+        DetailSpans = text is null ? [] : SnippetSyntax.Tokenize(text, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts);
+        OnPropertyChanged(nameof(DetailSpans));
+        DetailText = text ?? BuildHint(snippet);
     }
 
     string BuildHint(Snippet? snippet)
