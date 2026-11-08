@@ -27,6 +27,7 @@ internal static partial class NativeMethods
     public const uint GA_ROOT = 2;
     public const uint GA_ROOTOWNER = 3;
 
+    public const uint MONITOR_DEFAULTTONULL = 0;
     public const uint MONITOR_DEFAULTTONEAREST = 2;
     public const uint SWP_NOSIZE = 0x0001;
     public const uint SWP_NOZORDER = 0x0004;

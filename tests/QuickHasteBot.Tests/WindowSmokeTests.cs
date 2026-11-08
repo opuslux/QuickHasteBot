@@ -16,7 +16,10 @@ namespace QuickHasteBot.Tests;
 /// <summary>
 /// Lädt die Fenster offscreen mit Fluent-Theme: findet kaputtes XAML, Bindings und fehlende Theme-Ressourcen.
 /// Mit QHB_SNAPSHOTS=&lt;Ordner&gt; werden die Fenster zusätzlich als PNG gespeichert.
+/// Läuft allein, nicht parallel zu anderen Testklassen: echte Fenster, UI Automation und Mausklicks, dazu die Sprache
+/// der Oberfläche, die für den ganzen Prozess gilt.
 /// </summary>
+[Collection(nameof(WindowSmokeTests))]
 public class WindowSmokeTests
 {
     // Eine Application pro Prozess: beide Sprachen laufen nacheinander im selben Test
@@ -29,6 +32,7 @@ public class WindowSmokeTests
         {
             // Wie ein deutsches Windows, damit der Test überall gleich läuft. English() stellt per settings.json um.
             CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de");
+            UiLanguage.AssumeWindowsLanguage(CultureInfo.GetCultureInfo("de"));
             German();
             English();
             SwitchLanguage();
@@ -1253,21 +1257,29 @@ public class WindowSmokeTests
         var window = new Window
         {
             Width = 300, Height = 300, ShowInTaskbar = false,
-            Content = new System.Windows.Controls.StackPanel { Children = { box, new System.Windows.Controls.TextBlock { Text = "Weiter unten:" }, list } },
+            Content = new System.Windows.Controls.StackPanel
+            {
+                Children = { box, new System.Windows.Controls.TextBlock { Name = "hinweis", Text = "Weiter unten:" }, list },
+            },
         };
         Snapshot(window, "popup-select.png");
         var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
 
         // UIA ruft zurück in dieses Fenster: auf einem anderen Thread, der UI-Thread läuft weiter
-        ElementResult Set(string value)
+        ElementResult Run(string tag)
         {
-            Assert.True(KeyTags.TryParse($"set,#personen,\"{value}\"", null, out var steps, out var error), error);
+            Assert.True(KeyTags.TryParse(tag, null, out var steps, out var error), error);
             var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
-            // Lokal ein paar Sekunden. Auf dem GitHub-Runner braucht die fehlende Option (Aufklappen, Suche im Fenster) seit
-            // November 2026 bis gegen eine Minute, auch mit dem Code von v2.11.0, der dort vorher in 15 s durchlief.
-            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(90)));
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(15)));
             return run.Result;
         }
+        ElementResult Set(string value) => Run($"set,#personen,\"{value}\"");
+
+        // Das Fenster steht ausserhalb des Bildschirms (Snapshot). Ein echter Klick landete am Bildschirmrand in einem
+        // fremden Fenster, darum wird gar nicht erst geklickt.
+        var offscreen = Run("click,#hinweis");
+        Assert.Equal(ElementOutcome.Failed, offscreen.Outcome);
+        Assert.Contains("outside the screen", offscreen.Error);
 
         Assert.Equal(ElementOutcome.Done, Set("5").Outcome);
         Assert.Equal("5", box.Text);
@@ -1593,3 +1605,6 @@ public class WindowSmokeTests
         failure?.Throw();
     }
 }
+
+[CollectionDefinition(nameof(WindowSmokeTests), DisableParallelization = true)]
+public class WindowSmokeTestsCollection;
