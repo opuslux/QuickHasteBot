@@ -150,7 +150,19 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagWeek" xml:space="preserve"><value>calendar week</value></data>
   <data name="TagClipboard" xml:space="preserve"><value>clipboard text</value></data>
   <data name="TagUser" xml:space="preserve"><value>Windows user</value></data>
-  <data name="TagComment" xml:space="preserve"><value>Comment: a note to yourself, not pasted</value></data>
+  <data name="TagCancel" xml:space="preserve"><value>cancel, close a dialog</value></data>
+  <data name="TagUp" xml:space="preserve"><value>arrow up</value></data>
+  <data name="TagDown" xml:space="preserve"><value>arrow down</value></data>
+  <data name="TagLeft" xml:space="preserve"><value>arrow left</value></data>
+  <data name="TagRight" xml:space="preserve"><value>arrow right</value></data>
+  <data name="TagHome" xml:space="preserve"><value>start of the line</value></data>
+  <data name="TagEnd" xml:space="preserve"><value>end of the line</value></data>
+  <data name="TagBackspace" xml:space="preserve"><value>delete to the left</value></data>
+  <data name="TagDelete" xml:space="preserve"><value>delete to the right</value></data>
+  <data name="TagReload" xml:space="preserve"><value>reload</value></data>
+  <data name="TagTime" xml:space="preserve"><value>current time</value></data>
+  <data name="TagGuid" xml:space="preserve"><value>unique ID (GUID)</value></data>
+  <data name="TagComment" xml:space="preserve"><value>comment, not pasted</value></data>
   <data name="TagCommentText" xml:space="preserve"><value>note</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Open with default program</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>New snippet…</value></data>

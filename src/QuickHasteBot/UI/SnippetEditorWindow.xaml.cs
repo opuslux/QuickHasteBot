@@ -353,7 +353,24 @@ internal partial class SnippetEditorWindow : Window
     /// Ein Eintrag im Tag-Menü. <see cref="Select"/>: was nach dem Einfügen markiert wird, zum Überschreiben.
     /// <see cref="OwnLine"/>: auf eine eigene Zeile wie die Tags aus dem Picker (Kommentare).
     /// </summary>
+    /// <param name="Description">
+    /// Name des Texts in <see cref="Strings"/>, z.B. nameof(Strings.TagNextField): angezeigt in der Sprache der Oberfläche,
+    /// der Filter findet ihn auch auf Englisch.
+    /// </param>
     sealed record TagEntry(string Tag, string? Description = null, string? Select = null, bool OwnLine = false);
+
+    /// <summary>Ein Text in der Sprache der Oberfläche.</summary>
+    static string Local(string key) => Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
+
+    /// <summary>
+    /// Was der Filter im Tag-Menü durchsucht: der Tag und die Texte in der Sprache der Oberfläche und auf Englisch, damit
+    /// z.B. «comment» auch im deutschen Menü den Kommentar findet.
+    /// </summary>
+    static string SearchText(string? tag, params string?[] keys) =>
+        string.Join(' ', new[] { tag }.Concat(keys.OfType<string>().SelectMany(key => new[]
+        {
+            Local(key), Strings.ResourceManager.GetString(key, System.Globalization.CultureInfo.InvariantCulture),
+        })).OfType<string>().Distinct());
 
     /// <summary>
     /// "Tag einfügen ▾": oben eine Filterzeile, darunter die Gruppen. Sobald gefiltert wird, stehen statt der Gruppen alle
@@ -362,33 +379,38 @@ internal partial class SnippetEditorWindow : Window
     /// </summary>
     internal ContextMenu TagMenu()
     {
+        // Gruppen und Beschreibungen als Namen der Texte, siehe SearchText
         (string Header, UIElement Icon, TagEntry?[] Entries)[] groups =
         [
-            (Strings.EditorTagsKeys, MenuIcons.Glyph(MenuIcons.Keys),
+            (nameof(Strings.EditorTagsKeys), MenuIcons.Glyph(MenuIcons.Keys),
             [
-                new("{tab}", Strings.TagNextField), new("{shift+tab}", Strings.TagPreviousField), new("{enter}", Strings.TagSubmit),
-                new("{space}", Strings.TagCheckbox), new("{esc}"), null,
-                new("{up}"), new("{down}"), new("{down,3}", Strings.TagRepeat), new("{left}"), new("{right}"), new("{home}"), new("{end}"), null,
-                new("{bs}"), new("{del}"), new("{ctrl+a}", Strings.TagSelectAll), new("{alt+down}", Strings.TagOpenDropdown),
-                new("{ctrl+enter}", Strings.TagSendChat), new("{f5}"),
+                new("{tab}", nameof(Strings.TagNextField)), new("{shift+tab}", nameof(Strings.TagPreviousField)),
+                new("{enter}", nameof(Strings.TagSubmit)), new("{space}", nameof(Strings.TagCheckbox)), new("{esc}", nameof(Strings.TagCancel)), null,
+                new("{up}", nameof(Strings.TagUp)), new("{down}", nameof(Strings.TagDown)), new("{down,3}", nameof(Strings.TagRepeat)),
+                new("{left}", nameof(Strings.TagLeft)), new("{right}", nameof(Strings.TagRight)), new("{home}", nameof(Strings.TagHome)),
+                new("{end}", nameof(Strings.TagEnd)), null,
+                new("{bs}", nameof(Strings.TagBackspace)), new("{del}", nameof(Strings.TagDelete)), new("{ctrl+a}", nameof(Strings.TagSelectAll)),
+                new("{alt+down}", nameof(Strings.TagOpenDropdown)), new("{ctrl+enter}", nameof(Strings.TagSendChat)), new("{f5}", nameof(Strings.TagReload)),
             ]),
-            (Strings.EditorTagsFlow, MenuIcons.Glyph(MenuIcons.Flow),
+            (nameof(Strings.EditorTagsFlow), MenuIcons.Glyph(MenuIcons.Flow),
             [
-                new("{# " + Strings.TagCommentText + "}", Strings.TagComment, Strings.TagCommentText, OwnLine: true), null,
-                new("{wait,500}", Strings.TagWait, "500"), new("{delay,50}", Strings.TagDelay, "50"), new("{clear}", Strings.TagClear), null,
-                new("{guard,off}", Strings.TagGuardOff), new("{guard,on}", Strings.TagGuardOn),
+                new("{# " + Strings.TagCommentText + "}", nameof(Strings.TagComment), Strings.TagCommentText, OwnLine: true), null,
+                new("{wait,500}", nameof(Strings.TagWait), "500"), new("{delay,50}", nameof(Strings.TagDelay), "50"),
+                new("{clear}", nameof(Strings.TagClear)), null,
+                new("{guard,off}", nameof(Strings.TagGuardOff)), new("{guard,on}", nameof(Strings.TagGuardOn)),
             ]),
-            (Strings.EditorTagsElements, MenuIcons.Crosshair(),
+            (nameof(Strings.EditorTagsElements), MenuIcons.Crosshair(),
             [
-                new("{focus,#id}", Strings.TagFocus, "id"), new("{click,name=Label}", Strings.TagClick, "Label"),
-                new("{set,#id,\"\"}", Strings.TagSet, "id"), null,
-                new("{window,program}", Strings.TagWindow, "program"), new("{start,program}", Strings.TagStart, "program"),
+                new("{focus,#id}", nameof(Strings.TagFocus), "id"), new("{click,name=Label}", nameof(Strings.TagClick), "Label"),
+                new("{set,#id,\"\"}", nameof(Strings.TagSet), "id"), null,
+                new("{window,program}", nameof(Strings.TagWindow), "program"), new("{start,program}", nameof(Strings.TagStart), "program"),
             ]),
-            (Strings.EditorTagsScripts, MenuIcons.Glyph(MenuIcons.Script),
+            (nameof(Strings.EditorTagsScripts), MenuIcons.Glyph(MenuIcons.Script),
             [
-                new("{{ date() }}", Strings.TagDate), new("{{ date('dd.MM.yyyy', 14) }}", Strings.TagDateIn, "14"), new("{{ time() }}"),
-                new("{{ isoweek() }}", Strings.TagWeek), new("{{ clipboard }}", Strings.TagClipboard), new("{{ user }}", Strings.TagUser),
-                new("{{ guid() }}"),
+                new("{{ date() }}", nameof(Strings.TagDate)), new("{{ date('dd.MM.yyyy', 14) }}", nameof(Strings.TagDateIn), "14"),
+                new("{{ time() }}", nameof(Strings.TagTime)), new("{{ isoweek() }}", nameof(Strings.TagWeek)),
+                new("{{ clipboard }}", nameof(Strings.TagClipboard)), new("{{ user }}", nameof(Strings.TagUser)),
+                new("{{ guid() }}", nameof(Strings.TagGuid)),
             ]),
         ];
 
@@ -411,10 +433,10 @@ internal partial class SnippetEditorWindow : Window
         var groupItems = new List<MenuItem>();
         foreach (var (header, icon, entries) in groups)
         {
-            var group = new MenuItem { Header = header, Icon = icon };
+            var group = new MenuItem { Header = Local(header), Icon = icon };
             foreach (var entry in entries)
                 group.Items.Add(entry is null ? new Separator() : Tag(entry));
-            if (header == Strings.EditorTagsElements)
+            if (header == nameof(Strings.EditorTagsElements))
             {
                 group.Items.Add(new Separator());
                 group.Items.Add(MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker));
@@ -427,9 +449,9 @@ internal partial class SnippetEditorWindow : Window
         var results = new List<(MenuItem Item, string Text)>();
         foreach (var (header, _, entries) in groups)
             foreach (var entry in entries.OfType<TagEntry>())
-                results.Add((Tag(entry), $"{entry.Tag} {entry.Description} {header}"));
+                results.Add((Tag(entry), SearchText(entry.Tag, entry.Description, header)));
         results.Add((MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker),
-            $"{Strings.EditorPickerMenu} {Strings.EditorTagsElements}"));
+            SearchText(null, nameof(Strings.EditorPickerMenu), nameof(Strings.EditorTagsElements))));
         var noMatch = new MenuItem { Header = Strings.EditorTagsNoMatch, IsEnabled = false };
         foreach (var (item, _) in results)
         {
@@ -478,7 +500,10 @@ internal partial class SnippetEditorWindow : Window
 
         MenuItem Tag(TagEntry entry)
         {
-            var item = new MenuItem { Header = entry.Tag, InputGestureText = entry.Description ?? "", FontFamily = BodyInput.FontFamily };
+            var item = new MenuItem
+            {
+                Header = entry.Tag, InputGestureText = entry.Description is null ? "" : Local(entry.Description), FontFamily = BodyInput.FontFamily,
+            };
             item.Click += (_, _) =>
             {
                 if (entry.OwnLine) InsertTag(entry.Tag, entry.Select);
