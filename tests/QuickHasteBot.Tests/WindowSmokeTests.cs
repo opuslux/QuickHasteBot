@@ -1263,7 +1263,9 @@ public class WindowSmokeTests
         {
             Assert.True(KeyTags.TryParse($"set,#personen,\"{value}\"", null, out var steps, out var error), error);
             var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
-            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(15)));
+            // Lokal ein paar Sekunden. Auf dem GitHub-Runner braucht die fehlende Option (Aufklappen, Suche im Fenster) seit
+            // November 2026 bis gegen eine Minute, auch mit dem Code von v2.11.0, der dort vorher in 15 s durchlief.
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(90)));
             return run.Result;
         }
 
