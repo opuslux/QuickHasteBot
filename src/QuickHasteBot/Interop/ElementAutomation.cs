@@ -24,7 +24,8 @@ internal sealed record ElementInfo(
     nint Window, bool Blocked = false);
 
 /// <summary>
-/// Elemente per UI Automation finden und bedienen: {focus,…}, {click,…}, {set,…} und der Element-Picker.
+/// Elemente per UI Automation finden und bedienen: {focus,…}, {click,…}, {set,…}, {dblclick,…}, {rclick,…} und der
+/// Element-Picker.
 /// Browser (Chrome, Edge, Firefox) reichen ihren DOM-Baum über UIA durch: HTML-id = AutomationId, class = ClassName,
 /// Beschriftung = Name. Alle Aufrufe blockieren und gehören auf einen Hintergrund-Thread, nie auf den UI-Thread.
 /// </summary>
@@ -52,7 +53,7 @@ internal static class ElementAutomation
         {
             try
             {
-                element = Find(AutomationElement.FromHandle(window), step.Selector);
+                element = FindInWindow(window, step.Selector);
             }
             catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException)
             {
@@ -70,6 +71,8 @@ internal static class ElementAutomation
             {
                 ElementAction.Focus => Focus(element),
                 ElementAction.Click => Click(element),
+                ElementAction.DoubleClick => MouseOnly(element, MouseButton.Left, 2),
+                ElementAction.RightClick => MouseOnly(element, MouseButton.Right, 1),
                 _ => Set(element, step.Value ?? ""),
             };
         }
@@ -89,12 +92,34 @@ internal static class ElementAutomation
         if (window == 0) return null;
         try
         {
-            return Find(AutomationElement.FromHandle(window), selector)?.Current.BoundingRectangle is { IsEmpty: false } bounds ? bounds : null;
+            return FindInWindow(window, selector)?.Current.BoundingRectangle is { IsEmpty: false } bounds ? bounds : null;
         }
         catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException or InvalidOperationException)
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Sucht zuerst in den offenen Menüs und Popups des Fensters (<see cref="WindowFinder.Popups"/>), dann im Fenster
+    /// selbst. So findet {click,name=Kopieren} nach einem {rclick,…} den Eintrag im Kontextmenü, auch wenn das Fenster
+    /// einen Button gleichen Namens hat.
+    /// </summary>
+    static AutomationElement? FindInWindow(nint window, ElementSelector selector)
+    {
+        foreach (var popup in WindowFinder.Popups(window))
+        {
+            try
+            {
+                if (Find(AutomationElement.FromHandle(popup), selector) is { } found)
+                    return found;
+            }
+            catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException)
+            {
+                // Das Menü ist inzwischen zu
+            }
+        }
+        return Find(AutomationElement.FromHandle(window), selector);
     }
 
     /// <summary>Das erste passende Element unter <paramref name="root"/>, oder das n-te bei index=.</summary>
@@ -162,6 +187,21 @@ internal static class ElementAutomation
             return new(ElementOutcome.Failed, Error: "the element can't be clicked");
         // z.B. ein <div> mit onclick: nur ein echter Klick hilft
         else if (!MouseClick(point))
+            return new(ElementOutcome.Failed, Error: "the element is outside the screen and can't be clicked");
+        return new(ElementOutcome.Done);
+    }
+
+    /// <summary>
+    /// Doppel- und Rechtsklick: Dafür hat UI Automation kein Muster, es braucht immer einen echten Klick. Liegt das
+    /// Element in einer Liste ausserhalb des sichtbaren Bereichs, wird es zuerst hineingescrollt.
+    /// </summary>
+    static ElementResult MouseOnly(AutomationElement element, MouseButton button, int clicks)
+    {
+        if (element.Current.IsOffscreen)
+            Pattern<ScrollItemPattern>(element, ScrollItemPattern.Pattern)?.ScrollIntoView();
+        if (!element.TryGetClickablePoint(out var point))
+            return new(ElementOutcome.Failed, Error: "the element can't be clicked");
+        if (!MouseClick(point, button, clicks))
             return new(ElementOutcome.Failed, Error: "the element is outside the screen and can't be clicked");
         return new(ElementOutcome.Done);
     }
@@ -367,22 +407,28 @@ internal static class ElementAutomation
     static T? Pattern<T>(AutomationElement element, AutomationPattern pattern) where T : BasePattern =>
         element.TryGetCurrentPattern(pattern, out var found) ? (T)found : null;
 
+    enum MouseButton { Left, Right }
+
     /// <summary>
-    /// Linksklick an einer Bildschirmposition, danach steht die Maus wieder, wo sie war. False ohne Klick, wenn der Punkt
-    /// auf keinem Bildschirm liegt: UIA liefert auch für Elemente in Fenstern ausserhalb einen Punkt, Windows setzt den
-    /// Zeiger dann an den Rand, und der Klick träfe ein fremdes Fenster.
+    /// Ein Klick (oder ein Doppelklick bei <paramref name="clicks"/> = 2) an einer Bildschirmposition, danach steht die
+    /// Maus wieder, wo sie war. False ohne Klick, wenn der Punkt auf keinem Bildschirm liegt: UIA liefert auch für
+    /// Elemente in Fenstern ausserhalb einen Punkt, Windows setzt den Zeiger dann an den Rand, und der Klick träfe ein
+    /// fremdes Fenster.
     /// </summary>
-    static bool MouseClick(Point point)
+    static bool MouseClick(Point point, MouseButton button = MouseButton.Left, int clicks = 1)
     {
         if (MonitorFromPoint(new POINT { X = (int)point.X, Y = (int)point.Y }, MONITOR_DEFAULTTONULL) == 0)
             return false;
+        // SendInput meint die Tasten, wie sie an der Maus sitzen: Bei vertauschten Tasten (Linkshänder) ist links rechts
+        var physical = GetSystemMetrics(SM_SWAPBUTTON) != 0 ? (button == MouseButton.Left ? MouseButton.Right : MouseButton.Left) : button;
+        var (down, up) = physical == MouseButton.Left ? (MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP) : (MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP);
         GetCursorPos(out var before);
         SetCursorPos((int)point.X, (int)point.Y);
-        INPUT[] inputs =
-        [
-            new() { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTDOWN } } },
-            new() { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = MOUSEEVENTF_LEFTUP } } },
-        ];
+        // Beim Doppelklick alle vier auf einmal: Windows wertet sie als Doppelklick, weil sie innerhalb der Doppelklickzeit
+        // an derselben Stelle ankommen
+        var inputs = Enumerable.Range(0, clicks * 2)
+            .Select(i => new INPUT { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { dwFlags = i % 2 == 0 ? down : up } } })
+            .ToArray();
         SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
         Thread.Sleep(50);
         SetCursorPos(before.X, before.Y);

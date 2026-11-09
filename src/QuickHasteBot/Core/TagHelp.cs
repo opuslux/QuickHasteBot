@@ -32,19 +32,20 @@ public static class TagHelp
         ["ctrl+enter"] = "TagSendChat", ["f5"] = "TagReload",
     };
 
-    // Die Helfer in {{ … }}; focus, click, set, window und wait erklären sich wie ihr Tag
+    // Die Helfer in {{ … }}; focus, click, set, dblclick, rclick, window und wait erklären sich wie ihr Tag
     static readonly Dictionary<string, string> HelperTopics = new()
     {
         ["date"] = "TagDate", ["time"] = "TagTime", ["isoweek"] = "TagWeek", ["clipboard"] = "TagClipboard", ["user"] = "TagUser",
         ["guid"] = "TagGuid", ["key"] = "TagKeyHelper", ["wait"] = "TagWait", ["focus"] = "TagFocus", ["click"] = "TagClick",
-        ["set"] = "TagSet", ["window"] = "TagWindow", ["run"] = "TagRunOptions",
+        ["set"] = "TagSet", ["dblclick"] = "TagDoubleClick", ["rclick"] = "TagRightClick", ["window"] = "TagWindow",
+        ["run"] = "TagRunOptions",
     };
 
     /// <summary>Alle Texte, auf die <see cref="At"/> zeigen kann, für den Test, dass es sie gibt.</summary>
     public static IEnumerable<string> AllKeys =>
         KeyTopics.Values.Concat(HelperTopics.Values)
             .Concat(["TagComment", "TagWait", "TagDelay", "TagClear", "TagGuardOff", "TagGuardOn", "TagFocus", "TagClick", "TagSet",
-                "TagWindow", "TagStart", "TagStartUrl", AnyKey, Repeat])
+                "TagDoubleClick", "TagRightClick", "TagWindow", "TagStart", "TagStartUrl", AnyKey, Repeat])
             .Distinct();
 
     /// <summary>
@@ -84,6 +85,8 @@ public static class TagHelp
             "focus" => "TagFocus",
             "click" => "TagClick",
             "set" => "TagSet",
+            "dblclick" => "TagDoubleClick",
+            "rclick" => "TagRightClick",
             "window" => "TagWindow",
             "start" => KeyTags.IsWebAddress(first) ? "TagStartUrl" : "TagStart",
             _ => null,

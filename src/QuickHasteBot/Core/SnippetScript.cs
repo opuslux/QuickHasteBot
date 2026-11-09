@@ -68,6 +68,8 @@ public static partial class SnippetScript
         ("focus(el)", "focus a field: '#id', 'name=Label', '.class'"),
         ("click(el)", "click a button or link"),
         ("set(el, value)", "fill a field or dropdown, checkbox 'on'/'off'"),
+        ("dblclick(el)", "double-click an element, e.g. a list entry"),
+        ("rclick(el)", "right-click an element; click('name=…') then picks from its context menu"),
         ("window(app)", "bring a program to the front"),
         ("run(file, args?, {wait, hidden, dir, args}?)", "runs a script or program right here and waits (wait in seconds, default 60; dir = working folder, default the script's); returns {code, out, err}, as text its output"),
     ];
@@ -165,6 +167,8 @@ public static partial class SnippetScript
         Function("focus", 1, args => ElementMarker(context, "focus", [Format(args, 0) ?? ""]));
         Function("click", 1, args => ElementMarker(context, "click", [Format(args, 0) ?? ""]));
         Function("set", 2, args => ElementMarker(context, "set", [Format(args, 0) ?? "", Format(args, 1) ?? ""]));
+        Function("dblclick", 1, args => ElementMarker(context, "dblclick", [Format(args, 0) ?? ""]));
+        Function("rclick", 1, args => ElementMarker(context, "rclick", [Format(args, 0) ?? ""]));
         Function("window", 1, args => ElementMarker(context, "window", [Format(args, 0) ?? ""]));
 
         // run(datei, argumente, { wait, hidden, dir, args }): startet ein Skript oder Programm und wartet darauf. Das Ergebnis

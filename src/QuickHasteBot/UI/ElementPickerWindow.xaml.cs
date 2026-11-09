@@ -33,6 +33,8 @@ internal partial class ElementPickerWindow : Window
         StatusText.Text = Strings.PickerReady;
         Closed += (_, _) => _highlight.Close();
         Activated += (_, _) => UpdateInsertButton();
+        // Oben rechts statt mittig: Nach dem Erfassen wird das Fenster deutlich höher
+        SourceInitialized += (_, _) => PopupPlacement.TopRight(this);
     }
 
     void OnTargetDown(object sender, MouseButtonEventArgs e)
@@ -162,6 +164,13 @@ internal partial class ElementPickerWindow : Window
     /// <summary>Dieselbe Regel wie beim Aufnehmen: Buttons und Links klickt man, Checkboxen und Dropdowns setzt man.</summary>
     internal static ElementAction DefaultAction(string type) => Recording.DefaultAction(type);
 
+    internal ElementAction SelectedAction =>
+        ActionClick.IsChecked == true ? ElementAction.Click
+        : ActionDoubleClick.IsChecked == true ? ElementAction.DoubleClick
+        : ActionRightClick.IsChecked == true ? ElementAction.RightClick
+        : ActionSet.IsChecked == true ? ElementAction.Set
+        : ElementAction.Focus;
+
     void OnActionChanged(object sender, RoutedEventArgs e)
     {
         if (!_updating) UpdateTag();
@@ -179,7 +188,7 @@ internal partial class ElementPickerWindow : Window
             TagOutput.Text = "";
             return;
         }
-        var action = ActionClick.IsChecked == true ? ElementAction.Click : ActionSet.IsChecked == true ? ElementAction.Set : ElementAction.Focus;
+        var action = SelectedAction;
         var value = info.Type == "CheckBox" ? "on" : info.Value ?? "";
         var tag = KeyTags.ElementTag(action, selector, value);
         // process= statt nur des Namens: "crm" allein träfe auch einen Browser-Tab mit Crm im Titel
@@ -216,7 +225,16 @@ internal partial class ElementPickerWindow : Window
         }
     }
 
-    void UpdateInsertButton() => InsertButton.Visibility = _app.ActiveEditor is null ? Visibility.Collapsed : Visibility.Visible;
+    /// <summary>Mit offenem Editor ist „In Editor einfügen“ der blaue Knopf ganz rechts, sonst Kopieren.</summary>
+    internal void UpdateInsertButton()
+    {
+        var editor = _app.ActiveEditor is not null;
+        InsertButton.Visibility = editor ? Visibility.Visible : Visibility.Collapsed;
+        if (editor)
+            CopyButton.ClearValue(StyleProperty);
+        else
+            CopyButton.SetResourceReference(StyleProperty, "AccentButtonStyle");
+    }
 
     /// <summary>Tag in den zuletzt benutzten Editor, an die Schreibmarke, und den Editor nach vorne.</summary>
     void OnInsert(object sender, RoutedEventArgs e)

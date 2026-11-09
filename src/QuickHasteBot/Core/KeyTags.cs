@@ -41,9 +41,12 @@ public sealed record StartStep(string Program, string? Arguments, WindowSelector
 /// <param name="Url">Wie geschrieben, eine absolute http- oder https-Adresse.</param>
 public sealed record OpenUrlStep(string Url) : FormStep;
 
-public enum ElementAction { Focus, Click, Set }
+public enum ElementAction { Focus, Click, Set, DoubleClick, RightClick }
 
-/// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
+/// <summary>
+/// {focus,…}, {click,…}, {set,…,wert}, {dblclick,…}, {rclick,…}: ein Element im Vordergrundfenster per UI Automation
+/// ansprechen.
+/// </summary>
 public sealed record ElementStep(ElementAction Action, ElementSelector Selector, string? Value) : FormStep;
 
 /// <summary>
@@ -229,7 +232,16 @@ public static partial class KeyTags
     internal static partial Regex NamePart();
 
     static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
-        { "wait", "delay", "guard", "clear", "focus", "click", "set", "window", "start" };
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start" };
+
+    /// <summary>Die Tags, die ein Element ansprechen, mit ihrem Namen im Text.</summary>
+    internal static readonly IReadOnlyDictionary<string, ElementAction> ElementTags = new Dictionary<string, ElementAction>
+    {
+        ["focus"] = ElementAction.Focus, ["click"] = ElementAction.Click, ["set"] = ElementAction.Set,
+        ["dblclick"] = ElementAction.DoubleClick, ["rclick"] = ElementAction.RightClick,
+    };
+
+    public static string TagName(ElementAction action) => ElementTags.First(t => t.Value == action).Key;
 
     /// <summary>
     /// Ein Name, den es als Tag gibt ("tab", "shift+tab", "ctrl+a", "wait" …), egal ob die Argumente stimmen.
@@ -317,7 +329,7 @@ public static partial class KeyTags
         var args = SplitArgs(content[name.Length..]);
         if (args is null) return false;
 
-        if (spec is "focus" or "click" or "set")
+        if (ElementTags.ContainsKey(spec))
             return TryParseElement(spec, args, out steps, out error);
 
         if (spec == "window")
@@ -396,11 +408,11 @@ public static partial class KeyTags
         return true;
     }
 
-    /// <summary>{focus,#email}, {click,Absenden}, {set,#land,"Österreich"}.</summary>
+    /// <summary>{focus,#email}, {click,Absenden}, {set,#land,"Österreich"}, {dblclick,name=Bericht}, {rclick,#liste}.</summary>
     internal static bool TryParseElement(string spec, List<string> args, out IReadOnlyList<FormStep> steps, out string error)
     {
         steps = [];
-        var action = spec switch { "focus" => ElementAction.Focus, "click" => ElementAction.Click, _ => ElementAction.Set };
+        var action = ElementTags[spec];
         var expected = action == ElementAction.Set ? 2 : 1;
         if (args.Count != expected)
         {
@@ -479,7 +491,7 @@ public static partial class KeyTags
     /// <summary>Ein Element-Tag, wie es der Picker in die Zwischenablage legt. Setzt Argumente nur in "…", wenn nötig.</summary>
     public static string ElementTag(ElementAction action, ElementSelector selector, string? value = null)
     {
-        var tag = "{" + action.ToString().ToLowerInvariant() + "," + Quote(selector.ToString());
+        var tag = "{" + TagName(action) + "," + Quote(selector.ToString());
         if (action == ElementAction.Set)
             tag += "," + Quote(value ?? "", always: true);
         return tag + "}";

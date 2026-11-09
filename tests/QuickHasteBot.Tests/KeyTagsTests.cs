@@ -280,10 +280,25 @@ public class KeyTagsTests
         Assert.Equal("Absenden", Element("{click Absenden}").Selector.Name);
     }
 
+    [Fact]
+    public void Element_tags_double_and_right_click()
+    {
+        var twice = Element("{dblclick,name=Bericht.docx;type=listitem}");
+        Assert.Equal(ElementAction.DoubleClick, twice.Action);
+        Assert.Equal("Bericht.docx", twice.Selector.Name);
+        Assert.Null(twice.Value);
+
+        var right = Element("{RClick,#liste}");
+        Assert.Equal(ElementAction.RightClick, right.Action);
+        Assert.Equal("liste", right.Selector.Id);
+    }
+
     [Theory]
     [InlineData("{focus}")]
     [InlineData("{set,#email}")]
     [InlineData("{click,#a,#b}")]
+    [InlineData("{dblclick}")]
+    [InlineData("{rclick,#a,\"x\"}")]
     [InlineData("{focus,type=banana}")]
     public void Incomplete_element_tags_stay_text(string text) => Assert.Equal("«" + text + "»", Show(text));
 
@@ -298,6 +313,11 @@ public class KeyTagsTests
             Show("{{ focus('#email') + 'm@example.com' + set('#ok', 'on') + click('Senden') }}"));
 
     [Fact]
+    public void Scripts_double_and_right_click() =>
+        Assert.Equal("{dblclick,name=Bericht}{rclick,#liste}{click,name=Kopieren}",
+            Show("{{ dblclick('Bericht') + rclick('#liste') + click('Kopieren') }}"));
+
+    [Fact]
     public void Bad_selector_in_a_script_is_an_error()
     {
         var ex = Assert.Throws<SnippetScriptException>(() => Steps("{{ focus('type=banana') }}"));
@@ -310,6 +330,8 @@ public class KeyTagsTests
     [InlineData(ElementAction.Set, "#ok", "on", "{set,#ok,\"on\"}")]
     [InlineData(ElementAction.Click, "name=Weiter, bitte;type=button", null, "{click,\"name=Weiter, bitte;type=button\"}")]
     [InlineData(ElementAction.Set, "#q", "Zitat \"x\"", "{set,#q,\"Zitat x\"}")]
+    [InlineData(ElementAction.DoubleClick, "name=Bericht;type=listitem", "ignoriert", "{dblclick,name=Bericht;type=listitem}")]
+    [InlineData(ElementAction.RightClick, "#liste", null, "{rclick,#liste}")]
     public void Picker_tags_parse_back_to_the_same_step(ElementAction action, string selectorText, string? value, string expected)
     {
         Assert.True(ElementSelector.TryParse(selectorText, out var selector, out _));

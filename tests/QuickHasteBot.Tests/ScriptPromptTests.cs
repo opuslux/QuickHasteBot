@@ -15,10 +15,12 @@ public class ScriptPromptTests
         Assert.Contains("\"} }\"", prompt);
         Assert.Contains("No backticks", prompt);
         Assert.Contains("a.at(0)", prompt);
-        // Alle Helfer ausser run(): Die KI soll keine Programme starten
-        Assert.All(SnippetScript.Helpers.Where(h => !h.Signature.StartsWith("run(")),
+        // Alle Helfer ausser run(): Die KI soll keine Programme starten. Doppel- und Rechtsklick auch nicht (Länge)
+        Assert.All(SnippetScript.Helpers.Where(h => ScriptPrompt.InPrompt(h.Signature)),
             helper => Assert.Contains("  " + helper.Signature + ": " + helper.Description + "\n", prompt));
+        Assert.Equal(3, SnippetScript.Helpers.Count(h => !ScriptPrompt.InPrompt(h.Signature)));
         Assert.DoesNotContain("run(", prompt);
+        Assert.DoesNotContain("rclick(", prompt);
         Assert.DoesNotContain("{helpers}", prompt);
         Assert.DoesNotContain("{task}", prompt);
     }

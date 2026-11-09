@@ -4,8 +4,9 @@ using static QuickHasteBot.Interop.NativeMethods;
 namespace QuickHasteBot.Interop;
 
 /// <summary>
-/// Meldet, wenn ein Fenster eines anderen Programms nach vorne kommt. Fenster von QuickHasteBot selbst (Popup, Editor,
-/// Dialoge) meldet Windows gar nicht erst. Muss auf einem Thread mit Nachrichtenschleife laufen, die Meldung kommt dort.
+/// Meldet, wenn ein Fenster nach vorne kommt. Fenster von QuickHasteBot selbst (Popup, Editor, Dialoge) nur mit
+/// <c>ownProcess</c>, sonst meldet Windows sie gar nicht erst. Muss auf einem Thread mit Nachrichtenschleife laufen, die
+/// Meldung kommt dort.
 /// </summary>
 internal sealed class ForegroundWatcher : IDisposable
 {
@@ -14,12 +15,12 @@ internal sealed class ForegroundWatcher : IDisposable
     readonly Action<nint> _changed;
     nint _hook;
 
-    public ForegroundWatcher(Action<nint> changed)
+    public ForegroundWatcher(Action<nint> changed, bool ownProcess = false)
     {
         _changed = changed;
         _callback = OnWinEvent;
         _hook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, 0,
-            Marshal.GetFunctionPointerForDelegate(_callback), 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+            Marshal.GetFunctionPointerForDelegate(_callback), 0, 0, WINEVENT_OUTOFCONTEXT | (ownProcess ? 0 : WINEVENT_SKIPOWNPROCESS));
         if (_hook == 0)
             Core.Log.Info("Fensterwechsel lassen sich nicht verfolgen (SetWinEventHook)");
     }
