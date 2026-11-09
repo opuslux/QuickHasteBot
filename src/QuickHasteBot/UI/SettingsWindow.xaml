@@ -82,6 +82,8 @@
                         <TextBlock Text="{x:Static ui:Strings.StartupHeading}" FontWeight="SemiBold" Margin="0,16,0,6" />
                         <CheckBox x:Name="AutostartInput" Content="{x:Static ui:Strings.Autostart}" Click="OnAutostartChanged" />
                         <CheckBox x:Name="TrayInput" Content="{x:Static ui:Strings.ShowTray}" Click="OnTrayChanged" Margin="0,4,0,0" />
+                        <CheckBox x:Name="WriteLogInput" Content="{x:Static ui:Strings.WriteLog}" Click="OnWriteLogChanged" Margin="0,4,0,0"
+                                  ToolTip="{x:Static ui:Strings.WriteLogToolTip}" />
 
                         <!-- Sprache und Darstellung untereinander, die Auswahlfelder bündig -->
                         <Grid Margin="0,10,0,0">

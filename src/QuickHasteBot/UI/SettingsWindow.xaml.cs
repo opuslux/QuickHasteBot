@@ -38,6 +38,7 @@ internal partial class SettingsWindow : Window
         (AiServiceInput.ItemsSource, AiServiceInput.SelectedItem) = app.AiServiceChoices();
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
+        WriteLogInput.IsChecked = app.Settings.WriteLog;
         LanguageInput.ItemsSource = UiLanguage.Choices;
         LanguageInput.SelectedItem = UiLanguage.Choices.FirstOrDefault(c => c.Code == app.Settings.Language) ?? UiLanguage.Choices[0];
         ThemeInput.ItemsSource = UiTheme.Choices;
@@ -320,6 +321,13 @@ internal partial class SettingsWindow : Window
     }
 
     void OnTrayChanged(object sender, RoutedEventArgs e) => _app.SetTrayIconVisible(TrayInput.IsChecked == true);
+
+    void OnWriteLogChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.WriteLog = Log.Enabled = WriteLogInput.IsChecked == true;
+        _app.SaveSettings();
+        Log.Info("Log eingeschaltet");
+    }
 
     void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
     {

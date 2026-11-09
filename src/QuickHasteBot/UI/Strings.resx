@@ -245,6 +245,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="StartupHeading" xml:space="preserve"><value>Startup and display</value></data>
   <data name="Autostart" xml:space="preserve"><value>Start with Windows</value></data>
   <data name="ShowTray" xml:space="preserve"><value>Show tray icon</value></data>
+  <data name="WriteLog" xml:space="preserve"><value>Write log file</value></data>
+  <data name="WriteLogToolTip" xml:space="preserve"><value>Writes QuickHasteBot.log next to the exe: errors, startup, and every program and script a snippet starts. Helps when something goes wrong.</value></data>
   <data name="LanguageLabel" xml:space="preserve"><value>Language</value></data>
   <data name="LanguageAuto" xml:space="preserve"><value>Automatic (Windows)</value></data>
   <data name="ThemeLabel" xml:space="preserve"><value>Theme</value></data>
@@ -351,9 +353,8 @@ The date of next Monday</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>The snippet could not be read:
 {0}</value></data>
   <data name="UnexpectedErrorFormat" xml:space="preserve"><value>Unexpected error:
-{0}
-
-Details are in QuickHasteBot.log.</value></data>
+{0}</value></data>
+  <data name="UnexpectedErrorLogHint" xml:space="preserve"><value>Details are in QuickHasteBot.log.</value></data>
   <!-- Hotkeys für Dateien und Ordner -->
   <data name="MenuSetHotkey" xml:space="preserve"><value>Set hotkey…</value></data>
   <data name="FileHotkeyTitle" xml:space="preserve"><value>Hotkey</value></data>

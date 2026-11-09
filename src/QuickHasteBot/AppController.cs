@@ -37,6 +37,7 @@ internal sealed class AppController : IDisposable
         _paths = paths;
         _store = new SettingsStore(paths.SettingsFile);
         Settings = LoadSettings();
+        Log.Enabled = Settings.WriteLog;
         UiLanguage.Apply(Settings.Language);
         Library = CreateLibrary();
     }

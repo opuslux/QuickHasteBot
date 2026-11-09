@@ -245,6 +245,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="StartupHeading" xml:space="preserve"><value>Start und Anzeige</value></data>
   <data name="Autostart" xml:space="preserve"><value>Mit Windows starten</value></data>
   <data name="ShowTray" xml:space="preserve"><value>Tray-Icon anzeigen</value></data>
+  <data name="WriteLog" xml:space="preserve"><value>Log-Datei schreiben</value></data>
+  <data name="WriteLogToolTip" xml:space="preserve"><value>Schreibt QuickHasteBot.log neben die exe: Fehler, Start und jedes Programm und Skript, das ein Baustein startet. Hilft, wenn etwas nicht klappt.</value></data>
   <data name="LanguageLabel" xml:space="preserve"><value>Sprache</value></data>
   <data name="LanguageAuto" xml:space="preserve"><value>Automatisch (Windows)</value></data>
   <data name="ThemeLabel" xml:space="preserve"><value>Darstellung</value></data>
@@ -351,9 +353,8 @@ Das Datum vom nächsten Montag</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>Der Textbaustein konnte nicht gelesen werden:
 {0}</value></data>
   <data name="UnexpectedErrorFormat" xml:space="preserve"><value>Unerwarteter Fehler:
-{0}
-
-Details stehen in QuickHasteBot.log.</value></data>
+{0}</value></data>
+  <data name="UnexpectedErrorLogHint" xml:space="preserve"><value>Details stehen in QuickHasteBot.log.</value></data>
   <!-- Hotkeys für Dateien und Ordner -->
   <data name="MenuSetHotkey" xml:space="preserve"><value>Hotkey festlegen…</value></data>
   <data name="FileHotkeyTitle" xml:space="preserve"><value>Hotkey</value></data>

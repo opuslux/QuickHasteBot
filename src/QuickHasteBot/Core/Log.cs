@@ -2,6 +2,7 @@ namespace QuickHasteBot.Core;
 
 /// <summary>
 /// Minimales Datei-Log. Fehler beim Schreiben werden verschluckt, das Log darf die App nie stören.
+/// Schreibt nur, solange <see cref="Enabled"/> gilt (Einstellung "Log schreiben", Standard aus).
 /// </summary>
 public static class Log
 {
@@ -12,13 +13,16 @@ public static class Log
 
     public static void Initialize(string path) => _path = path;
 
+    /// <summary>Aus, bis die Einstellungen gelesen sind; was davor passiert, bleibt ungeschrieben.</summary>
+    public static bool Enabled { get; set; }
+
     public static void Info(string message) => Write("INF", message, null);
 
     public static void Error(string message, Exception? ex = null) => Write("ERR", message, ex);
 
     static void Write(string level, string message, Exception? ex)
     {
-        if (_path is null) return;
+        if (_path is null || !Enabled) return;
 
         var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{level}] {message}";
         if (ex is not null) line += Environment.NewLine + ex;
