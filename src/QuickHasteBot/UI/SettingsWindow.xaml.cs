@@ -265,6 +265,8 @@ internal partial class SettingsWindow : Window
 
     void OnHelpClick(object sender, MouseButtonEventArgs e) => _app.ShowHelp();
 
+    void OnProjectPageClick(object sender, MouseButtonEventArgs e) => AppController.OpenProjectPage();
+
     void OnStructureInputKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)

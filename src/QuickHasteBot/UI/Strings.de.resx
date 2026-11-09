@@ -291,6 +291,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="HelpTitle" xml:space="preserve"><value>QuickHasteBot – Hilfe (Englisch)</value></data>
   <data name="Help" xml:space="preserve"><value>Hilfe</value></data>
   <data name="HelpToolTip" xml:space="preserve"><value>Anleitung öffnen, auf Englisch (F1)</value></data>
+  <data name="AboutText" xml:space="preserve"><value>Hotkey, drei Buchstaben, Enter – und der Text steht genau da, wo dein Cursor blinkt. Deine Bausteine rechnen mit, setzen das Datum ein und füllen sogar ganze Formulare aus. Freie Software unter der GPL-3.0.</value></data>
+  <data name="ProjectPageToolTip" xml:space="preserve"><value>Projektseite auf GitHub öffnen: Quellcode, Releases, Fehlermeldungen</value></data>
   <data name="AiPromptLabel" xml:space="preserve"><value>Was soll das Skript einfügen?</value></data>
   <data name="AiPromptPlaceholder" xml:space="preserve"><value>z.B. das Datum in 14 Tagen mit Wochentag, oder die Zwischenablage in Grossbuchstaben</value></data>
   <!-- Eins davon steht im leeren Feld, solange kein eigener Text gespeichert ist. Eine Zeile pro Beispiel. -->

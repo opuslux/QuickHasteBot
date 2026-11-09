@@ -291,6 +291,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="HelpTitle" xml:space="preserve"><value>QuickHasteBot – Help</value></data>
   <data name="Help" xml:space="preserve"><value>Help</value></data>
   <data name="HelpToolTip" xml:space="preserve"><value>Open the manual (F1)</value></data>
+  <data name="AboutText" xml:space="preserve"><value>Hotkey, three letters, Enter – and the text lands right where your cursor blinks. Your snippets do the math, insert the date and even fill in entire forms. Free software under the GPL-3.0.</value></data>
+  <data name="ProjectPageToolTip" xml:space="preserve"><value>Open the project page on GitHub: source code, releases, issues</value></data>
   <data name="AiPromptLabel" xml:space="preserve"><value>What should the script insert?</value></data>
   <data name="AiPromptPlaceholder" xml:space="preserve"><value>e.g. the date in 14 days with the weekday, or the clipboard in capital letters</value></data>
   <!-- Eins davon steht im leeren Feld, solange kein eigener Text gespeichert ist. Eine Zeile pro Beispiel. -->

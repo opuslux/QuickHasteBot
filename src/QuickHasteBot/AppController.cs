@@ -955,6 +955,11 @@ internal sealed class AppController : IDisposable
         }
     }
 
+    public const string ProjectUrl = "https://github.com/opuslux/QuickHasteBot";
+
+    /// <summary>Die Projektseite auf GitHub im Standardbrowser (Einstellungen, unter dem Titel).</summary>
+    public static void OpenProjectPage() => ShellOpen(ProjectUrl);
+
     static void ShellOpen(string path) => TryStart(new ProcessStartInfo(path) { UseShellExecute = true });
 
     static bool TryStart(ProcessStartInfo info)
