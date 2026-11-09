@@ -78,6 +78,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="PickerIncludeWindowToolTip" xml:space="preserve"><value>Setzt {window,…} davor: Der Baustein holt dann zuerst dieses Programm nach vorne, egal von wo aus du ihn startest.</value></data>
   <data name="PickerActionFocusToolTip" xml:space="preserve"><value>{focus,…}: Setzt den Cursor ins Feld. Text nach dem Tag wird dort getippt, z.B. {focus,#email}max@example.com</value></data>
   <data name="PickerActionClickToolTip" xml:space="preserve"><value>{click,…}: Klickt einen Button, Link, Reiter oder eine Checkbox an, wie mit der Maus.</value></data>
+  <data name="PickerActionDoubleClickToolTip" xml:space="preserve"><value>{dblclick,…}: Doppelklickt mit der Maus auf das Element, z.B. um einen Listeneintrag oder eine Datei zu öffnen.</value></data>
+  <data name="PickerActionRightClickToolTip" xml:space="preserve"><value>{rclick,…}: Klickt mit der rechten Maustaste auf das Element. Ein {click,name=…} danach wählt einen Eintrag aus seinem Kontextmenü.</value></data>
   <data name="PickerActionSetToolTip" xml:space="preserve"><value>{set,…,"Wert"}: Füllt ein Feld direkt, wählt eine Dropdown-Option nach ihrem Text oder stellt eine Checkbox auf on/off. Den Wert unten im Tag anpassen.</value></data>
   <data name="PickerTest" xml:space="preserve"><value>Testen</value></data>
   <data name="PickerTestToolTip" xml:space="preserve"><value>Führt den Tag jetzt im Programm aus, in dem das Element erfasst wurde, wie ein Baustein. Ein Klick klickt also wirklich.</value></data>
@@ -145,6 +147,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagGuardOn" xml:space="preserve"><value>Fensterschutz ein</value></data>
   <data name="TagFocus" xml:space="preserve"><value>Cursor ins Feld</value></data>
   <data name="TagClick" xml:space="preserve"><value>Button oder Link klicken</value></data>
+  <data name="TagDoubleClick" xml:space="preserve"><value>Element doppelklicken</value></data>
+  <data name="TagRightClick" xml:space="preserve"><value>Element rechtsklicken</value></data>
   <data name="TagSet" xml:space="preserve"><value>Feld oder Dropdown füllen</value></data>
   <data name="TagWindow" xml:space="preserve"><value>Programm nach vorne holen</value></data>
   <data name="TagStart" xml:space="preserve"><value>starten, sonst nach vorne holen</value></data>
@@ -201,6 +205,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagGuardOnHelp" xml:space="preserve"><value>Schaltet den Fensterschutz wieder ein, für das Fenster, das gerade vorne ist. Kommt ein anderes nach vorne, stoppt der Baustein.</value></data>
   <data name="TagFocusHelp" xml:space="preserve"><value>Setzt den Cursor in ein Feld, der Text danach wird dort getippt. #id findet die ID, name=Beschriftung die Beschriftung, .klasse die Klasse. Der Element-Picker findet das Passende für dich.</value></data>
   <data name="TagClickHelp" xml:space="preserve"><value>Klickt einen Button, Link, Reiter oder eine Checkbox, über die Beschriftung (name=Senden) oder die ID (#senden). Mit ;type=button, wenn mehrere Elemente gleich heissen.</value></data>
+  <data name="TagDoubleClickHelp" xml:space="preserve"><value>Doppelklickt mit der Maus auf ein Element, z.B. einen Listeneintrag, eine Datei oder eine Tabellenzeile, über die Beschriftung (name=Bericht) oder die ID (#bericht). Immer ein echter Mausklick, das Element muss also auf dem Bildschirm sichtbar sein.</value></data>
+  <data name="TagRightClickHelp" xml:space="preserve"><value>Klickt mit der rechten Maustaste auf ein Element, über die Beschriftung (name=Bericht) oder die ID (#bericht). Das Kontextmenü, das aufgeht, gehört zum Fenster: {click,name=Kopieren} wählt daraus einen Eintrag.</value></data>
   <data name="TagSetHelp" xml:space="preserve"><value>Füllt ein Feld direkt, wählt eine Dropdown-Option über ihren Text oder setzt eine Checkbox auf "on"/"off": {set,#land,"Österreich"}. Manche Webformulare merken nur Getipptes; dann {focus,…} und den Text.</value></data>
   <data name="TagWindowHelp" xml:space="preserve"><value>Holt ein Programm nach vorne, der Rest des Bausteins geht dorthin: {window,crm} passt auf das Programm crm.exe oder einen Titel mit «crm». Wartet bis zu 5 s, falls das Fenster noch nicht da ist.</value></data>
   <data name="TagStartHelp" xml:space="preserve"><value>Wie {window,…}, startet das Programm aber, wenn es nicht läuft, und wartet bis zu 30 s auf sein Fenster. Ein Name, den Windows kennt (notepad, excel, chrome), oder ein ganzer Pfad; ein zweites Argument in Anführungszeichen geht ans Programm.</value></data>
@@ -231,6 +237,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="PickerValue" xml:space="preserve"><value>Wert</value></data>
   <data name="PickerActionFocus" xml:space="preserve"><value>Fokus</value></data>
   <data name="PickerActionClick" xml:space="preserve"><value>Klick</value></data>
+  <data name="PickerActionDoubleClick" xml:space="preserve"><value>Doppelklick</value></data>
+  <data name="PickerActionRightClick" xml:space="preserve"><value>Rechtsklick</value></data>
   <data name="PickerActionSet" xml:space="preserve"><value>Setzen</value></data>
   <data name="PickerSelectors" xml:space="preserve"><value>Gefunden über (stabilster zuerst)</value></data>
   <data name="PickerCopy" xml:space="preserve"><value>Kopieren</value></data>

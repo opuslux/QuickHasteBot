@@ -390,7 +390,8 @@ internal partial class SnippetEditorWindow : Window
         (nameof(Strings.EditorTagsElements),
         [
             new("{focus,#id}", nameof(Strings.TagFocus), "id"), new("{click,name=Label}", nameof(Strings.TagClick), "Label"),
-            new("{set,#id,\"\"}", nameof(Strings.TagSet), "id"), null,
+            new("{set,#id,\"\"}", nameof(Strings.TagSet), "id"),
+            new("{dblclick,name=Label}", nameof(Strings.TagDoubleClick), "Label"), new("{rclick,name=Label}", nameof(Strings.TagRightClick), "Label"), null,
             new("{window,program}", nameof(Strings.TagWindow), "program"), new("{start,program}", nameof(Strings.TagStart), "program"),
             new("{start,https://example.com}", nameof(Strings.TagStartUrl), "https://example.com"),
         ]),

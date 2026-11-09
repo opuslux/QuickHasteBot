@@ -39,11 +39,13 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
+            KeptOpenPopupStaysBehindOwnWindows();
             PopupPreviewColors();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
             EditorStartsWithWindow();
             SetPicksFromAListElsewhere();
+            ContextMenuComesFirst();
             RecorderFollowsFieldsInAForm();
             RecordBarAndEditor();
             EditorInsertsPickedTagsOnTheirOwnLine();
@@ -676,6 +678,28 @@ public class WindowSmokeTests
         Assert.Equal(picker.ResultPanel.ActualWidth, picker.TagOutput.ActualWidth, 1);
         Assert.True(picker.CopyButton.TranslatePoint(new Point(), picker.TagOutput).Y >= picker.TagOutput.ActualHeight);
         Assert.True(picker.TagOutput.ActualHeight > 2 * picker.TagOutput.FontSize * 1.2, "langer Tag umbrochen");
+
+        // Fünf Aktionen in einer Reihe, auch die langen deutschen Wörter
+        System.Windows.Controls.RadioButton[] actions =
+            [picker.ActionFocus, picker.ActionClick, picker.ActionDoubleClick, picker.ActionRightClick, picker.ActionSet];
+        Assert.Equal(["Fokus", "Klick", "Doppelklick", "Rechtsklick", "Setzen"], actions.Select(a => (string)a.Content));
+        Assert.All(actions, a => Assert.Equal(0, a.TranslatePoint(new Point(), picker.ActionFocus).Y, 1));
+        Assert.True(picker.ActionSet.TranslatePoint(new Point(picker.ActionSet.ActualWidth, 0), picker.ResultPanel).X <= picker.ResultPanel.ActualWidth);
+        picker.ActionDoubleClick.IsChecked = true;
+        Assert.Equal(ElementAction.DoubleClick, picker.SelectedAction);
+        picker.ActionRightClick.IsChecked = true;
+        Assert.Equal(ElementAction.RightClick, picker.SelectedAction);
+
+        // Ohne Editor ist Kopieren der blaue Knopf; mit Editor: Testen, Kopieren, dann blau „In Editor einfügen“
+        picker.UpdateInsertButton();
+        Assert.Equal(Visibility.Collapsed, picker.InsertButton.Visibility);
+        Assert.Same(picker.FindResource("AccentButtonStyle"), picker.CopyButton.Style);
+        picker.InsertButton.Visibility = Visibility.Visible;
+        picker.UpdateLayout();
+        double X(FrameworkElement button) => button.TranslatePoint(new Point(), picker.ResultPanel).X;
+        Assert.True(X(picker.TestButton) < X(picker.CopyButton) && X(picker.CopyButton) < X(picker.InsertButton));
+        Assert.Same(picker.FindResource("AccentButtonStyle"), picker.InsertButton.Style);
+        Snapshot(picker, "element-picker-actions.png");
         picker.Close();
 
         // Fehler: rot, nichts zu kopieren
@@ -1307,6 +1331,97 @@ public class WindowSmokeTests
         Assert.Contains("\"9\"", missing.Error);
         Assert.Equal("5", box.Text);
         Assert.False(box.IsOpen);
+        window.Close();
+    }
+
+    /// <summary>
+    /// Mit Schloss bleibt das Popup über fremden Programmen, aber Editor, Picker, Einstellungen kommen davor: Kommt ein
+    /// eigenes Fenster nach vorne, reiht es sich dahinter ein.
+    /// </summary>
+    static void KeptOpenPopupStaysBehindOwnWindows()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var popup = new SearchPopup(controller);
+        Snapshot(popup, "popup-kept-open.png");
+        popup.KeepOpenToggle.IsChecked = true;
+        var editor = new Window { Width = 200, Height = 100, ShowInTaskbar = false };
+        Snapshot(editor, "popup-kept-open-editor.png");
+        var popupHwnd = new System.Windows.Interop.WindowInteropHelper(popup).Handle;
+        var editorHwnd = new System.Windows.Interop.WindowInteropHelper(editor).Handle;
+
+        popup.OnForegroundChanged(editorHwnd);
+        Assert.False(popup.Topmost);
+        var below = false;
+        for (var h = NativeMethods.GetWindow(editorHwnd, NativeMethods.GW_HWNDNEXT); h != 0 && !below; h = NativeMethods.GetWindow(h, NativeMethods.GW_HWNDNEXT))
+            below = h == popupHwnd;
+        Assert.True(below, "Popup hinter dem Editor");
+
+        // Ein fremdes Programm vorne (hier, was am Bildschirmrand liegt): wieder darüber
+        var foreign = NativeMethods.WindowFromPoint(new NativeMethods.POINT { X = 0, Y = 0 });
+        NativeMethods.GetWindowThreadProcessId(foreign, out var foreignPid);
+        Assert.NotEqual((uint)Environment.ProcessId, foreignPid);
+        popup.OnForegroundChanged(foreign);
+        Assert.True(popup.Topmost);
+
+        // Hinter einem eigenen Fenster und dann das Schloss auf: wie immer zuoberst
+        popup.OnForegroundChanged(editorHwnd);
+        popup.KeepOpenToggle.IsChecked = false;
+        Assert.True(popup.Topmost);
+        editor.Close();
+        popup.Close();
+    }
+
+    /// <summary>
+    /// Nach {rclick,…} wählt {click,name=…} aus dem Kontextmenü: Das Menü ist ein eigenes Fenster, das nicht nach vorne
+    /// kommt, und wird vor dem Fenster durchsucht, auch wenn dort ein Button gleich heisst. Ohne echte Mausklicks: das
+    /// Fenster steht ausserhalb des Bildschirms, und statt des Kontextmenüs (das ohne aktive App gleich wieder zugeht)
+    /// öffnet sich per Code ein Popup, ein Fenster derselben Art.
+    /// </summary>
+    static void ContextMenuComesFirst()
+    {
+        var clicked = "";
+        var button = new System.Windows.Controls.Button { Name = "kopieren", Content = "Kopieren" };
+        button.Click += (_, _) => clicked = "button";
+        var item = new System.Windows.Controls.Button { Content = "Kopieren" };
+        item.Click += (_, _) => clicked = "menu";
+        var list = new System.Windows.Controls.ListBox { Name = "liste", Items = { "Bericht" } };
+        var menu = new System.Windows.Controls.Primitives.Popup { Child = item, StaysOpen = true, PlacementTarget = list };
+        var window = new Window
+        {
+            Width = 300, Height = 200, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.StackPanel { Children = { button, list } },
+        };
+        Snapshot(window, "context-menu.png");
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        ElementResult Run(string tag)
+        {
+            Assert.True(KeyTags.TryParse(tag, null, out var steps, out var error), error);
+            var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(15)));
+            return run.Result;
+        }
+
+        // Doppel- und Rechtsklick gehen immer mit der Maus: ausserhalb des Bildschirms gar nicht erst klicken
+        foreach (var tag in new[] { "dblclick,#liste", "rclick,#liste" })
+        {
+            var offscreen = Run(tag);
+            Assert.Equal(ElementOutcome.Failed, offscreen.Outcome);
+            Assert.Contains("outside the screen", offscreen.Error);
+        }
+
+        // Ohne Menü der Button im Fenster
+        Assert.Equal(ElementOutcome.Done, Run("click,name=Kopieren").Outcome);
+        Assert.True(PumpUntil(() => clicked == "button", TimeSpan.FromSeconds(5)));
+
+        clicked = "";
+        menu.IsOpen = true;
+        Assert.True(PumpUntil(() => menu.IsOpen && WindowFinder.Popups(hwnd).Count > 0, TimeSpan.FromSeconds(5)), "Menü als Popup des Fensters");
+        Assert.Equal(ElementOutcome.Done, Run("click,name=Kopieren").Outcome);
+        Assert.True(PumpUntil(() => clicked == "menu", TimeSpan.FromSeconds(5)), $"geklickt: {clicked}");
+        menu.IsOpen = false;
         window.Close();
     }
 

@@ -117,6 +117,23 @@ internal static class PopupPlacement
         return anchor;
     }
 
+    /// <summary>
+    /// Oben rechts in den Arbeitsbereich des Monitors unter dem Cursor, mit etwas Abstand zum Rand. Für Fenster, die nach
+    /// unten wachsen (der Element-Picker nach dem Erfassen): Mittig fielen sie dann unten aus dem Bildschirm. Aufrufen in
+    /// SourceInitialized, also bevor das Fenster sichtbar ist. Ein schon gesetztes Left (Tests) bleibt.
+    /// </summary>
+    public static void TopRight(Window window)
+    {
+        if (!double.IsNaN(window.Left)) return;
+        var hwnd = new WindowInteropHelper(window).Handle;
+        GetCursorPos(out var cursor);
+        var work = WorkArea(MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST));
+        GetWindowRect(hwnd, out var rect);
+        var margin = (int)Math.Round(16 * GetDpiForWindow(hwnd) / 96.0);
+        var x = Math.Max(work.Left, work.Right - (rect.Right - rect.Left) - margin);
+        SetWindowPos(hwnd, 0, x, work.Top + margin, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+
     static RECT WorkArea(nint monitor)
     {
         var info = new MONITORINFO { cbSize = System.Runtime.InteropServices.Marshal.SizeOf<MONITORINFO>() };

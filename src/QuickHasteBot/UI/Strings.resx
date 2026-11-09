@@ -78,6 +78,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerIncludeWindowToolTip" xml:space="preserve"><value>Puts {window,…} in front, so the snippet first brings this program to the front, wherever you start it from.</value></data>
   <data name="PickerActionFocusToolTip" xml:space="preserve"><value>{focus,…}: puts the cursor into the field. Text after the tag is typed there, e.g. {focus,#email}max@example.com</value></data>
   <data name="PickerActionClickToolTip" xml:space="preserve"><value>{click,…}: clicks a button, link, tab or checkbox, like a mouse click.</value></data>
+  <data name="PickerActionDoubleClickToolTip" xml:space="preserve"><value>{dblclick,…}: double-clicks the element with the mouse, e.g. to open a list entry or file.</value></data>
+  <data name="PickerActionRightClickToolTip" xml:space="preserve"><value>{rclick,…}: right-clicks the element with the mouse. A {click,name=…} afterwards picks an entry from its context menu.</value></data>
   <data name="PickerActionSetToolTip" xml:space="preserve"><value>{set,…,"value"}: fills a field directly, picks a dropdown option by its text or sets a checkbox to on/off. Edit the value in the tag below.</value></data>
   <data name="PickerTest" xml:space="preserve"><value>Test</value></data>
   <data name="PickerTestToolTip" xml:space="preserve"><value>Runs the tag now in the program the element was picked in, like a snippet would. A click really clicks.</value></data>
@@ -145,6 +147,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagGuardOn" xml:space="preserve"><value>window guard on</value></data>
   <data name="TagFocus" xml:space="preserve"><value>cursor into the field</value></data>
   <data name="TagClick" xml:space="preserve"><value>click a button or link</value></data>
+  <data name="TagDoubleClick" xml:space="preserve"><value>double-click an element</value></data>
+  <data name="TagRightClick" xml:space="preserve"><value>right-click an element</value></data>
   <data name="TagSet" xml:space="preserve"><value>fill a field or dropdown</value></data>
   <data name="TagWindow" xml:space="preserve"><value>bring a program to the front</value></data>
   <data name="TagStart" xml:space="preserve"><value>start, else bring to the front</value></data>
@@ -201,6 +205,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagGuardOnHelp" xml:space="preserve"><value>Turns the window guard back on, for the window that is in front at that moment. The snippet stops if another window comes to the front.</value></data>
   <data name="TagFocusHelp" xml:space="preserve"><value>Puts the cursor into a field, and the text after it is typed there. #id finds the id, name=Label the label, .class the class. The element picker finds the right one for you.</value></data>
   <data name="TagClickHelp" xml:space="preserve"><value>Clicks a button, link, tab or checkbox by its label (name=Send) or id (#send). Add ;type=button if several elements have the same label.</value></data>
+  <data name="TagDoubleClickHelp" xml:space="preserve"><value>Double-clicks an element with the mouse, e.g. a list entry, a file or a table row, by its label (name=Report) or id (#report). Always a real mouse click, so the element must be visible on the screen.</value></data>
+  <data name="TagRightClickHelp" xml:space="preserve"><value>Right-clicks an element with the mouse, by its label (name=Report) or id (#report). The context menu that opens is part of the window: {click,name=Copy} picks an entry from it.</value></data>
   <data name="TagSetHelp" xml:space="preserve"><value>Fills a field directly, picks a dropdown option by its text or sets a checkbox to "on"/"off": {set,#country,"Austria"}. Some web forms only notice typed text; then use {focus,…} and the text.</value></data>
   <data name="TagWindowHelp" xml:space="preserve"><value>Brings a program to the front, and the rest of the snippet goes there: {window,crm} matches the program crm.exe or a title containing "crm". Waits up to 5 s if the window isn't there yet.</value></data>
   <data name="TagStartHelp" xml:space="preserve"><value>Like {window,…}, but starts the program if it isn't running, and waits up to 30 s for its window. A name Windows knows (notepad, excel, chrome) or a full path; a second argument in quotes is passed to the program.</value></data>
@@ -231,6 +237,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerValue" xml:space="preserve"><value>Value</value></data>
   <data name="PickerActionFocus" xml:space="preserve"><value>Focus</value></data>
   <data name="PickerActionClick" xml:space="preserve"><value>Click</value></data>
+  <data name="PickerActionDoubleClick" xml:space="preserve"><value>Double-click</value></data>
+  <data name="PickerActionRightClick" xml:space="preserve"><value>Right-click</value></data>
   <data name="PickerActionSet" xml:space="preserve"><value>Set</value></data>
   <data name="PickerSelectors" xml:space="preserve"><value>Found by (most stable first)</value></data>
   <data name="PickerCopy" xml:space="preserve"><value>Copy</value></data>

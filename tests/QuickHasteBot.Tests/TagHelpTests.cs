@@ -20,6 +20,8 @@ public class TagHelpTests
     [InlineData("{guard,o|ff}", "TagGuardOff")]
     [InlineData("{set,#land,\"Ö|sterreich\"}", "TagSet")]
     [InlineData("{start,no|tepad}", "TagStart")]
+    [InlineData("{dbl|click,name=Bericht}", "TagDoubleClick")]
+    [InlineData("{rclick,#li|ste}", "TagRightClick")]
     [InlineData("{start,https://exa|mple.com}", "TagStartUrl")]
     [InlineData("{# eine |Notiz}", "TagComment")]
     [InlineData("{tab,|x}", "TagNextField")] // fehlerhaft, die Hilfe gibt es trotzdem

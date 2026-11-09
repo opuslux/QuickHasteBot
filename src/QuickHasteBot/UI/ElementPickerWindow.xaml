@@ -5,8 +5,8 @@
         xmlns:ui="clr-namespace:QuickHasteBot.UI"
         Title="{x:Static ui:Strings.PickerTitle}"
         Icon="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
-        Width="480" SizeToContent="Height"
-        ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen" Topmost="True"
+        Width="540" SizeToContent="Height"
+        ResizeMode="CanMinimize" Topmost="True"
         PreviewKeyDown="OnPreviewKeyDown">
 
     <Window.Resources>
@@ -65,14 +65,22 @@
         <!-- Nach dem Loslassen: Aktion, geprüfte Selektoren (der stabilste zuerst) und der fertige Tag -->
         <StackPanel x:Name="ResultPanel" Visibility="Collapsed">
             <Separator Margin="0,14,0,12" />
-            <StackPanel Orientation="Horizontal">
-                <RadioButton x:Name="ActionFocus" GroupName="Action" Content="{x:Static ui:Strings.PickerActionFocus}" MinWidth="90" Checked="OnActionChanged"
-                             ToolTip="{x:Static ui:Strings.PickerActionFocusToolTip}" />
-                <RadioButton x:Name="ActionClick" GroupName="Action" Content="{x:Static ui:Strings.PickerActionClick}" MinWidth="90" Checked="OnActionChanged"
-                             ToolTip="{x:Static ui:Strings.PickerActionClickToolTip}" />
-                <RadioButton x:Name="ActionSet" GroupName="Action" Content="{x:Static ui:Strings.PickerActionSet}" MinWidth="90" Checked="OnActionChanged"
-                             ToolTip="{x:Static ui:Strings.PickerActionSetToolTip}" />
-            </StackPanel>
+            <!-- Die Klicks nebeneinander; reicht die Breite nicht (lange Übersetzungen), bricht die Reihe um -->
+            <WrapPanel>
+                <WrapPanel.Resources>
+                    <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type RadioButton}}">
+                        <Setter Property="GroupName" Value="Action" />
+                        <Setter Property="MinWidth" Value="0" />
+                        <Setter Property="Margin" Value="0,0,12,0" />
+                        <EventSetter Event="Checked" Handler="OnActionChanged" />
+                    </Style>
+                </WrapPanel.Resources>
+                <RadioButton x:Name="ActionFocus" Content="{x:Static ui:Strings.PickerActionFocus}" ToolTip="{x:Static ui:Strings.PickerActionFocusToolTip}" />
+                <RadioButton x:Name="ActionClick" Content="{x:Static ui:Strings.PickerActionClick}" ToolTip="{x:Static ui:Strings.PickerActionClickToolTip}" />
+                <RadioButton x:Name="ActionDoubleClick" Content="{x:Static ui:Strings.PickerActionDoubleClick}" ToolTip="{x:Static ui:Strings.PickerActionDoubleClickToolTip}" />
+                <RadioButton x:Name="ActionRightClick" Content="{x:Static ui:Strings.PickerActionRightClick}" ToolTip="{x:Static ui:Strings.PickerActionRightClickToolTip}" />
+                <RadioButton x:Name="ActionSet" Content="{x:Static ui:Strings.PickerActionSet}" ToolTip="{x:Static ui:Strings.PickerActionSetToolTip}" />
+            </WrapPanel>
             <CheckBox x:Name="IncludeWindowInput" Content="{x:Static ui:Strings.PickerIncludeWindow}" Margin="0,6,0,0"
                       ToolTip="{x:Static ui:Strings.PickerIncludeWindowToolTip}" Click="OnIncludeWindowChanged" />
             <TextBlock Text="{x:Static ui:Strings.PickerSelectors}" Margin="0,10,0,4" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -85,11 +93,11 @@
                 <!-- Den Tag wirklich ausführen, im Programm, in dem das Element erfasst wurde -->
                 <Button x:Name="TestButton" Content="{x:Static ui:Strings.PickerTest}" MinWidth="90"
                         ToolTip="{x:Static ui:Strings.PickerTestToolTip}" Click="OnTest" />
-                <!-- Nur wenn ein Editor offen ist: Tag dort an der Schreibmarke einfügen -->
-                <Button x:Name="InsertButton" Content="{x:Static ui:Strings.PickerInsert}" Margin="8,0,0,0"
-                        Visibility="Collapsed" Click="OnInsert" />
                 <Button x:Name="CopyButton" Content="{x:Static ui:Strings.PickerCopy}" MinWidth="90" Margin="8,0,0,0"
                         Style="{DynamicResource AccentButtonStyle}" Click="OnCopy" />
+                <!-- Nur wenn ein Editor offen ist: Tag dort an der Schreibmarke einfügen. Dann ist er der blaue, nicht Kopieren -->
+                <Button x:Name="InsertButton" Content="{x:Static ui:Strings.PickerInsert}" Margin="8,0,0,0"
+                        Style="{DynamicResource AccentButtonStyle}" Visibility="Collapsed" Click="OnInsert" />
             </StackPanel>
         </StackPanel>
         <TextBlock x:Name="StatusText" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"

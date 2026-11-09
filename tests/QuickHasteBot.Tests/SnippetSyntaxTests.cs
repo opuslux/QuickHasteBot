@@ -46,6 +46,8 @@ public class SnippetSyntaxTests
         Assert.Equal([("{set,", Element), ("#land", Argument), (",", Element), ("\"Öster, reich\"", SyntaxKind.String), ("}", Element)],
             Spans("{set,#land,\"Öster, reich\"}"));
         Assert.Equal([("{window,", Element), ("crm", Argument), ("}", Element)], Spans("{window,crm}"));
+        Assert.Equal([("{dblclick,", Element), ("name=Bericht", Argument), ("}", Element)], Spans("{dblclick,name=Bericht}"));
+        Assert.Equal([("{rclick,", Element), ("#liste", Argument), ("}", Element)], Spans("{rclick,#liste}"));
         Assert.Equal([("{start,", Element), ("notepad", Argument), (",", Element), ("\"C:\\a.txt\"", SyntaxKind.String), ("}", Element)],
             Spans("{start,notepad,\"C:\\a.txt\"}"));
     }

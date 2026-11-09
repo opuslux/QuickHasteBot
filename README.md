@@ -231,7 +231,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `guid()` | A new GUID, e.g. for reference numbers. |
 | `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
 | `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
-| `focus(el)`, `click(el)`, `set(el, value)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`. |
+| `focus(el)`, `click(el)`, `set(el, value)`, `dblclick(el)`, `rclick(el)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`, `dblclick('name=Report.docx')`. |
 | `window(app)` | Like [`{window,…}`](#other-programs-window-and-start): `window('crm')`. |
 | `run(file, args, options)` | Runs a script or program right where it stands and waits for it: `run('d:/scripts/number.bat')`, with options such as `{ wait: 30, dir: 'd:/data' }`. The result has `code`, `out` and `err`; as text it is its output. See [Running scripts](#running-scripts). |
 
@@ -343,7 +343,15 @@ Instead of counting `{tab}`s, a snippet can address a field directly, in the win
 |---|---|
 | `{focus,element}` | Puts the cursor into the field, typing continues there |
 | `{click,element}` | Clicks a button, link, tab or checkbox; without anything to click, a real mouse click on it |
+| `{dblclick,element}` | Double-clicks the element with the mouse, e.g. a list entry, a file or a table row |
+| `{rclick,element}` | Right-clicks the element with the mouse, e.g. to open its context menu |
 | `{set,element,"value"}` | Fills a field directly, picks a dropdown option by its text, sets a checkbox to `on`/`off`. Dropdowns built by web libraries, whose list opens elsewhere on the page, are opened and the option is clicked; if it isn't there, the snippet stops with a message. Where none of this is possible (e.g. dropdowns in Firefox, autocomplete fields), it focuses the element and types the value instead |
+
+`{dblclick}` and `{rclick}` are always real mouse clicks, because UI Automation has no other way to do them: the element has to be visible on the screen, and the mouse pointer jumps back afterwards. A context menu that opens is searched before the window itself, so the next tag picks from it, even if the window has a button with the same name:
+
+```
+{rclick,name=Report.docx}{click,name=Copy}
+```
 
 The element is described like this, parts combined with `;`:
 
@@ -359,11 +367,11 @@ The element is described like this, parts combined with `;`:
 
 QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome, Edge and Firefox fill with the page's form, and Windows programs with their controls (in WinForms, `#name` is the control's name). Each element tag waits up to 5 seconds for the element to appear, e.g. while a page loads, so `{wait}` is rarely needed; on large pages the very first search takes a moment longer. If nothing turns up, the snippet stops with a message. Holding Esc stops the wait.
 
-**Element picker:** "Pick element" in the editor or "Pick element…" in the tray menu opens a small window that stays on top.
+**Element picker:** "Pick element" in the editor or "Pick element…" in the tray menu opens a small window at the top right of the screen that stays on top.
 
 1. Hold the mouse button on its crosshair and drag it onto a field, button or link. A red frame shows what is under the pointer, with its type, id, name, class and value.
 2. Let go. The picker checks which selectors find exactly that element, the most stable first (a real id before the label; ids that web apps generate anew on every load, like `:r3:`, `mui-12345` or `mantine-2hi08ejzc`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`.
-3. Optionally pick another selector or action (their tooltips explain each tag) and edit the tag; it is copied again.
+3. Optionally pick another selector or action (focus, click, double-click, right-click or set; their tooltips explain each tag) and edit the tag; it is copied again.
 4. **Test** runs the tag right away in the program the element was picked in, like a snippet would (so a click really clicks), and shows whether it worked or why not.
 
 With "Include the window" (remembered), the tag starts with `{window,process=…}` for the program it was picked in.

@@ -52,9 +52,16 @@ public static class ScriptPrompt
         Task "long date": {{ date('dddd, dd. MMMM yyyy') }}
         Task "date and time": {{ date('dd.MM.yyyy') + ' ' + time('HH:mm') }}
         """.ReplaceLineEndings("\n")
-        // run() nicht: Die KI soll keine Programme starten, und die Adresse bliebe sonst nicht kurz genug
-        .Replace("{helpers}", string.Join("\n", SnippetScript.Helpers.Where(h => !h.Signature.StartsWith("run(", StringComparison.Ordinal))
+        .Replace("{helpers}", string.Join("\n", SnippetScript.Helpers.Where(h => InPrompt(h.Signature))
             .Select(h => $"  {h.Signature}: {h.Description}")));
+
+    /// <summary>
+    /// run() nicht: Die KI soll keine Programme starten. dblclick() und rclick() auch nicht, die braucht ein Block kaum,
+    /// und die Adresse bliebe sonst nicht kurz genug für Google.
+    /// </summary>
+    internal static bool InPrompt(string signature) =>
+        !signature.StartsWith("run(", StringComparison.Ordinal) && !signature.StartsWith("dblclick(", StringComparison.Ordinal)
+        && !signature.StartsWith("rclick(", StringComparison.Ordinal);
 
     /// <param name="template">Inhalt von ai-prompt.txt, ohne Datei oder ohne {task} der eingebaute Prompt.</param>
     public static string Build(string task, string? template)

@@ -33,6 +33,32 @@ internal static class WindowFinder
         return Title(hwnd).Length > 0;
     }
 
+    /// <summary>
+    /// Die offenen Menüs und Popups eines Fensters, das oberste zuerst: Kontextmenüs sind eigene Fenster, die nicht nach
+    /// vorne kommen und im UIA-Baum nicht unter dem Fenster hängen. Gezählt werden sichtbare Popups ohne Titelleiste, die
+    /// dem Fenster gehören (WinForms, WPF, WinUI wie im Explorer, Browser), und klassische Win32-Menüs (#32768) desselben
+    /// Prozesses, die keinem gehören. Dialoge nicht, die kommen selbst nach vorne.
+    /// </summary>
+    public static List<nint> Popups(nint window)
+    {
+        var popups = new List<nint>();
+        if (window == 0) return popups;
+        var root = GetAncestor(window, GA_ROOTOWNER);
+        if (root == 0) root = window;
+        GetWindowThreadProcessId(window, out var pid);
+        for (var hwnd = GetTopWindow(0); hwnd != 0; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+        {
+            if (hwnd == window || hwnd == root || !IsWindowVisible(hwnd)) continue;
+            var style = (long)GetWindowLongPtr(hwnd, GWL_STYLE);
+            if ((style & WS_POPUP) == 0 || (style & WS_CAPTION) == WS_CAPTION) continue;
+            if (DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, out var cloaked, sizeof(int)) == 0 && cloaked != 0) continue;
+            var owned = GetAncestor(hwnd, GA_ROOTOWNER) == root;
+            if (!owned && (ClassName(hwnd) != "#32768" || GetWindowThreadProcessId(hwnd, out var menuPid) == 0 || menuPid != pid)) continue;
+            popups.Add(hwnd);
+        }
+        return popups;
+    }
+
     public static unsafe string Title(nint hwnd)
     {
         var buffer = stackalloc char[512];
