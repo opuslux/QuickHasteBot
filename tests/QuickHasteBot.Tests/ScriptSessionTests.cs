@@ -49,6 +49,21 @@ public class ScriptSessionTests
         Assert.Equal(new RunRequest("a.bat", arguments, wait, hidden), Assert.Single(_runs));
     }
 
+    [Theory]
+    [InlineData("run('a.bat', { dir: 'd:/daten' })", null, "d:/daten")]
+    [InlineData("run('a.bat', { args: '-x 1', dir: '%TEMP%' })", "-x 1", "%TEMP%")]
+    [InlineData("run('a.bat', '', { args: '-x' })", "-x", null)]
+    [InlineData("run('a.bat', { args: '', dir: '' })", null, null)]
+    public void Run_takes_named_arguments_and_a_folder(string call, string? arguments, string? directory)
+    {
+        Render("{{ " + call + "; '' }}");
+        Assert.Equal(new RunRequest("a.bat", arguments, SnippetScript.DefaultRunWait, false, directory), Assert.Single(_runs));
+    }
+
+    [Fact]
+    public void Arguments_only_once() =>
+        Assert.Contains("twice", Assert.Throws<SnippetScriptException>(() => Render("{{ run('a.bat', '-a', { args: '-b' }) }}")).Message);
+
     [Fact]
     public void Not_waited_code_is_null() =>
         Assert.Equal("true", Render("{{ run('a.bat', { wait: 0 }).code === null }}", _ => new RunResult(null, "", "")));

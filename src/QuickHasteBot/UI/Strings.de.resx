@@ -64,6 +64,7 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
   <data name="FormWindowNotActivatedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Das Fenster für {1} liess sich nicht nach vorne holen.</value></data>
   <data name="FormStartFailedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} konnte das Programm nicht starten.
 {2}</value></data>
+  <data name="FormNoDefaultBrowser" xml:space="preserve"><value>In Windows ist kein Standardbrowser für Webadressen eingestellt. Wähle einen unter Einstellungen › Apps › Standard-Apps.</value></data>
   <data name="FormStartedWindowNotFoundFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} hat das Programm gestartet, aber innerhalb von {2} Sekunden ist kein Fenster davon aufgetaucht.
 
 Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unter einem anderen Namen (ein Starter oder eine Store-App, z.B. calc), starte es von Hand und nimm stattdessen {{window,title=…}}.</value></data>
@@ -146,7 +147,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagClick" xml:space="preserve"><value>Button oder Link klicken</value></data>
   <data name="TagSet" xml:space="preserve"><value>Feld oder Dropdown füllen</value></data>
   <data name="TagWindow" xml:space="preserve"><value>Programm nach vorne holen</value></data>
-  <data name="TagStart" xml:space="preserve"><value>Programm starten oder nach vorne holen</value></data>
+  <data name="TagStart" xml:space="preserve"><value>starten, sonst nach vorne holen</value></data>
   <data name="TagDate" xml:space="preserve"><value>heute</value></data>
   <data name="TagDateIn" xml:space="preserve"><value>in 14 Tagen</value></data>
   <data name="TagWeek" xml:space="preserve"><value>Kalenderwoche</value></data>
@@ -167,6 +168,52 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagComment" xml:space="preserve"><value>Kommentar, wird nicht eingefügt</value></data>
   <data name="TagRun" xml:space="preserve"><value>Skript oder Programm ausführen</value></data>
   <data name="TagCommentText" xml:space="preserve"><value>Notiz</value></data>
+  <data name="TagStartUrl" xml:space="preserve"><value>Webadresse im Standardbrowser</value></data>
+  <data name="TagRunOptions" xml:space="preserve"><value>mit Argumenten und Ordner</value></data>
+  <data name="TagKey" xml:space="preserve"><value>Taste {0}</value></data>
+  <data name="TagKeyHelper" xml:space="preserve"><value>Taste aus einem Skript</value></data>
+  <!-- Hilfetexte im Menü "Tag einfügen" und beim Hover im Editor: Name der Kurzbeschreibung + "Help" -->
+  <data name="TagKeyHelp" xml:space="preserve"><value>Drückt {0}. Tasten verbinden sich mit +, z.B. {{ctrl+s}}; eine Zahl nach einem Komma drückt sie mehrmals, z.B. {{pgdn,2}}.</value></data>
+  <data name="TagKeyHelperHelp" xml:space="preserve"><value>key('tab') drückt eine Taste, statt Text zu tippen, mit den Namen der Tasten-Tags: key('shift+tab'), key('down', 3). Das Ergebnis muss in der Ausgabe landen, z.B. {{ ['Max', 'Muster'].join(key('tab')) }}.</value></data>
+  <data name="TagNextFieldHelp" xml:space="preserve"><value>Drückt Tab: weiter ins nächste Feld, wie von Hand. Gezählte Tabs gehen kaputt, wenn sich das Formular ändert; {focus,…} und {set,…} sprechen ein Feld direkt an.</value></data>
+  <data name="TagPreviousFieldHelp" xml:space="preserve"><value>Drückt Shift+Tab: zurück ins vorherige Feld.</value></data>
+  <data name="TagSubmitHelp" xml:space="preserve"><value>Drückt Enter: schickt das Formular ab oder bestätigt einen Dialog. Ein Zeilenumbruch im Text wird als Shift+Enter gesendet und schickt nichts ab, nur {enter} tut das.</value></data>
+  <data name="TagCheckboxHelp" xml:space="preserve"><value>Drückt die Leertaste: hakt die Checkbox mit dem Fokus an oder ab. {set,#id,"on"} setzt sie unabhängig vom Zustand.</value></data>
+  <data name="TagCancelHelp" xml:space="preserve"><value>Drückt Esc: bricht ab, schliesst einen Dialog oder eine offene Liste. Dein eigenes Esc, gedrückt gehalten, stoppt einen laufenden Baustein.</value></data>
+  <data name="TagUpHelp" xml:space="preserve"><value>Pfeil hoch, z.B. einen Eintrag höher in einer Liste. {up,3} drückt ihn dreimal.</value></data>
+  <data name="TagDownHelp" xml:space="preserve"><value>Pfeil runter, z.B. einen Eintrag tiefer in einer Liste oder einem Dropdown.</value></data>
+  <data name="TagRepeatHelp" xml:space="preserve"><value>Eine Zahl nach dem Komma wiederholt eine Taste: {down,3} ist dreimal Pfeil runter. Geht mit jedem Tasten-Tag, z.B. {tab,2}.</value></data>
+  <data name="TagLeftHelp" xml:space="preserve"><value>Pfeil links: ein Zeichen zurück im Feld, oder der vorherige Reiter bzw. die vorherige Option.</value></data>
+  <data name="TagRightHelp" xml:space="preserve"><value>Pfeil rechts: ein Zeichen weiter im Feld, oder der nächste Reiter bzw. die nächste Option.</value></data>
+  <data name="TagHomeHelp" xml:space="preserve"><value>Pos1: an den Zeilenanfang. {ctrl+home} geht an den Anfang des Texts.</value></data>
+  <data name="TagEndHelp" xml:space="preserve"><value>Ende: ans Zeilenende. {ctrl+end} geht ans Ende des Texts, z.B. um etwas anzuhängen.</value></data>
+  <data name="TagBackspaceHelp" xml:space="preserve"><value>Rücktaste: löscht das Zeichen links vom Cursor. {bs,5} löscht fünf.</value></data>
+  <data name="TagDeleteHelp" xml:space="preserve"><value>Entf: löscht das Zeichen rechts vom Cursor oder das Markierte.</value></data>
+  <data name="TagSelectAllHelp" xml:space="preserve"><value>Strg+A: markiert alles im Feld. Um ein Feld vor dem Tippen zu leeren, ist {clear} kürzer.</value></data>
+  <data name="TagOpenDropdownHelp" xml:space="preserve"><value>Alt+Pfeil runter: öffnet das Dropdown mit dem Fokus. Zum Auswählen einer Option ist {set,#id,"Option"} zuverlässiger.</value></data>
+  <data name="TagSendChatHelp" xml:space="preserve"><value>Strg+Enter: sendet in Outlook, Teams und vielen Web-Editoren, wo Enter nur eine neue Zeile beginnt.</value></data>
+  <data name="TagReloadHelp" xml:space="preserve"><value>F5: lädt eine Webseite neu oder aktualisiert eine Ansicht. Jede Funktionstaste von {f1} bis {f12} geht gleich.</value></data>
+  <data name="TagCommentHelp" xml:space="preserve"><value>Eine Notiz für dich, sie wird nie eingefügt. Sie darf über mehrere Zeilen gehen und endet beim ersten }. Steht sie allein auf einer Zeile, fällt die ganze Zeile weg.</value></data>
+  <data name="TagWaitHelp" xml:space="preserve"><value>Wartet 500 ms, bevor es weitergeht, z.B. bis ein Dropdown offen ist oder ein Dialog erscheint. Höchstens 10 s. Für Felder nicht nötig: {focus}, {click} und {set} warten selbst bis zu 5 s auf ihr Element.</value></data>
+  <data name="TagDelayHelp" xml:space="preserve"><value>Ab hier 50 ms Pause nach jeder Taste und jedem Zeichen. Für langsame Formulare und Programme, die Zeichen verlieren; Notepad in Windows 11 braucht {delay,30}.</value></data>
+  <data name="TagClearHelp" xml:space="preserve"><value>Strg+A und Entf: leert ein vorausgefülltes Feld vor dem Tippen, z.B. {focus,#ort}{clear}Bern.</value></data>
+  <data name="TagGuardOffHelp" xml:space="preserve"><value>Schaltet den Fensterschutz aus: Der Baustein läuft weiter, auch wenn ein anderes Fenster nach vorne kommt. Nötig, wenn der Baustein selbst das Fenster wechselt, z.B. mit {win}.</value></data>
+  <data name="TagGuardOnHelp" xml:space="preserve"><value>Schaltet den Fensterschutz wieder ein, für das Fenster, das gerade vorne ist. Kommt ein anderes nach vorne, stoppt der Baustein.</value></data>
+  <data name="TagFocusHelp" xml:space="preserve"><value>Setzt den Cursor in ein Feld, der Text danach wird dort getippt. #id findet die ID, name=Beschriftung die Beschriftung, .klasse die Klasse. Der Element-Picker findet das Passende für dich.</value></data>
+  <data name="TagClickHelp" xml:space="preserve"><value>Klickt einen Button, Link, Reiter oder eine Checkbox, über die Beschriftung (name=Senden) oder die ID (#senden). Mit ;type=button, wenn mehrere Elemente gleich heissen.</value></data>
+  <data name="TagSetHelp" xml:space="preserve"><value>Füllt ein Feld direkt, wählt eine Dropdown-Option über ihren Text oder setzt eine Checkbox auf "on"/"off": {set,#land,"Österreich"}. Manche Webformulare merken nur Getipptes; dann {focus,…} und den Text.</value></data>
+  <data name="TagWindowHelp" xml:space="preserve"><value>Holt ein Programm nach vorne, der Rest des Bausteins geht dorthin: {window,crm} passt auf das Programm crm.exe oder einen Titel mit «crm». Wartet bis zu 5 s, falls das Fenster noch nicht da ist.</value></data>
+  <data name="TagStartHelp" xml:space="preserve"><value>Wie {window,…}, startet das Programm aber, wenn es nicht läuft, und wartet bis zu 30 s auf sein Fenster. Ein Name, den Windows kennt (notepad, excel, chrome), oder ein ganzer Pfad; ein zweites Argument in Anführungszeichen geht ans Programm.</value></data>
+  <data name="TagStartUrlHelp" xml:space="preserve"><value>Öffnet die Adresse im Standardbrowser, in einem neuen Tab, wenn er schon läuft, und wartet auf das Fenster der Seite. Danach füllst du die Seite mit {set,…} und {click,…} aus.</value></data>
+  <data name="TagDateHelp" xml:space="preserve"><value>Das heutige Datum, kurz (03.11.2026). Mit einem Format, z.B. date('dddd, dd. MMMM yyyy'), so wie du es willst.</value></data>
+  <data name="TagDateInHelp" xml:space="preserve"><value>Das Datum in 14 Tagen. Negative Zahlen gehen zurück: date('dd.MM.yyyy', -1) ist gestern.</value></data>
+  <data name="TagTimeHelp" xml:space="preserve"><value>Die aktuelle Uhrzeit als HH:mm (14:05). time('HH:mm:ss') mit Sekunden.</value></data>
+  <data name="TagWeekHelp" xml:space="preserve"><value>Die Kalenderwoche nach ISO (45). isoweek(7) ist die Woche in 7 Tagen.</value></data>
+  <data name="TagClipboardHelp" xml:space="preserve"><value>Der Text, der vor dem Einfügen in der Zwischenablage war, z.B. {{ clipboard.trim() }}. Tags darin werden nie gedrückt.</value></data>
+  <data name="TagUserHelp" xml:space="preserve"><value>Der Windows-Benutzername dessen, der den Baustein einfügt.</value></data>
+  <data name="TagGuidHelp" xml:space="preserve"><value>Jedes Mal eine neue eindeutige Nummer, z.B. für Referenznummern.</value></data>
+  <data name="TagRunHelp" xml:space="preserve"><value>Führt ein Skript oder Programm an dieser Stelle aus und wartet, bis es fertig ist (ohne Angabe 60 s). r.out ist seine Ausgabe, r.code sein Rückgabewert; {{ r.out.trim() }} tippt die Ausgabe.</value></data>
+  <data name="TagRunOptionsHelp" xml:space="preserve"><value>Wie run(), mit Optionen: args geht ans Skript, dir ist sein Arbeitsordner («Ausführen in», sonst der Ordner des Skripts), wait die Wartezeit in Sekunden, hidden: true startet es ohne Fenster.</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Mit Standardprogramm öffnen</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>Neuer Baustein…</value></data>
   <data name="UseBuiltInEditor" xml:space="preserve"><value>Bausteine im eingebauten Editor bearbeiten</value></data>

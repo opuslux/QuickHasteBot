@@ -22,7 +22,8 @@ public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, stri
     FormBuilder? Form = null, Func<RunRequest, RunResult>? Run = null);
 
 /// <summary>Was run() starten soll. <paramref name="WaitSeconds"/> 0: nur starten, nicht warten.</summary>
-public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden);
+/// <param name="Directory">Der Arbeitsordner („Ausführen in“), ohne Angabe der Ordner des Skripts.</param>
+public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden, string? Directory = null);
 
 /// <param name="Code">Der Rückgabewert, null, wenn nicht gewartet wurde.</param>
 public sealed record RunResult(int? Code, string Out, string Err);
@@ -68,7 +69,7 @@ public static partial class SnippetScript
         ("click(el)", "click a button or link"),
         ("set(el, value)", "fill a field or dropdown, checkbox 'on'/'off'"),
         ("window(app)", "bring a program to the front"),
-        ("run(file, args?, {wait, hidden}?)", "runs a script or program right here and waits (wait in seconds, default 60); returns {code, out, err}, as text its output"),
+        ("run(file, args?, {wait, hidden, dir, args}?)", "runs a script or program right here and waits (wait in seconds, default 60; dir = working folder, default the script's); returns {code, out, err}, as text its output"),
     ];
 
     /// <summary>So lange wartet run() ohne Angabe, in Sekunden.</summary>
@@ -166,7 +167,7 @@ public static partial class SnippetScript
         Function("set", 2, args => ElementMarker(context, "set", [Format(args, 0) ?? "", Format(args, 1) ?? ""]));
         Function("window", 1, args => ElementMarker(context, "window", [Format(args, 0) ?? ""]));
 
-        // run(datei, argumente, { wait, hidden }): startet ein Skript oder Programm und wartet darauf. Das Ergebnis
+        // run(datei, argumente, { wait, hidden, dir, args }): startet ein Skript oder Programm und wartet darauf. Das Ergebnis
         // { code, out, err } gibt als Text seine Ausgabe her, so tippt {{ run('nummer.bat') }} direkt die Ausgabe.
         engine.SetValue("__run", new ClrFunction(engine, "__run", (_, args) => Run(engine, context, args), 3));
         engine.Execute("function run(file, args, options) { const r = __run(file, args, options); r.toString = function () { return this.out; }; return r; }");
@@ -186,14 +187,22 @@ public static partial class SnippetScript
         var arguments = second is ObjectInstance ? null : Format(args, 1);
         var wait = DefaultRunWait;
         var hidden = false;
+        string? directory = null;
         if (options is ObjectInstance o)
         {
             if (o.Get("wait") is { } w && !w.IsUndefined())
                 wait = Math.Max(0, (int)Math.Round(TypeConverter.ToNumber(w)));
             hidden = TypeConverter.ToBoolean(o.Get("hidden"));
+            if (Text(o.Get("args")) is { } named)
+            {
+                if (!string.IsNullOrEmpty(arguments))
+                    throw new ArgumentException("run got its arguments twice, as text and as args; use one of them");
+                arguments = named;
+            }
+            directory = Text(o.Get("dir"));
         }
 
-        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden)) ?? new RunResult(0, "", "");
+        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden, directory)) ?? new RunResult(0, "", "");
         // Das Warten zählt nicht zur Zeitgrenze eines Blocks, die gilt nur für JavaScript
         engine.Constraints.Reset();
         return JsObject.CreateFromEntries(engine,
@@ -211,7 +220,7 @@ public static partial class SnippetScript
         if (!KeyTags.TryParse(spec, count, out var steps, out var error))
             throw new ArgumentException(error);
         // Programme startet nur, was wörtlich im Baustein steht, nie Skript-Ausgabe oder die Zwischenablage
-        if (steps.Any(s => s is StartStep))
+        if (steps.Any(s => s is StartStep or OpenUrlStep))
             throw new ArgumentException("scripts can't start programs, write {start,…} in the snippet text");
         return context.Form.Markers(steps);
     }
@@ -230,6 +239,10 @@ public static partial class SnippetScript
 
     static string? Format(JsValue[] args, int index) =>
         Arguments.At(args, index) is { } value && !value.IsUndefined() && !value.IsNull() ? TypeConverter.ToString(value) : null;
+
+    /// <summary>Eine Option als Text, null wenn sie fehlt oder leer ist.</summary>
+    static string? Text(JsValue value) =>
+        value.IsUndefined() || value.IsNull() || TypeConverter.ToString(value) is not { Length: > 0 } text ? null : text;
 
     static double Number(JsValue[] args, int index) =>
         Arguments.At(args, index) is { } value && !value.IsUndefined() ? TypeConverter.ToNumber(value) : 0;

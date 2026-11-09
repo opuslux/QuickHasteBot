@@ -64,6 +64,7 @@ The element picker (crosshair in the popup or tray menu) shows how the element c
   <data name="FormWindowNotActivatedFormat" xml:space="preserve"><value>"{0}" was stopped: the window for {1} couldn't be brought to the front.</value></data>
   <data name="FormStartFailedFormat" xml:space="preserve"><value>"{0}" was stopped: {1} couldn't start the program.
 {2}</value></data>
+  <data name="FormNoDefaultBrowser" xml:space="preserve"><value>Windows has no default browser for web addresses. Choose one under Settings › Apps › Default apps.</value></data>
   <data name="FormStartedWindowNotFoundFormat" xml:space="preserve"><value>"{0}" was stopped: {1} started the program, but no window of it came up within {2} seconds.
 
 The window is recognized by the program's name. If the program opens its window under another name (a launcher or a Store app, e.g. calc), start it by hand and use {{window,title=…}} instead.</value></data>
@@ -146,7 +147,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagClick" xml:space="preserve"><value>click a button or link</value></data>
   <data name="TagSet" xml:space="preserve"><value>fill a field or dropdown</value></data>
   <data name="TagWindow" xml:space="preserve"><value>bring a program to the front</value></data>
-  <data name="TagStart" xml:space="preserve"><value>start a program, or bring it to the front</value></data>
+  <data name="TagStart" xml:space="preserve"><value>start, else bring to the front</value></data>
   <data name="TagDate" xml:space="preserve"><value>today</value></data>
   <data name="TagDateIn" xml:space="preserve"><value>in 14 days</value></data>
   <data name="TagWeek" xml:space="preserve"><value>calendar week</value></data>
@@ -167,6 +168,52 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagComment" xml:space="preserve"><value>comment, not pasted</value></data>
   <data name="TagRun" xml:space="preserve"><value>run a script or program</value></data>
   <data name="TagCommentText" xml:space="preserve"><value>note</value></data>
+  <data name="TagStartUrl" xml:space="preserve"><value>web address in the default browser</value></data>
+  <data name="TagRunOptions" xml:space="preserve"><value>with arguments and folder</value></data>
+  <data name="TagKey" xml:space="preserve"><value>key {0}</value></data>
+  <data name="TagKeyHelper" xml:space="preserve"><value>a key from a script</value></data>
+  <!-- Hilfetexte im Menü "Tag einfügen" und beim Hover im Editor: Name der Kurzbeschreibung + "Help" -->
+  <data name="TagKeyHelp" xml:space="preserve"><value>Presses {0}. Keys combine with +, e.g. {{ctrl+s}}; a number after a comma presses it several times, e.g. {{pgdn,2}}.</value></data>
+  <data name="TagKeyHelperHelp" xml:space="preserve"><value>key('tab') presses a key instead of typing text, with the names of the key tags: key('shift+tab'), key('down', 3). The result has to end up in the output, e.g. {{ ['Max', 'Muster'].join(key('tab')) }}.</value></data>
+  <data name="TagNextFieldHelp" xml:space="preserve"><value>Presses Tab: on to the next field, like you would by hand. Counting tabs breaks when the form changes; {focus,…} and {set,…} address a field directly.</value></data>
+  <data name="TagPreviousFieldHelp" xml:space="preserve"><value>Presses Shift+Tab: back to the previous field.</value></data>
+  <data name="TagSubmitHelp" xml:space="preserve"><value>Presses Enter: submits the form or confirms a dialog. A line break in the text is sent as Shift+Enter and doesn't submit; only {enter} does.</value></data>
+  <data name="TagCheckboxHelp" xml:space="preserve"><value>Presses Space: ticks or unticks the checkbox that has the focus. {set,#id,"on"} sets it regardless of its state.</value></data>
+  <data name="TagCancelHelp" xml:space="preserve"><value>Presses Esc: cancels, closes a dialog or an open list. Your own Esc, held down, stops a running snippet.</value></data>
+  <data name="TagUpHelp" xml:space="preserve"><value>Arrow up, e.g. one entry up in a list. {up,3} presses it three times.</value></data>
+  <data name="TagDownHelp" xml:space="preserve"><value>Arrow down, e.g. one entry down in a list or dropdown.</value></data>
+  <data name="TagRepeatHelp" xml:space="preserve"><value>A number after the comma repeats a key: {down,3} is three times arrow down. Works with every key tag, e.g. {tab,2}.</value></data>
+  <data name="TagLeftHelp" xml:space="preserve"><value>Arrow left: one character back in a field, or the previous tab or option.</value></data>
+  <data name="TagRightHelp" xml:space="preserve"><value>Arrow right: one character on in a field, or the next tab or option.</value></data>
+  <data name="TagHomeHelp" xml:space="preserve"><value>Home: to the start of the line. {ctrl+home} goes to the start of the text.</value></data>
+  <data name="TagEndHelp" xml:space="preserve"><value>End: to the end of the line. {ctrl+end} goes to the end of the text, e.g. to add to it.</value></data>
+  <data name="TagBackspaceHelp" xml:space="preserve"><value>Backspace: deletes the character left of the cursor. {bs,5} deletes five.</value></data>
+  <data name="TagDeleteHelp" xml:space="preserve"><value>Delete: deletes the character right of the cursor, or what is selected.</value></data>
+  <data name="TagSelectAllHelp" xml:space="preserve"><value>Ctrl+A: selects everything in the field. To empty a field before typing, {clear} is shorter.</value></data>
+  <data name="TagOpenDropdownHelp" xml:space="preserve"><value>Alt+Down: opens the dropdown that has the focus. To pick an option, {set,#id,"option"} is more reliable.</value></data>
+  <data name="TagSendChatHelp" xml:space="preserve"><value>Ctrl+Enter: sends in Outlook, Teams and many web editors, where Enter only starts a new line.</value></data>
+  <data name="TagReloadHelp" xml:space="preserve"><value>F5: reloads a web page or refreshes a view. Every function key from {f1} to {f12} works the same way.</value></data>
+  <data name="TagCommentHelp" xml:space="preserve"><value>A note to yourself; it is never pasted. It may span several lines and ends at the first }. On a line of its own, the whole line goes.</value></data>
+  <data name="TagWaitHelp" xml:space="preserve"><value>Waits 500 ms before going on, e.g. until a dropdown opens or a dialog appears. At most 10 s. Not needed for fields: {focus}, {click} and {set} wait up to 5 s for their element.</value></data>
+  <data name="TagDelayHelp" xml:space="preserve"><value>From here on, pauses 50 ms after every key and character. For slow forms and programs that lose characters; Notepad in Windows 11 needs {delay,30}.</value></data>
+  <data name="TagClearHelp" xml:space="preserve"><value>Ctrl+A and Delete: empties a prefilled field before typing, e.g. {focus,#city}{clear}Bern.</value></data>
+  <data name="TagGuardOffHelp" xml:space="preserve"><value>Turns the window guard off: the snippet goes on even if another window comes to the front. Needed when the snippet switches windows itself, e.g. with {win}.</value></data>
+  <data name="TagGuardOnHelp" xml:space="preserve"><value>Turns the window guard back on, for the window that is in front at that moment. The snippet stops if another window comes to the front.</value></data>
+  <data name="TagFocusHelp" xml:space="preserve"><value>Puts the cursor into a field, and the text after it is typed there. #id finds the id, name=Label the label, .class the class. The element picker finds the right one for you.</value></data>
+  <data name="TagClickHelp" xml:space="preserve"><value>Clicks a button, link, tab or checkbox by its label (name=Send) or id (#send). Add ;type=button if several elements have the same label.</value></data>
+  <data name="TagSetHelp" xml:space="preserve"><value>Fills a field directly, picks a dropdown option by its text or sets a checkbox to "on"/"off": {set,#country,"Austria"}. Some web forms only notice typed text; then use {focus,…} and the text.</value></data>
+  <data name="TagWindowHelp" xml:space="preserve"><value>Brings a program to the front, and the rest of the snippet goes there: {window,crm} matches the program crm.exe or a title containing "crm". Waits up to 5 s if the window isn't there yet.</value></data>
+  <data name="TagStartHelp" xml:space="preserve"><value>Like {window,…}, but starts the program if it isn't running, and waits up to 30 s for its window. A name Windows knows (notepad, excel, chrome) or a full path; a second argument in quotes is passed to the program.</value></data>
+  <data name="TagStartUrlHelp" xml:space="preserve"><value>Opens the address in the default browser, in a new tab if it's already running, and waits for the page's window. Then fill in the page with {set,…} and {click,…}.</value></data>
+  <data name="TagDateHelp" xml:space="preserve"><value>Today's date as a short date (03.11.2026). With a format, e.g. date('dddd, dd. MMMM yyyy'), as you like it.</value></data>
+  <data name="TagDateInHelp" xml:space="preserve"><value>The date in 14 days. Negative numbers go back: date('dd.MM.yyyy', -1) is yesterday.</value></data>
+  <data name="TagTimeHelp" xml:space="preserve"><value>The current time as HH:mm (14:05). time('HH:mm:ss') adds the seconds.</value></data>
+  <data name="TagWeekHelp" xml:space="preserve"><value>The ISO calendar week (45). isoweek(7) is the week in 7 days.</value></data>
+  <data name="TagClipboardHelp" xml:space="preserve"><value>The text that was on the clipboard before pasting, e.g. {{ clipboard.trim() }}. Tags in it are never pressed.</value></data>
+  <data name="TagUserHelp" xml:space="preserve"><value>The Windows user name of whoever pastes the snippet.</value></data>
+  <data name="TagGuidHelp" xml:space="preserve"><value>A new unique ID every time, e.g. for reference numbers.</value></data>
+  <data name="TagRunHelp" xml:space="preserve"><value>Runs a script or program at this point and waits until it is done (60 s by default). r.out is what it printed, r.code its exit code; {{ r.out.trim() }} types the output.</value></data>
+  <data name="TagRunOptionsHelp" xml:space="preserve"><value>Like run(), with options: args is passed to the script, dir is its working folder ("Start in"; otherwise the script's folder), wait the seconds to wait, hidden: true starts it without a window.</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Open with default program</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>New snippet…</value></data>
   <data name="UseBuiltInEditor" xml:space="preserve"><value>Edit snippets in the built-in editor</value></data>

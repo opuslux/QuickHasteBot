@@ -34,6 +34,13 @@ public sealed record WindowStep(WindowSelector Window) : FormStep;
 /// <param name="Program">Name oder Pfad, immer mit ".exe", z.B. "notepad.exe".</param>
 public sealed record StartStep(string Program, string? Arguments, WindowSelector Window) : FormStep;
 
+/// <summary>
+/// {start,https://…}: die Adresse im Standardbrowser öffnen (läuft er schon, in einem neuen Tab) und auf sein Fenster
+/// warten. Wie <see cref="StartStep"/> nur als Tag im Baustein.
+/// </summary>
+/// <param name="Url">Wie geschrieben, eine absolute http- oder https-Adresse.</param>
+public sealed record OpenUrlStep(string Url) : FormStep;
+
 public enum ElementAction { Focus, Click, Set }
 
 /// <summary>{focus,…}, {click,…}, {set,…,wert}: ein Element im Vordergrundfenster per UI Automation ansprechen.</summary>
@@ -424,8 +431,9 @@ public static partial class KeyTags
     }
 
     /// <summary>
-    /// {start,notepad}, {start,"C:\Program Files\Notepad++\notepad++.exe","C:\temp\log.txt"}. Nur Programme (.exe, die
+    /// {start,notepad}, {start,"C:\Program Files\Notepad++\notepad++.exe","C:\temp\log.txt"}: Programme (.exe, die
     /// Endung darf fehlen), keine Skripte oder Verknüpfungen. Das Fenster wird am Programmnamen erkannt.
+    /// {start,https://example.com}: eine Adresse im Standardbrowser, ohne Argumente.
     /// </summary>
     internal static bool TryParseStart(List<string> args, out IReadOnlyList<FormStep> steps, out string error)
     {
@@ -435,6 +443,17 @@ public static partial class KeyTags
         {
             error = "\"start\" needs a program and optionally its arguments, e.g. {start,notepad} or {start,notepad,\"C:\\temp\\log.txt\"}";
             return false;
+        }
+
+        if (IsWebAddress(args[0].Trim()))
+        {
+            if (args.Count > 1)
+            {
+                error = "a web address takes no arguments, e.g. {start,https://example.com}";
+                return false;
+            }
+            steps = [new OpenUrlStep(args[0].Trim())];
+            return true;
         }
 
         var program = args[0].Trim();
@@ -478,6 +497,15 @@ public static partial class KeyTags
         return "{window," + (text.IndexOfAny([',', '{', '}']) >= 0 || text != text.Trim() ? "\"" + text + "\"" : text) + "}";
     }
 
+    /// <summary>Eine absolute http- oder https-Adresse, die {start,…} im Standardbrowser öffnet.</summary>
+    internal static bool IsWebAddress(string text) =>
+        Uri.TryCreate(text, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+        && text.Contains("://", StringComparison.Ordinal);
+
+    /// <summary>{start,https://…}, in Anführungszeichen nur, wenn die Adresse ein Komma oder eine Klammer enthält.</summary>
+    public static string OpenUrlTag(OpenUrlStep open) =>
+        "{start," + (open.Url.IndexOfAny([',', '{', '}', ' ']) >= 0 ? "\"" + open.Url.Replace("\"", "") + "\"" : open.Url) + "}";
+
     /// <summary>Wie der Tag geschrieben wurde, nur ".exe" beim reinen Namen weggelassen: {start,notepad}.</summary>
     public static string StartTag(StartStep start)
     {
@@ -501,7 +529,7 @@ public static partial class KeyTags
     }
 
     /// <summary>"3" → ["3"], "" → [], "\"a,b\", c" → ["a,b", "c"]. Null bei ungültigen Anführungszeichen.</summary>
-    static List<string>? SplitArgs(string rest)
+    internal static List<string>? SplitArgs(string rest)
     {
         var args = new List<string>();
         if (rest.Length == 0) return args;
@@ -656,6 +684,7 @@ public static partial class KeyTags
         ElementStep e => ElementTag(e.Action, e.Selector, e.Value),
         WindowStep w => WindowTag(w.Window),
         StartStep s => StartTag(s),
+        OpenUrlStep o => OpenUrlTag(o),
         DeferredStep d => d.Text.Trim(),
         _ => "",
     };

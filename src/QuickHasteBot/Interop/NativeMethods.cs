@@ -204,6 +204,13 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", EntryPoint = "GetWindowTextW")]
     public static unsafe partial int GetWindowText(nint hWnd, char* text, int maxCount);
 
+    // {start,https://…}: welches Programm Windows für https-Adressen nimmt (der Standardbrowser)
+    public const int ASSOCF_IS_PROTOCOL = 0x1000;
+    public const int ASSOCSTR_EXECUTABLE = 2;
+
+    [LibraryImport("shlwapi.dll", EntryPoint = "AssocQueryStringW", StringMarshalling = StringMarshalling.Utf16)]
+    public static unsafe partial int AssocQueryString(int flags, int str, string assoc, string? extra, char* output, ref uint length);
+
     // Store-Apps: das Kindfenster der App im Rahmen von ApplicationFrameHost finden
     public const uint GW_CHILD = 5;
 

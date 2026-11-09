@@ -57,6 +57,30 @@ public class ScriptRunnerTests
     }
 
     [Fact]
+    public void Script_runs_in_the_given_folder()
+    {
+        using var dir = new TempDirectory();
+        using var work = new TempDirectory();
+        var path = Batch(dir, "wo.bat", "@cd\n");
+        var result = ScriptRunner.Run(new RunRequest(path, null, 10, Hidden: true, Directory: work.Path.Replace('\\', '/')), () => false);
+        Assert.Equal(Path.GetFullPath(work.Path).TrimEnd('\\'), result.Out.Trim().TrimEnd('\\'), ignoreCase: true);
+    }
+
+    [Fact]
+    public void Script_without_folder_is_found_in_the_given_folder()
+    {
+        using var dir = new TempDirectory();
+        Batch(dir, "hier.bat", "@echo gefunden\n");
+        var result = ScriptRunner.Run(new RunRequest("hier.bat", null, 10, Hidden: true, Directory: dir.Path), () => false);
+        Assert.Equal("gefunden", result.Out.Trim());
+    }
+
+    [Fact]
+    public void Missing_folder_is_reported() =>
+        Assert.Contains("folder", Assert.Throws<RunFailedException>(() =>
+            ScriptRunner.Run(new RunRequest("cmd.exe", "/d /c echo x", 10, Hidden: true, Directory: @"C:\gibts\nicht"), () => false)).Message);
+
+    [Fact]
     public void Program_from_the_path() =>
         Assert.Equal("hallo", Run("cmd.exe", "/d /c echo hallo").Out.Trim());
 
