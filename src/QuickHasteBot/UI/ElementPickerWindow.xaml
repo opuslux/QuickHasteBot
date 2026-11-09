@@ -46,7 +46,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Style="{StaticResource Label}" Text="{x:Static ui:Strings.PickerProgram}" />
             <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource Value}" x:Name="ProgramText" Text="–" />
@@ -58,8 +58,10 @@
             <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Value}" x:Name="NameText" Text="–" />
             <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="{x:Static ui:Strings.PickerClass}" />
             <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Value}" x:Name="ClassText" Text="–" />
-            <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="{x:Static ui:Strings.PickerValue}" />
-            <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource Value}" x:Name="ValueText" Text="–" />
+            <TextBlock Grid.Row="5" Style="{StaticResource Label}" Text="{x:Static ui:Strings.PickerHelp}" />
+            <TextBlock Grid.Row="5" Grid.Column="1" Style="{StaticResource Value}" x:Name="TooltipText" Text="–" />
+            <TextBlock Grid.Row="6" Style="{StaticResource Label}" Text="{x:Static ui:Strings.PickerValue}" />
+            <TextBlock Grid.Row="6" Grid.Column="1" Style="{StaticResource Value}" x:Name="ValueText" Text="–" />
         </Grid>
 
         <!-- Nach dem Loslassen: Aktion, geprüfte Selektoren (der stabilste zuerst) und der fertige Tag -->

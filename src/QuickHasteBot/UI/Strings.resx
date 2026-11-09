@@ -203,8 +203,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagClearHelp" xml:space="preserve"><value>Ctrl+A and Delete: empties a prefilled field before typing, e.g. {focus,#city}{clear}Bern.</value></data>
   <data name="TagGuardOffHelp" xml:space="preserve"><value>Turns the window guard off: the snippet goes on even if another window comes to the front. Needed when the snippet switches windows itself, e.g. with {win}.</value></data>
   <data name="TagGuardOnHelp" xml:space="preserve"><value>Turns the window guard back on, for the window that is in front at that moment. The snippet stops if another window comes to the front.</value></data>
-  <data name="TagFocusHelp" xml:space="preserve"><value>Puts the cursor into a field, and the text after it is typed there. #id finds the id, name=Label the label, .class the class. The element picker finds the right one for you.</value></data>
-  <data name="TagClickHelp" xml:space="preserve"><value>Clicks a button, link, tab or checkbox by its label (name=Send) or id (#send). Add ;type=button if several elements have the same label.</value></data>
+  <data name="TagFocusHelp" xml:space="preserve"><value>Puts the cursor into a field, and the text after it is typed there. #id finds the id, name=Label the label (* for any text: name=Inbox*), .class the class, help=Tooltip the tooltip. Put the area first with " > ": name=Delivery address > name=Street. The element picker finds the right one for you.</value></data>
+  <data name="TagClickHelp" xml:space="preserve"><value>Clicks a button, link, tab or checkbox by its label (name=Send) or id (#send). * stands for any text: name=Inbox* also finds "Inbox - 2 unread items". Add ;type=button if several elements have the same label.</value></data>
   <data name="TagDoubleClickHelp" xml:space="preserve"><value>Double-clicks an element with the mouse, e.g. a list entry, a file or a table row, by its label (name=Report) or id (#report). Always a real mouse click, so the element must be visible on the screen.</value></data>
   <data name="TagRightClickHelp" xml:space="preserve"><value>Right-clicks an element with the mouse, by its label (name=Report) or id (#report). The context menu that opens is part of the window: {click,name=Copy} picks an entry from it.</value></data>
   <data name="TagSetHelp" xml:space="preserve"><value>Fills a field directly, picks a dropdown option by its text or sets a checkbox to "on"/"off": {set,#country,"Austria"}. Some web forms only notice typed text; then use {focus,…} and the text.</value></data>
@@ -234,6 +234,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerType" xml:space="preserve"><value>Type</value></data>
   <data name="PickerName" xml:space="preserve"><value>Name</value></data>
   <data name="PickerClass" xml:space="preserve"><value>Class</value></data>
+  <data name="PickerHelp" xml:space="preserve"><value>Tooltip</value></data>
   <data name="PickerValue" xml:space="preserve"><value>Value</value></data>
   <data name="PickerActionFocus" xml:space="preserve"><value>Focus</value></data>
   <data name="PickerActionClick" xml:space="preserve"><value>Click</value></data>
@@ -247,7 +248,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="PickerChecking" xml:space="preserve"><value>Checking which selectors find exactly this element…</value></data>
   <data name="PickerCopied" xml:space="preserve"><value>Copied to the clipboard, ready to paste into a snippet.</value></data>
   <data name="PickerUnverified" xml:space="preserve"><value>None of these finds exactly this element, they are unchecked. Copied anyway.</value></data>
-  <data name="PickerNothing" xml:space="preserve"><value>The element has no id, name or class to find it by. Click a field next to it and use {tab} instead.</value></data>
+  <data name="PickerNothing" xml:space="preserve"><value>The element has no id, name, class or tooltip to find it by. Click a field next to it and use {tab} instead.</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>General</value></data>
   <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
   <data name="StartupHeading" xml:space="preserve"><value>Startup and display</value></data>

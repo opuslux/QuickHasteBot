@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace QuickHasteBot.Core;
 
 /// <summary>
@@ -45,12 +43,8 @@ public sealed record WindowSelector(string? Process, string? Title, string? Any)
         return processName.Equals(Any, StringComparison.OrdinalIgnoreCase) || title.Contains(Any!, StringComparison.OrdinalIgnoreCase);
     }
 
-    static bool TitleMatches(string pattern, string title)
-    {
-        if (!pattern.Contains('*')) return title.Contains(pattern, StringComparison.OrdinalIgnoreCase);
-        var regex = "^" + string.Join(".*", pattern.Split('*').Select(Regex.Escape)) + "$";
-        return Regex.IsMatch(title, regex, RegexOptions.IgnoreCase | RegexOptions.Singleline);
-    }
+    static bool TitleMatches(string pattern, string title) =>
+        Wildcard.IsPattern(pattern) ? Wildcard.IsMatch(pattern, title) : title.Contains(pattern, StringComparison.OrdinalIgnoreCase);
 
     public override string ToString() =>
         Process is not null ? "process=" + Process : Title is not null ? "title=" + Title : Any!;

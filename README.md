@@ -358,18 +358,34 @@ The element is described like this, parts combined with `;`:
 | Selector | Finds | In a browser |
 |---|---|---|
 | `#email` or `id=email` | the id | `id="email"` |
-| `name=E-Mail` or just `E-Mail` | the label or text, not case sensitive | `<label>`, `aria-label`, a button's text |
+| `name=E-Mail` or just `E-Mail` | the label or text, not case sensitive; `*` stands for any text, see below | `<label>`, `aria-label`, a button's text |
 | `.btn.primary` | all these classes | `class="btn primary large"` |
 | `class=btn primary` | exactly this class attribute (in Windows programs: the window class) | |
+| `help=Print` | the tooltip, not case sensitive; `*` works as in names | `title`, a field's placeholder |
 | `type=edit` | the kind: `edit`, `button`, `checkbox`, `radio`, `combobox`/`dropdown`, `link`, `listitem`, `menuitem`, `tab`, … | |
 | `index=2` | the second match | |
 | `window=crm` | first bring this program to the front and search there, see [below](#other-programs-window-and-start) | |
+
+Some labels change: Outlook calls its inbox "Inbox" or "Inbox - 2 unread items", depending on the mail. With `*` in the name, any text may stand there, also none: `name=Inbox*` begins with, `name=*unread*` contains, `name=*.docx` ends with, and `name=*lorem*ipsum*` contains both words in this order. The pattern covers the whole name, so `Inbox*` doesn't find "My Inbox". Without `*`, the name has to match exactly. `*` is the only wildcard; all other characters, like `.`, `?` or `(`, count as written, and a `*` in the label itself is matched by the pattern's `*` as well. If several elements fit, the first one counts (or the one from `index=`), so make the pattern as precise as you can and add `type=`, which also makes the search faster:
+
+```
+{click,name=Inbox*;type=button}
+```
+
+When the same element appears more than once, e.g. "Street" in the billing and in the delivery address, or "Inbox" in two mailboxes, put the part of the window it lies in first, followed by ` > ` (with spaces):
+
+```
+{set,name=Delivery address > name=Street,"Main Street 1"}
+{click,name=john@example.com* > name=Inbox*;type=button}
+```
+
+The part on the left is a selector like any other, and it may contain the element anywhere inside, not only directly. If several parts match, they are searched one after the other; `index=2` on the left takes only the second one, `index=2` on the right the second element across all of them. Steps can be chained: `#orders > name=Delivery address > name=Street`. The picker suggests this form by itself when no other selector finds exactly the element.
 
 QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome, Edge and Firefox fill with the page's form, and Windows programs with their controls (in WinForms, `#name` is the control's name). Each element tag waits up to 5 seconds for the element to appear, e.g. while a page loads, so `{wait}` is rarely needed; on large pages the very first search takes a moment longer. If nothing turns up, the snippet stops with a message. Holding Esc stops the wait.
 
 **Element picker:** "Pick element" in the editor or "Pick element…" in the tray menu opens a small window at the top right of the screen that stays on top.
 
-1. Hold the mouse button on its crosshair and drag it onto a field, button or link. A red frame shows what is under the pointer, with its type, id, name, class and value.
+1. Hold the mouse button on its crosshair and drag it onto a field, button or link. A red frame shows what is under the pointer, with its type, id, name, class, tooltip and value.
 2. Let go. The picker checks which selectors find exactly that element, the most stable first (a real id before the label; ids that web apps generate anew on every load, like `:r3:`, `mui-12345` or `mantine-2hi08ejzc`, last), suggests focus, click or set depending on the element, and copies the tag to the clipboard, e.g. `{focus,#email}`.
 3. Optionally pick another selector or action (focus, click, double-click, right-click or set; their tooltips explain each tag) and edit the tag; it is copied again.
 4. **Test** runs the tag right away in the program the element was picked in, like a snippet would (so a click really clicks), and shows whether it worked or why not.
