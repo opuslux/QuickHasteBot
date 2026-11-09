@@ -43,6 +43,9 @@ internal partial class SearchPopup : Window
     int _resizeStartX;
     double _resizeStartWidth;
     double _resizeStartLeft;
+    ForegroundWatcher? _foregroundWatcher;
+    bool _running;
+    bool _closed;
 
     public SearchPopup(AppController app)
     {
@@ -77,6 +80,11 @@ internal partial class SearchPopup : Window
                 _viewModel.RememberPosition();
         };
         SourceInitialized += (_, _) => PopupPlacement.UseRoundedCorners(this);
+        Closed += (_, _) =>
+        {
+            _closed = true;
+            _foregroundWatcher?.Dispose();
+        };
         // Die Höhe folgt der Liste, dabei soll das Fenster am Mauszeiger bleiben
         SizeChanged += (_, _) =>
         {
@@ -88,26 +96,120 @@ internal partial class SearchPopup : Window
     /// <summary>Wohin das offene Popup einfügen würde. Ein Datei-Hotkey bei offenem Popup fügt auch dort ein.</summary>
     public nint TargetWindow => _targetWindow;
 
+    /// <summary>
+    /// Offen und im Vordergrund lassen: nach dem Einfügen, Bearbeiten usw. bleibt das Popup stehen, bis man den
+    /// Schalter ausschaltet oder Esc drückt. Wird nicht gespeichert, jedes neue Öffnen beginnt ohne.
+    /// </summary>
+    public bool KeepOpen
+    {
+        get => KeepOpenToggle.IsChecked == true;
+        private set => KeepOpenToggle.IsChecked = value;
+    }
+
     /// <param name="targetWindow">Fenster, das beim Drücken des Hotkeys vorne war, dorthin wird eingefügt.</param>
     /// <param name="folder">Mit dem Hotkey eines Ordners: in diesem Ordner öffnen statt wie eingestellt.</param>
     public void ShowFor(nint targetWindow, Snippet? folder = null)
     {
+        // Offen gelassen (Hotkey eines Ordners): dort weitermachen, wo das Popup steht
+        var keptOpen = KeepOpen && IsVisible;
+        if (!keptOpen && !_running)
+            KeepOpen = false;
+
         _targetWindow = targetWindow;
         _viewModel.Reset(folder?.RelativePath);
         ApplyWidth();
 
-        _anchor = null;
-        var (fractionX, fractionY) = AppSettings.PopupFractions(_app.Settings.PopupPosition);
-        _anchor = PopupPlacement.ShowAtCursor(this, fractionX, fractionY);
-        // Das Fenster erscheint unter der ruhenden Maus, das ist noch keine Bewegung
-        _lastMouse = PointToScreen(Mouse.GetPosition(this));
-        _recentMoves.Clear();
+        if (!keptOpen)
+        {
+            _anchor = null;
+            var (fractionX, fractionY) = AppSettings.PopupFractions(_app.Settings.PopupPosition);
+            _anchor = PopupPlacement.ShowAtCursor(this, fractionX, fractionY);
+            // Das Fenster erscheint unter der ruhenden Maus, das ist noch keine Bewegung
+            _lastMouse = PointToScreen(Mouse.GetPosition(this));
+            _recentMoves.Clear();
+        }
+        FocusSearch();
+    }
+
+    /// <summary>Hotkey bei offen gelassenem Popup: zurück ins Suchfeld, Ordner und Stelle bleiben.</summary>
+    /// <param name="foreground">Das Fenster, das beim Drücken vorne war. Ist es ein anderes Programm, fügt das Popup jetzt dort ein.</param>
+    public void Refocus(nint foreground)
+    {
+        // Läuft gerade ein Baustein, kommt das Popup danach von selbst wieder
+        if (!IsVisible) return;
+        if (foreground != 0 && !IsOwnWindow(foreground))
+            _targetWindow = foreground;
+        FocusSearch();
+    }
+
+    void FocusSearch()
+    {
         Activate();
         WindowFocus.Activate(new WindowInteropHelper(this).Handle);
         SearchBox.Focus();
         Keyboard.Focus(SearchBox);
         // Ein gemerkter Suchtext ist markiert: Enter nimmt ihn, Tippen ersetzt ihn
         SearchBox.SelectAll();
+    }
+
+    static bool IsOwnWindow(nint window)
+    {
+        NativeMethods.GetWindowThreadProcessId(window, out var processId);
+        return processId == Environment.ProcessId;
+    }
+
+    void OnKeepOpenChanged(object sender, RoutedEventArgs e)
+    {
+        _foregroundWatcher?.Dispose();
+        _foregroundWatcher = KeepOpen ? new ForegroundWatcher(OnForegroundChanged) : null;
+        if (IsActive)
+            Keyboard.Focus(SearchBox);
+    }
+
+    // Klickt man bei offen gelassenem Popup in ein anderes Programm, fügt der nächste Baustein dort ein.
+    // Was ein laufender Baustein nach vorne holt ({window}, {start}), zählt nicht. Eigene Fenster meldet Windows nicht.
+    void OnForegroundChanged(nint window)
+    {
+        if (!_running)
+            _targetWindow = window;
+    }
+
+    /// <summary>
+    /// Versteckt das Popup, solange ein Baustein läuft: Das Zielfenster bekommt die Eingaben und {click} trifft nicht
+    /// das Popup. Offen gelassen erscheint es danach an derselben Stelle wieder, ohne dem Zielfenster den Fokus zu nehmen.
+    /// </summary>
+    public async Task RunHiddenAsync(Func<Task> run)
+    {
+        var keepOpen = KeepOpen;
+        _running = true;
+        Hide();
+        try
+        {
+            await run();
+        }
+        finally
+        {
+            _running = false;
+            if (keepOpen && KeepOpen && !_closed && !IsVisible)
+            {
+                ShowActivated = false;
+                try
+                {
+                    Show();
+                }
+                finally
+                {
+                    ShowActivated = true;
+                }
+            }
+        }
+    }
+
+    /// <summary>Bearbeiten, Explorer, Einstellungen: offen gelassen bleibt das Popup dabei stehen.</summary>
+    void HideUnlessKeptOpen()
+    {
+        if (!KeepOpen)
+            Hide();
     }
 
     /// <summary>Die Bibliothek wurde neu eingelesen (Datei geändert, anderer Ordner).</summary>
@@ -120,7 +222,7 @@ internal partial class SearchPopup : Window
     void OnDeactivated(object? sender, EventArgs e)
     {
         _hoverTimer.Stop();
-        if (!_dialogOpen)
+        if (!_dialogOpen && !KeepOpen)
             Hide();
     }
 
@@ -389,7 +491,7 @@ internal partial class SearchPopup : Window
     // Neben der Stecknadel: leerer Editor im offenen Ordner, wie Strg+N
     void OnNewSnippetClick(object sender, RoutedEventArgs e)
     {
-        Hide();
+        HideUnlessKeptOpen();
         _app.NewSnippet(_viewModel.CurrentFolder);
     }
 
@@ -412,19 +514,19 @@ internal partial class SearchPopup : Window
     // Ohne Auswahl gilt der angezeigte Ordner
     void EditSelected()
     {
-        Hide();
+        HideUnlessKeptOpen();
         _app.EditSnippet(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
     }
 
     void RevealSelected()
     {
-        Hide();
+        HideUnlessKeptOpen();
         _app.RevealInExplorer(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
     }
 
     void OpenSettings()
     {
-        Hide();
+        HideUnlessKeptOpen();
         _app.ShowSettings();
     }
 
@@ -456,26 +558,26 @@ internal partial class SearchPopup : Window
         {
             menu.Items.Add(MenuEntry(Strings.MenuEdit, MenuIcons.Edit, () =>
             {
-                Hide();
+                HideUnlessKeptOpen();
                 _app.EditSnippet(snippet);
             }));
             if (_app.Settings.UseBuiltInEditor)
                 menu.Items.Add(MenuEntry(Strings.MenuEditExternal, MenuIcons.OpenExternal, () =>
                 {
-                    Hide();
+                    HideUnlessKeptOpen();
                     _app.Edit(snippet);
                 }));
         }
         // Wie Strg+E, aber für den Eintrag unter der Maus: Dateien markiert im Ordner, Ordner selbst geöffnet
         menu.Items.Add(MenuEntry(Strings.MenuShowInExplorer, MenuIcons.Explorer, () =>
         {
-            Hide();
+            HideUnlessKeptOpen();
             _app.RevealInExplorer(snippet);
         }));
         // Neuer Baustein im Ordner bzw. neben der Datei
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
-            Hide();
+            HideUnlessKeptOpen();
             _app.NewSnippet(snippet);
         }));
         // Immer im offenen Ordner, nicht im Ordner unter der Maus: der Dialog sagt das
@@ -496,7 +598,7 @@ internal partial class SearchPopup : Window
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
-            Hide();
+            HideUnlessKeptOpen();
             _app.NewSnippet(_viewModel.CurrentFolder);
         }));
         menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, NewFolder));
@@ -620,7 +722,11 @@ internal partial class SearchPopup : Window
         switch (e.Key)
         {
             case Key.Escape:
+                KeepOpen = false;
                 Hide();
+                break;
+            case Key.T when ctrl:
+                KeepOpen = !KeepOpen;
                 break;
             case Key.Down:
                 _viewModel.MoveSelection(1);
@@ -662,7 +768,7 @@ internal partial class SearchPopup : Window
                 EditSelected();
                 break;
             case Key.N when ctrl:
-                Hide();
+                HideUnlessKeptOpen();
                 _app.NewSnippet(_viewModel.CurrentFolder);
                 break;
             case Key.E when ctrl:
@@ -702,10 +808,9 @@ internal partial class SearchPopup : Window
 
     async void Paste(Snippet snippet, bool alternate)
     {
-        Hide();
         try
         {
-            await _app.ActivateAsync(snippet, alternate, _targetWindow);
+            await RunHiddenAsync(() => _app.ActivateAsync(snippet, alternate, _targetWindow));
         }
         catch (Exception ex)
         {

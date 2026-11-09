@@ -266,6 +266,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="HintSettings" xml:space="preserve"><value>Settings</value></data>
   <data name="KeyCtrl" xml:space="preserve"><value>Ctrl</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Start in this folder next time</value></data>
+  <data name="KeepOpenTooltip" xml:space="preserve"><value>Keep open and on top, to paste several snippets one after another (Ctrl+T)</value></data>
   <data name="RememberQueryTooltip" xml:space="preserve"><value>Keep this search text next time, Enter starts the same entry again</value></data>
   <data name="NewSnippetTooltip" xml:space="preserve"><value>New snippet in the editor (Ctrl+N): try things out with Test (F5), and save it as a file if you like</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Wrap long lines</value></data>

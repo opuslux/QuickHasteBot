@@ -98,6 +98,7 @@ Snippets can be created, renamed, cloned and deleted right in the popup (see [Ri
 | Ctrl+E | Show it in Explorer |
 | F2 | Rename the selected file or folder |
 | Ctrl+, | Settings |
+| Ctrl+T | [Keep the popup open](#keeping-it-open) to paste several snippets one after another |
 | Esc | Close |
 
 ### Mouse
@@ -143,6 +144,15 @@ Three buttons next to the folder path change how the popup starts:
 - **Document icon:** opens an empty snippet in the [editor](#editor), like Ctrl+N.
 
 Pin and filter are also in the settings under **When opening**.
+
+### Keeping it open
+
+To paste several snippets one after another, e.g. while filling in a form, the lock at the top right next to the search box (or Ctrl+T) keeps the popup open and on top:
+
+- After pasting, the popup comes back at the same place, in the same folder, without taking the focus away from the program you pasted into. Click the next snippet, or press the hotkey to get back into the search box.
+- Clicking into another program makes it the new target: the next snippet goes there. Windows of QuickHasteBot itself, like the editor, never become the target, and neither does a window a snippet brings to the front.
+- Editing a snippet, Explorer and the settings leave the popup open too. If it covers the editor, drag it aside.
+- Esc closes it and switches this off; the next time the popup opens normally again. The setting isn't saved.
 
 ## Pasting: two methods
 

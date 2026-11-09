@@ -95,7 +95,11 @@ internal sealed class AppController : IDisposable
         // structure lässt sich jederzeit im Explorer umbauen: im Hintergrund prüfen, ein geänderter Baum
         // aktualisiert das offene Popup (Library.Changed)
         _ = Library.VerifyAsync();
-        _popup?.ShowFor(target);
+        // Offen gelassen: nur zurück ins Suchfeld, Ordner und Stelle bleiben
+        if (_popup is { KeepOpen: true } keptOpen)
+            keptOpen.Refocus(target);
+        else
+            _popup?.ShowFor(target);
     }
 
     public void ShowSettings() => ShowSettings(position: null);
@@ -767,11 +771,16 @@ internal sealed class AppController : IDisposable
         if (path is null) return;
 
         var target = NativeMethods.GetForegroundWindow();
-        // Bei offenem Popup dorthin, wohin es eingefügt hätte, nicht ins Popup selbst
+        // Bei offenem Popup dorthin, wohin es eingefügt hätte, nicht ins Popup selbst.
+        // Offen gelassen bleibt es dabei stehen bzw. kommt nach dem Einfügen wieder.
+        SearchPopup? keptOpen = null;
         if (_popup is { IsVisible: true } popup)
         {
             target = popup.TargetWindow;
-            popup.Hide();
+            if (popup.KeepOpen)
+                keptOpen = popup;
+            else
+                popup.Hide();
         }
 
         var snippet = Library.All.FirstOrDefault(s => string.Equals(s.FullPath, path, StringComparison.OrdinalIgnoreCase));
@@ -787,6 +796,8 @@ internal sealed class AppController : IDisposable
         {
             if (snippet.IsFolder)
                 _popup?.ShowFor(target, snippet);
+            else if (keptOpen is not null)
+                await keptOpen.RunHiddenAsync(() => ActivateAsync(snippet, alternate: false, target));
             else
                 await ActivateAsync(snippet, alternate: false, target);
         }

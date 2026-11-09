@@ -162,11 +162,27 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Suchfeld mit Platzhalter, links das App-Icon -->
+            <!-- Suchfeld mit Platzhalter, links das App-Icon. Rechts oben, wo bei Fenstern die Titelknöpfe sitzen:
+                 offen und im Vordergrund lassen, um mehrere Bausteine nacheinander einzufügen (Strg+T). -->
             <DockPanel Grid.Row="0">
                 <Image DockPanel.Dock="Left" Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
                        Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality" />
+                <!-- Offenes Schloss, eingeschaltet geschlossen -->
+                <ToggleButton x:Name="KeepOpenToggle" DockPanel.Dock="Right"
+                              Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="{x:Static ui:Strings.KeepOpenTooltip}"
+                              Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
+                            <Setter Property="Content" Value="&#xE785;" />
+                            <Style.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Content" Value="&#xE72E;" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
                 <Grid>
                     <TextBox x:Name="SearchBox"
                              Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"

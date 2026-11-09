@@ -266,6 +266,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="HintSettings" xml:space="preserve"><value>Einstellungen</value></data>
   <data name="KeyCtrl" xml:space="preserve"><value>Strg</value></data>
   <data name="RememberFolderTooltip" xml:space="preserve"><value>Beim nächsten Öffnen wieder in diesem Ordner beginnen</value></data>
+  <data name="KeepOpenTooltip" xml:space="preserve"><value>Offen und im Vordergrund lassen, um mehrere Bausteine nacheinander einzufügen (Strg+T)</value></data>
   <data name="RememberQueryTooltip" xml:space="preserve"><value>Suchtext beim nächsten Öffnen behalten, Enter startet wieder denselben Eintrag</value></data>
   <data name="NewSnippetTooltip" xml:space="preserve"><value>Neuer Baustein im Editor (Strg+N): mit Testen (F5) ausprobieren und bei Bedarf als Datei speichern</value></data>
   <data name="WrapTooltip" xml:space="preserve"><value>Lange Zeilen umbrechen</value></data>
