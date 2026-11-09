@@ -120,11 +120,12 @@ internal static class PopupPlacement
     /// <summary>
     /// Oben rechts in den Arbeitsbereich des Monitors unter dem Cursor, mit etwas Abstand zum Rand. Für Fenster, die nach
     /// unten wachsen (der Element-Picker nach dem Erfassen): Mittig fielen sie dann unten aus dem Bildschirm. Aufrufen in
-    /// SourceInitialized, also bevor das Fenster sichtbar ist. Ein schon gesetztes Left (Tests) bleibt.
+    /// SourceInitialized, also bevor das Fenster sichtbar ist. Ein von aussen gesetztes Left (Tests) bleibt.
     /// </summary>
     public static void TopRight(Window window)
     {
-        if (!double.IsNaN(window.Left)) return;
+        // Nicht window.Left prüfen: Das ist hier nie mehr NaN, WPF trägt schon die Standardposition von Windows ein
+        if (window.ReadLocalValue(Window.LeftProperty) != DependencyProperty.UnsetValue) return;
         var hwnd = new WindowInteropHelper(window).Handle;
         GetCursorPos(out var cursor);
         var work = WorkArea(MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST));
