@@ -83,6 +83,8 @@ public partial class App : Application
         Log.Error("Unbehandelter Fehler im UI-Thread", e.Exception);
         e.Handled = true;
         var message = string.Format(Strings.UnexpectedErrorFormat, e.Exception.Message);
+        if (Log.Enabled)
+            message += Environment.NewLine + Environment.NewLine + Strings.UnexpectedErrorLogHint;
 
         // Scheitert das eigene Fenster selbst (oder kommt der nächste Fehler, während es offen ist),
         // bleibt die Meldung von Windows, statt Fehler um Fehler aufzustapeln

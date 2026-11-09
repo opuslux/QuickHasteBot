@@ -98,6 +98,7 @@ Snippets can be created, renamed, cloned and deleted right in the popup (see [Ri
 | Ctrl+E | Show it in Explorer |
 | F2 | Rename the selected file or folder |
 | Ctrl+, | Settings |
+| Ctrl+T | [Keep the popup open](#keeping-it-open) to paste several snippets one after another |
 | Esc | Close |
 
 ### Mouse
@@ -143,6 +144,15 @@ Three buttons next to the folder path change how the popup starts:
 - **Document icon:** opens an empty snippet in the [editor](#editor), like Ctrl+N.
 
 Pin and filter are also in the settings under **When opening**.
+
+### Keeping it open
+
+To paste several snippets one after another, e.g. while filling in a form, the lock at the top right next to the search box (or Ctrl+T) keeps the popup open and on top:
+
+- After pasting, the popup comes back at the same place, in the same folder, without taking the focus away from the program you pasted into. Click the next snippet, or press the hotkey to get back into the search box.
+- Clicking into another program makes it the new target: the next snippet goes there. Windows of QuickHasteBot itself, like the editor, never become the target, and neither does a window a snippet brings to the front.
+- Editing a snippet, Explorer and the settings leave the popup open too. If it covers the editor, drag it aside.
+- Esc closes it and switches this off; the next time the popup opens normally again. The setting isn't saved.
 
 ## Pasting: two methods
 
@@ -251,7 +261,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 - **Checking the result:** `throw new Error('…')` stops the snippet with that message, as in any block.
 - **At its place:** blocks are normally all evaluated before the first key is sent. If a tag comes before the first `run()`, that block and all later ones are evaluated only when the snippet gets there, so the script runs after what comes before it and later blocks see its result. In the preview such blocks show as written, and in step-by-step runs each block (or line of blocks) is a step of its own; what it prints appears as steps behind it.
 - **Focus:** if the script's window comes to the front, the window that was in front before is brought back afterwards. Holding Esc stops the wait.
-- The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. Every start and exit code is written to the log.
+- The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. With the [log](#portable) switched on, every start and exit code is written to it.
 
 ### Writing a block with AI
 
@@ -414,7 +424,7 @@ A recording starts with `{window,process=…}` for the program it was made in, s
 - `{start,notepad}`: a program name that Windows knows (as in Win+R, e.g. `notepad`, `excel`, `chrome`) or a full path, `.exe` can be left out. A second argument in quotes is passed to the program, e.g. a file to open.
 - If a window of the program is already open, it's brought to the front, and no second copy starts. Otherwise QuickHasteBot starts it the way Explorer does with a double-click, waits up to 30 seconds for its window and until it accepts input, then the snippet goes on. Holding Esc stops the wait.
 - The window is recognized by the program's name, like `{window,process=…}`. Programs that open their window under another name (launchers, Store apps such as `calc`) aren't found this way: start them by hand and use `{window,title=…}`.
-- Only programs (`.exe`) and web addresses start, no scripts (`.bat`, `.ps1`, …) or shortcuts; for those, use [`run()`](#running-scripts), which runs a script, waits for it and reads its output, but doesn't bring a window to the front. Only a `{start,…}` written in the snippet itself starts anything: `{start,…}` in a script's result or on the clipboard stays text. Every start is written to the log.
+- Only programs (`.exe`) and web addresses start, no scripts (`.bat`, `.ps1`, …) or shortcuts; for those, use [`run()`](#running-scripts), which runs a script, waits for it and reads its output, but doesn't bring a window to the front. Only a `{start,…}` written in the snippet itself starts anything: `{start,…}` in a script's result or on the clipboard stays text. With the [log](#portable) switched on, every start is written to it.
 - A program that asks for administrator rights shows Windows' prompt. After that, Windows doesn't let QuickHasteBot send it keys (see below).
 
 #### Web addresses
@@ -442,7 +452,7 @@ The settings open with a double-click on the tray icon, "Settings" in the tray m
 
 | Tab | Contains |
 |---|---|
-| **General** | The popup hotkey; "Start with Windows", tray icon, language and theme; the `structure` folder, content search, the built-in editor, script and key tag options, the AI service |
+| **General** | The popup hotkey; "Start with Windows", tray icon, log file, language and theme; the `structure` folder, content search, the built-in editor, script and key tag options, the AI service |
 | **Popup** | Paste method, mouse behavior, and "When opening": pin, filter and where the popup opens |
 | **Hotkeys** | Every [file and folder hotkey](#hotkeys-for-files-and-folders), with conflicts |
 
@@ -457,7 +467,7 @@ Everything lives next to `QuickHasteBot.exe`:
 - `structure\` with your snippets. The path can be changed in the settings (relative, absolute, or with `%USERPROFILE%`).
 - `settings.json` with the settings. It can also be edited by hand, e.g. `"Hotkey": "Ctrl+Alt+Space"`, `"Language": "en"`, `"de"` or empty for the Windows language, `"Theme": "System"`, `"Light"` or `"Dark"`.
 - `ai-prompt.txt` (optional) with your own [prompt template for the AI](#writing-a-block-with-ai).
-- `QuickHasteBot.log` with errors and startup information.
+- `QuickHasteBot.log` with errors, startup information and every program and script a snippet starts. Only written when "Write log file" is on in the settings (`"WriteLog": true`), off by default. Over 1 MB it is renamed to `QuickHasteBot.log.old`.
 
 The only thing written elsewhere is the short animation in the settings window, which is extracted to `%TEMP%\QuickHasteBot` the first time the settings open.
 

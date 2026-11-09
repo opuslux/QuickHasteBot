@@ -10,7 +10,7 @@ public class SettingsTests
         using var dir = new TempDirectory();
         var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
 
-        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, SingleClick = false, EvaluateScripts = false, StructurePath = @"D:\Bausteine", ListColumnShare = 0.45, PopupWidth = 850, Theme = AppTheme.Dark });
+        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, WriteLog = true, SingleClick = false, EvaluateScripts = false, StructurePath = @"D:\Bausteine", ListColumnShare = 0.45, PopupWidth = 850, Theme = AppTheme.Dark });
         var loaded = store.Load();
 
         Assert.Equal("Ctrl+Alt+Q", loaded.Hotkey);
@@ -19,6 +19,7 @@ public class SettingsTests
         Assert.Equal(AppTheme.Dark, loaded.Theme);
         Assert.Equal(PasteMode.Typing, loaded.PasteMode);
         Assert.False(loaded.ShowTrayIcon);
+        Assert.True(loaded.WriteLog);
         Assert.False(loaded.SingleClick);
         Assert.False(loaded.EvaluateScripts);
         Assert.Equal(@"D:\Bausteine", loaded.StructurePath);
@@ -45,6 +46,7 @@ public class SettingsTests
         Assert.Equal(ScriptPrompt.DefaultUrl, loaded.AiPromptUrl);
         Assert.Equal(1.0 / 3, loaded.ListColumnShare);
         Assert.Equal(AppTheme.System, loaded.Theme);
+        Assert.False(loaded.WriteLog);
     }
 
     [Fact]

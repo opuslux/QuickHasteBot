@@ -43,6 +43,9 @@ public sealed class AppSettings
 
     public bool ShowTrayIcon { get; set; } = true;
 
+    /// <summary>QuickHasteBot.log neben der exe schreiben (Fehler, Start, gestartete Programme und Skripte). Standard: aus.</summary>
+    public bool WriteLog { get; set; }
+
     /// <summary>Ein Klick im Popup fügt ein bzw. öffnet den Ordner, sonst wählt er nur aus und es braucht einen Doppelklick.</summary>
     public bool SingleClick { get; set; } = true;
 
