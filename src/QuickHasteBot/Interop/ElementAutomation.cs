@@ -19,9 +19,10 @@ internal sealed record ElementResult(ElementOutcome Outcome, string? Text = null
 /// <param name="Bounds">In physischen Bildschirmpixeln.</param>
 /// <param name="Window">Das Hauptfenster des Programms, für "Testen" im Picker.</param>
 /// <param name="Blocked">Das Programm läuft mit Administratorrechten, Windows lässt uns weder lesen noch ausfüllen.</param>
+/// <param name="HelpText">Der Tooltip, im Browser title-Attribut oder Platzhalter.</param>
 internal sealed record ElementInfo(
     AutomationElement? Element, string Id, string Name, string ClassName, string Type, string? Value, string Process, Rect Bounds,
-    nint Window, bool Blocked = false);
+    nint Window, bool Blocked = false, string HelpText = "");
 
 /// <summary>
 /// Elemente per UI Automation finden und bedienen: {focus,…}, {click,…}, {set,…}, {dblclick,…}, {rclick,…} und der
@@ -122,47 +123,121 @@ internal static class ElementAutomation
         return Find(AutomationElement.FromHandle(window), selector);
     }
 
-    /// <summary>Das erste passende Element unter <paramref name="root"/>, oder das n-te bei index=.</summary>
+    /// <summary>
+    /// Das erste passende Element unter <paramref name="root"/>, oder das n-te bei index=. Mit Container
+    /// ("Container > Element") nur in den passenden Containern, der Reihe nach; index= zählt über alle hinweg.
+    /// </summary>
     public static AutomationElement? Find(AutomationElement root, ElementSelector selector)
+    {
+        if (selector.Within is null)
+            return FindIn(root, selector);
+
+        var seen = new HashSet<string>();
+        var position = 0;
+        foreach (var scope in Scopes(root, selector.Within))
+        {
+            if (selector.Index == 1)
+            {
+                if (FindIn(scope, selector) is { } first) return first;
+                continue;
+            }
+            // Verschachtelte Container (Gruppe in Gruppe) liefern dieselben Treffer mehrmals: nur einmal zählen
+            foreach (var match in Matches(scope, selector))
+                if (seen.Add(Key(match)) && ++position == selector.Index)
+                    return match;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Die Container, in denen gesucht wird: alle passenden der Reihe nach, mit index= nur der n-te. So findet
+    /// "name=Posteingang*" im zweiten Postfach, wenn das erste keinen hat.
+    /// </summary>
+    static IEnumerable<AutomationElement> Scopes(AutomationElement root, ElementSelector container)
+    {
+        IEnumerable<AutomationElement> parents = container.Within is null ? [root] : Scopes(root, container.Within);
+        var seen = new HashSet<string>();
+        var position = 0;
+        foreach (var parent in parents)
+        {
+            foreach (var match in Matches(parent, container))
+            {
+                // Ohne Kinder kann nichts darin liegen: z.B. die Überschrift einer Gruppe, die gleich heisst wie die
+                // Gruppe. Zählte sie mit, träfe index= die Falsche.
+                if (!seen.Add(Key(match)) || TreeWalker.ControlViewWalker.GetFirstChild(match) is null) continue;
+                position++;
+                if (container.Index == 1) yield return match;
+                else if (position == container.Index)
+                {
+                    yield return match;
+                    yield break;
+                }
+            }
+        }
+    }
+
+    /// <summary>Ohne Container.</summary>
+    static AutomationElement? FindIn(AutomationElement root, ElementSelector selector)
+    {
+        if (selector.Classes.Count == 0 && selector.Index == 1 && !selector.NameIsPattern && !selector.HelpIsPattern)
+            return root.FindFirst(TreeScope.Descendants, ConditionFor(selector));
+        return Matches(root, selector).Skip(selector.Index - 1).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Alle passenden Elemente unter <paramref name="root"/>, ohne index= und Container. Einzelne Klassen und Muster mit *
+    /// kann UIA nicht selbst: alle Treffer der übrigen Angaben holen, Klassen, Name und Tooltip gleich mit (ein Aufruf
+    /// statt einer pro Element), und danach filtern.
+    /// </summary>
+    static IEnumerable<AutomationElement> Matches(AutomationElement root, ElementSelector selector)
+    {
+        var cache = new CacheRequest { AutomationElementMode = AutomationElementMode.Full };
+        cache.Add(AutomationElement.ClassNameProperty);
+        cache.Add(AutomationElement.NameProperty);
+        cache.Add(AutomationElement.HelpTextProperty);
+        cache.Add(AutomationElement.RuntimeIdProperty);
+        AutomationElementCollection all;
+        using (cache.Activate())
+            all = root.FindAll(TreeScope.Descendants, ConditionFor(selector));
+
+        foreach (AutomationElement candidate in all)
+        {
+            if (selector.Classes.Count > 0)
+            {
+                var classes = candidate.Cached.ClassName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (!selector.Classes.All(c => classes.Contains(c, StringComparer.Ordinal))) continue;
+            }
+            if (selector.NameIsPattern && !selector.NameMatches(candidate.Cached.Name)) continue;
+            if (selector.HelpIsPattern && !selector.HelpMatches(candidate.Cached.HelpText)) continue;
+            yield return candidate;
+        }
+    }
+
+    /// <summary>Was UIA selbst prüfen kann: id, genauer Name und Tooltip, Fensterklasse, Typ.</summary>
+    static Condition ConditionFor(ElementSelector selector)
     {
         var conditions = new List<Condition>();
         if (selector.Id is not null)
             conditions.Add(new PropertyCondition(AutomationElement.AutomationIdProperty, selector.Id));
-        if (selector.Name is not null)
+        if (selector.Name is not null && !selector.NameIsPattern)
             conditions.Add(new PropertyCondition(AutomationElement.NameProperty, selector.Name, PropertyConditionFlags.IgnoreCase));
+        if (selector.HelpText is not null && !selector.HelpIsPattern)
+            conditions.Add(new PropertyCondition(AutomationElement.HelpTextProperty, selector.HelpText, PropertyConditionFlags.IgnoreCase));
         if (selector.ClassName is not null)
             conditions.Add(new PropertyCondition(AutomationElement.ClassNameProperty, selector.ClassName));
         if (selector.Type is not null)
             conditions.Add(new PropertyCondition(AutomationElement.ControlTypeProperty, ControlTypes[selector.Type]));
-        var condition = conditions.Count switch
+        return conditions.Count switch
         {
             0 => Condition.TrueCondition,
             1 => conditions[0],
             _ => new AndCondition([.. conditions]),
         };
-
-        if (selector.Classes.Count == 0 && selector.Index == 1)
-            return root.FindFirst(TreeScope.Descendants, condition);
-
-        // Einzelne Klassen und index= kann UIA nicht selbst: alle Treffer holen, Klassen gleich mit (ein Aufruf statt einer pro Element)
-        var cache = new CacheRequest { AutomationElementMode = AutomationElementMode.Full };
-        cache.Add(AutomationElement.ClassNameProperty);
-        using (cache.Activate())
-        {
-            var position = 0;
-            foreach (AutomationElement candidate in root.FindAll(TreeScope.Descendants, condition))
-            {
-                if (selector.Classes.Count > 0)
-                {
-                    var classes = candidate.Cached.ClassName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (!selector.Classes.All(c => classes.Contains(c, StringComparer.Ordinal))) continue;
-                }
-                if (++position == selector.Index)
-                    return candidate;
-            }
-        }
-        return null;
     }
+
+    /// <summary>Kennung eines Elements, solange es lebt (aus dem Cache von <see cref="Matches"/>).</summary>
+    static string Key(AutomationElement element) =>
+        string.Join('.', (int[])element.GetCachedPropertyValue(AutomationElement.RuntimeIdProperty));
 
     static ElementResult Focus(AutomationElement element)
     {
@@ -488,8 +563,8 @@ internal static class ElementAutomation
     {
         var current = element.Current;
         return new ElementInfo(element, current.AutomationId ?? "", current.Name ?? "", current.ClassName ?? "",
-            current.ControlType.ProgrammaticName.Replace("ControlType.", ""), ValueOf(element), ProcessName(current.ProcessId),
-            current.BoundingRectangle, root);
+            TypeName(current.ControlType), ValueOf(element), ProcessName(current.ProcessId),
+            current.BoundingRectangle, root, HelpText: current.HelpText ?? "");
     }
 
     /// <summary>Wie <see cref="Probe"/>, für ein Element, das man schon hat (z.B. das fokussierte). Null, wenn es weg ist.</summary>
@@ -590,25 +665,31 @@ internal static class ElementAutomation
         {
             // Element inzwischen weg (Seite gewechselt): dann eben ungeprüft
         }
-        return ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null) is [var first, ..] ? first : null;
+        return ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null, info.HelpText) is [var first, ..] ? first : null;
     }
 
     static List<ElementSelector> VerifiedSelectors(ElementInfo info, bool firstOnly)
     {
         if (info.Element is null) return [];
         var window = TopLevel(info.Element);
-        var type = ElementSelector.Types.ContainsKey(ElementSelector.TypeAlias(info.Type)) ? info.Type : null;
+        var type = KnownType(info.Type);
+        var candidates = ElementSelector.Candidates(info.Id, info.Name, info.ClassName, type, info.HelpText);
         var verified = new List<ElementSelector>();
-        foreach (var candidate in ElementSelector.Candidates(info.Id, info.Name, info.ClassName, type))
+        foreach (var candidate in candidates)
         {
             if (!Hits(window, candidate, info.Element)) continue;
             verified.Add(candidate);
             if (firstOnly) return verified;
         }
-        if (verified.Count > 0 || type is null) return verified;
+        if (verified.Count > 0) return verified;
+        // Beim Aufnehmen nicht: Jeder Versuch ist eine Suche, in Browsern zu langsam, während man ein Formular ausfüllt
+        if (!firstOnly && InContainer(info.Element, window, candidates) is { Count: > 0 } scoped) return scoped;
+        if (type is null) return verified;
 
-        // Letzter Ausweg: das wievielte Element dieses Typs (mit dieser Beschriftung) im Fenster
-        var basis = new ElementSelector(null, string.IsNullOrEmpty(info.Name) ? null : info.Name, null, [], type, 1);
+        // Letzter Ausweg: das wievielte Element dieses Typs (mit dieser Beschriftung) im Fenster. Ein * im Namen wäre
+        // ein Muster und würde anders zählen.
+        var basis = new ElementSelector(null, ElementSelector.Writable(info.Name) && !Wildcard.IsPattern(info.Name) ? info.Name : null,
+            null, [], type, 1);
         var condition = new AndCondition(
             new PropertyCondition(AutomationElement.ControlTypeProperty, ControlTypes[type]),
             basis.Name is null ? Condition.TrueCondition : new PropertyCondition(AutomationElement.NameProperty, basis.Name, PropertyConditionFlags.IgnoreCase));
@@ -624,6 +705,36 @@ internal static class ElementAutomation
         }
         return verified;
     }
+
+    /// <summary>
+    /// Mehrere Elemente passen gleich gut, z.B. "Strasse" in Rechnungs- und Lieferadresse oder "Posteingang" in zwei
+    /// Postfächern: im nächsten Vorfahren mit eigener id oder Beschriftung eingrenzen, "name=Lieferadresse > name=Strasse".
+    /// Vorfahren ohne beides (in Browsern die meisten divs) werden übersprungen.
+    /// </summary>
+    static List<ElementSelector> InContainer(AutomationElement element, AutomationElement window, IReadOnlyList<ElementSelector> candidates)
+    {
+        var walker = TreeWalker.ControlViewWalker;
+        var current = element;
+        for (var level = 0; level < 8; level++)
+        {
+            var parent = walker.GetParent(current);
+            if (parent is null || Automation.Compare(parent, window) || Automation.Compare(parent, AutomationElement.RootElement)) break;
+            current = parent;
+
+            var info = parent.Current;
+            var id = ElementSelector.LooksGenerated(info.AutomationId ?? "") ? null : info.AutomationId;
+            if (ElementSelector.Candidates(id, info.Name, null, KnownType(TypeName(info.ControlType))) is not [var container, ..])
+                continue;
+            var found = candidates.Select(c => c with { Within = container }).Where(c => Hits(window, c, element)).ToList();
+            if (found.Count > 0) return found;
+        }
+        return [];
+    }
+
+    static string TypeName(ControlType type) => type.ProgrammaticName.Replace("ControlType.", "");
+
+    /// <summary>Der UIA-Typ, wenn man ihn bei type= angeben kann, sonst null.</summary>
+    static string? KnownType(string type) => ElementSelector.Types.ContainsKey(ElementSelector.TypeAlias(type)) ? type : null;
 
     static bool Hits(AutomationElement window, ElementSelector selector, AutomationElement element)
     {

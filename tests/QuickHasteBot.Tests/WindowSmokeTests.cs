@@ -46,6 +46,7 @@ public class WindowSmokeTests
             EditorStartsWithWindow();
             SetPicksFromAListElsewhere();
             ContextMenuComesFirst();
+            ContainersWildcardsAndTooltips();
             RecorderFollowsFieldsInAForm();
             RecordBarAndEditor();
             EditorInsertsPickedTagsOnTheirOwnLine();
@@ -1374,6 +1375,87 @@ public class WindowSmokeTests
     }
 
     /// <summary>
+    /// name= mit *, help= und "Container > Element" gegen echte UIA: zweimal "Strasse" in zwei Gruppen, ein Posteingang
+    /// mit wechselndem Zähler, ein Symbol-Button nur mit Tooltip. Der Picker schlägt für die zweite Strasse den Container vor.
+    /// </summary>
+    static void ContainersWildcardsAndTooltips()
+    {
+        var clicked = "";
+        System.Windows.Controls.Button Button(string content, string tag, string? tooltip = null)
+        {
+            var b = new System.Windows.Controls.Button { Content = content, ToolTip = tooltip };
+            b.Click += (_, _) => clicked = tag;
+            return b;
+        }
+        System.Windows.Controls.GroupBox Group(string header, params UIElement[] children)
+        {
+            var panel = new System.Windows.Controls.StackPanel();
+            foreach (var child in children) panel.Children.Add(child);
+            return new System.Windows.Controls.GroupBox { Header = header, Content = panel };
+        }
+
+        var inbox = Button("Posteingang - 2 ungelesene Elemente", "inbox");
+        var window = new Window
+        {
+            Width = 300, Height = 400, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.StackPanel
+            {
+                Children =
+                {
+                    Group("Rechnungsadresse", Button("Strasse", "rechnung")),
+                    Group("Lieferadresse", Button("Strasse", "liefer")),
+                    inbox,
+                    Button("🖶", "drucken", "Drucken (Strg+P)"),
+                },
+            },
+        };
+        Snapshot(window, "containers.png");
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        ElementResult Run(string tag)
+        {
+            clicked = "";
+            Assert.True(KeyTags.TryParse(tag.Trim('{', '}'), null, out var steps, out var error), error);
+            var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(20), pause: 1));
+            return run.Result;
+        }
+        void Clicks(string tag, string expected)
+        {
+            var result = Run(tag);
+            Assert.True(result.Outcome == ElementOutcome.Done, $"{tag}: {result.Outcome} {result.Error}");
+            Assert.True(PumpUntil(() => clicked == expected, TimeSpan.FromSeconds(5)), $"{tag}: {clicked}");
+        }
+
+        Clicks("{click,name=Strasse}", "rechnung");
+        Clicks("{click,name=Lieferadresse > name=Strasse;type=button}", "liefer");
+        // index zählt über alle Container. type=, weil in WPF auch der Text im Button "Strasse" heisst
+        Clicks("{click,name=*adresse > name=Strasse;type=button;index=2}", "liefer");
+        Clicks("{click,name=*adresse;index=2 > name=Strasse}", "liefer");        // index beim Container: der zweite
+        Clicks("{click,name=Posteingang*;type=button}", "inbox");
+        inbox.Content = "Posteingang";
+        Clicks("{click,name=Posteingang*;type=button}", "inbox");
+        Clicks("{click,help=Drucken*}", "drucken");
+        Clicks("{click,help=drucken (strg+p);type=button}", "drucken");
+        Assert.Equal(ElementOutcome.NotFound, Run("{click,name=Rechnungsadresse > name=Posteingang*}").Outcome);
+
+        // Picker: "Strasse" allein trifft die erste, für die zweite braucht es den Container
+        var find = Task.Run(() =>
+        {
+            var root = System.Windows.Automation.AutomationElement.FromHandle(hwnd);
+            Assert.True(ElementSelector.TryParse("name=Strasse;type=button;index=2", out var second, out _));
+            var element = ElementAutomation.Find(root, second)!;
+            var drucken = ElementAutomation.Find(root, new ElementSelector(null, "🖶", null, [], null, 1))!;
+            return (ElementAutomation.VerifiedSelectors(ElementAutomation.Describe(element)!), ElementAutomation.Describe(drucken)!);
+        });
+        Assert.True(PumpUntil(() => find.IsCompleted, TimeSpan.FromSeconds(30), pause: 1));
+        var (selectors, printInfo) = find.Result;
+        Assert.Equal("name=Lieferadresse;type=group > name=Strasse;type=button", selectors[0].ToString());
+        Assert.Equal("Drucken (Strg+P)", printInfo.HelpText);
+        window.Close();
+    }
+
+    /// <summary>
     /// Nach {rclick,…} wählt {click,name=…} aus dem Kontextmenü: Das Menü ist ein eigenes Fenster, das nicht nach vorne
     /// kommt, und wird vor dem Fenster durchsucht, auch wenn dort ein Button gleich heisst. Ohne echte Mausklicks: das
     /// Fenster steht ausserhalb des Bildschirms, und statt des Kontextmenüs (das ohne aktive App gleich wieder zugeht)
@@ -1567,8 +1649,11 @@ public class WindowSmokeTests
             Descendants<System.Windows.Controls.Primitives.ToggleButton>(window).Single(b => (string)b.Content == text);
     }
 
-    /// <summary>Den Dispatcher laufen lassen, bis <paramref name="done"/> zutrifft oder die Zeit um ist.</summary>
-    static bool PumpUntil(Func<bool> done, TimeSpan timeout)
+    /// <summary>
+    /// Den Dispatcher laufen lassen, bis <paramref name="done"/> zutrifft oder die Zeit um ist. UIA-Abfragen an eigene
+    /// Fenster warten jedes Mal auf diese Schleife: Wer viele macht (Suchen über den ganzen Baum), nimmt eine kurze <paramref name="pause"/>.
+    /// </summary>
+    static bool PumpUntil(Func<bool> done, TimeSpan timeout, int pause = 20)
     {
         var deadline = DateTime.UtcNow + timeout;
         while (!done() && DateTime.UtcNow < deadline)
@@ -1576,7 +1661,7 @@ public class WindowSmokeTests
             var frame = new DispatcherFrame();
             Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, () => frame.Continue = false);
             Dispatcher.PushFrame(frame);
-            Thread.Sleep(20);
+            Thread.Sleep(pause);
         }
         return done();
     }

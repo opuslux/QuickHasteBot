@@ -89,6 +89,7 @@ internal partial class ElementPickerWindow : Window
         IdText.Text = Show(info?.Id);
         NameText.Text = Show(info?.Name);
         ClassText.Text = Show(info?.ClassName);
+        TooltipText.Text = Show(info?.HelpText);
         ValueText.Text = Show(info?.Value);
 
         static string Show(string? value) => string.IsNullOrEmpty(value) ? "–" : value;
@@ -136,7 +137,7 @@ internal partial class ElementPickerWindow : Window
 
         var verified = selectors.Count > 0;
         if (!verified)
-            selectors = ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null);
+            selectors = ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null, info.HelpText);
 
         _updating = true;
         SelectorList.ItemsSource = selectors;

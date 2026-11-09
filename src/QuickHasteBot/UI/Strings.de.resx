@@ -203,8 +203,8 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagClearHelp" xml:space="preserve"><value>Strg+A und Entf: leert ein vorausgefülltes Feld vor dem Tippen, z.B. {focus,#ort}{clear}Bern.</value></data>
   <data name="TagGuardOffHelp" xml:space="preserve"><value>Schaltet den Fensterschutz aus: Der Baustein läuft weiter, auch wenn ein anderes Fenster nach vorne kommt. Nötig, wenn der Baustein selbst das Fenster wechselt, z.B. mit {win}.</value></data>
   <data name="TagGuardOnHelp" xml:space="preserve"><value>Schaltet den Fensterschutz wieder ein, für das Fenster, das gerade vorne ist. Kommt ein anderes nach vorne, stoppt der Baustein.</value></data>
-  <data name="TagFocusHelp" xml:space="preserve"><value>Setzt den Cursor in ein Feld, der Text danach wird dort getippt. #id findet die ID, name=Beschriftung die Beschriftung, .klasse die Klasse. Der Element-Picker findet das Passende für dich.</value></data>
-  <data name="TagClickHelp" xml:space="preserve"><value>Klickt einen Button, Link, Reiter oder eine Checkbox, über die Beschriftung (name=Senden) oder die ID (#senden). Mit ;type=button, wenn mehrere Elemente gleich heissen.</value></data>
+  <data name="TagFocusHelp" xml:space="preserve"><value>Setzt den Cursor in ein Feld, der Text danach wird dort getippt. #id findet die ID, name=Beschriftung die Beschriftung (* für beliebigen Text: name=Posteingang*), .klasse die Klasse, help=Tooltip den Tooltip. Bereich davor mit " > ": name=Lieferadresse > name=Strasse. Der Element-Picker findet das Passende für dich.</value></data>
+  <data name="TagClickHelp" xml:space="preserve"><value>Klickt einen Button, Link, Reiter oder eine Checkbox, über die Beschriftung (name=Senden) oder die ID (#senden). * steht für beliebigen Text: name=Posteingang* findet auch «Posteingang - 2 ungelesene Elemente». Mit ;type=button, wenn mehrere Elemente gleich heissen.</value></data>
   <data name="TagDoubleClickHelp" xml:space="preserve"><value>Doppelklickt mit der Maus auf ein Element, z.B. einen Listeneintrag, eine Datei oder eine Tabellenzeile, über die Beschriftung (name=Bericht) oder die ID (#bericht). Immer ein echter Mausklick, das Element muss also auf dem Bildschirm sichtbar sein.</value></data>
   <data name="TagRightClickHelp" xml:space="preserve"><value>Klickt mit der rechten Maustaste auf ein Element, über die Beschriftung (name=Bericht) oder die ID (#bericht). Das Kontextmenü, das aufgeht, gehört zum Fenster: {click,name=Kopieren} wählt daraus einen Eintrag.</value></data>
   <data name="TagSetHelp" xml:space="preserve"><value>Füllt ein Feld direkt, wählt eine Dropdown-Option über ihren Text oder setzt eine Checkbox auf "on"/"off": {set,#land,"Österreich"}. Manche Webformulare merken nur Getipptes; dann {focus,…} und den Text.</value></data>
@@ -234,6 +234,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="PickerType" xml:space="preserve"><value>Typ</value></data>
   <data name="PickerName" xml:space="preserve"><value>Name</value></data>
   <data name="PickerClass" xml:space="preserve"><value>Klasse</value></data>
+  <data name="PickerHelp" xml:space="preserve"><value>Tooltip</value></data>
   <data name="PickerValue" xml:space="preserve"><value>Wert</value></data>
   <data name="PickerActionFocus" xml:space="preserve"><value>Fokus</value></data>
   <data name="PickerActionClick" xml:space="preserve"><value>Klick</value></data>
@@ -247,7 +248,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="PickerChecking" xml:space="preserve"><value>Prüfe, welche Selektoren genau dieses Element finden…</value></data>
   <data name="PickerCopied" xml:space="preserve"><value>In die Zwischenablage kopiert, bereit zum Einfügen in einen Baustein.</value></data>
   <data name="PickerUnverified" xml:space="preserve"><value>Keiner davon findet genau dieses Element, sie sind ungeprüft. Trotzdem kopiert.</value></data>
-  <data name="PickerNothing" xml:space="preserve"><value>Das Element hat keine Id, keinen Namen und keine Klasse, woran man es erkennen könnte. Ein Feld daneben anklicken und {tab} nehmen.</value></data>
+  <data name="PickerNothing" xml:space="preserve"><value>Das Element hat keine Id, keinen Namen, keine Klasse und keinen Tooltip, woran man es erkennen könnte. Ein Feld daneben anklicken und {tab} nehmen.</value></data>
   <data name="GeneralHeading" xml:space="preserve"><value>Allgemein</value></data>
   <data name="PopupTab" xml:space="preserve"><value>Popup</value></data>
   <data name="StartupHeading" xml:space="preserve"><value>Start und Anzeige</value></data>

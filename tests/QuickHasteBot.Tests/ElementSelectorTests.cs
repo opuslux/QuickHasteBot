@@ -82,6 +82,111 @@ public class ElementSelectorTests
     [InlineData("1001", false)] // Control-ID in Windows-Programmen, stabil
     public void Generated_ids_are_recognized(string id, bool generated) => Assert.Equal(generated, ElementSelector.LooksGenerated(id));
 
+    [Theory]
+    [InlineData("name=Posteingang*", "Posteingang", true)]
+    [InlineData("name=Posteingang*", "Posteingang - 2 ungelesene Elemente", true)]
+    [InlineData("name=Posteingang*", "Gesendete Elemente", false)]
+    [InlineData("name=*ungelesene*", "Posteingang - 12 ungelesene Elemente", true)]
+    [InlineData("name=*.docx", "Bericht.DOCX", true)]
+    [InlineData("name=*.docx", "Bericht.docx.bak", false)]
+    [InlineData("name=Posteingang - * ungelesene Elemente", "Posteingang - 2 ungelesene Elemente", true)]
+    [InlineData("name=Posteingang", "posteingang", true)]                       // ohne * genau, nur ohne Gross-/Kleinschreibung
+    [InlineData("name=Posteingang", "Posteingang - 2 ungelesene Elemente", false)]
+    [InlineData("Absenden*", "Absenden und schliessen", true)]                  // auch ohne name=
+    public void Names_match_exactly_or_with_wildcards(string text, string name, bool matches) =>
+        Assert.Equal(matches, Parse(text).NameMatches(name));
+
+    [Fact]
+    public void Wildcard_names_round_trip()
+    {
+        var selector = Parse("name=Posteingang*;type=treeitem");
+        Assert.True(selector.NameIsPattern);
+        Assert.Equal("name=Posteingang*;type=treeitem", selector.ToString());
+        Assert.False(Parse("name=Posteingang").NameIsPattern);
+    }
+
+    [Theory]
+    [InlineData("help=Drucken", "drucken", true)]
+    [InlineData("tooltip=Drucken", "Drucken", true)]
+    [InlineData("help=Drucken*", "Drucken (Strg+P)", true)]
+    [InlineData("help=Drucken", "Drucken (Strg+P)", false)]
+    public void Help_text_matches_like_the_name(string text, string help, bool matches) =>
+        Assert.Equal(matches, Parse(text).HelpMatches(help));
+
+    [Fact]
+    public void Help_text_alone_is_a_selector()
+    {
+        var selector = Parse("help=Drucken;type=button");
+        Assert.Equal("Drucken", selector.HelpText);
+        Assert.Equal("help=Drucken;type=button", selector.ToString());
+    }
+
+    [Fact]
+    public void Containers_come_before_the_element()
+    {
+        var selector = Parse("name=Postfach*;type=treeitem > name=Lieferadresse;index=2 > name=Strasse;type=edit");
+        Assert.Equal("Strasse", selector.Name);
+        Assert.Equal("Lieferadresse", selector.Within?.Name);
+        Assert.Equal(2, selector.Within?.Index);
+        Assert.Equal("Postfach*", selector.Within?.Within?.Name);
+        Assert.Equal("TreeItem", selector.Within?.Within?.Type);
+        Assert.Null(selector.Within?.Within?.Within);
+    }
+
+    [Fact]
+    public void The_window_belongs_to_the_whole_selector_wherever_it_stands()
+    {
+        var selector = Parse("name=Lieferadresse;window=crm > name=Strasse");
+        Assert.Equal("crm", selector.Window?.Any);
+        Assert.Null(selector.Within?.Window);
+        Assert.Equal("name=Lieferadresse > name=Strasse;window=crm", selector.ToString());
+    }
+
+    [Theory]
+    [InlineData("name=Weiter >", "Weiter >")]   // ohne Leerzeichen danach kein Container
+    [InlineData("Weiter >>", "Weiter >>")]
+    [InlineData("name=a>b", "a>b")]
+    public void Arrows_in_names_stay_names(string text, string name)
+    {
+        var selector = Parse(text);
+        Assert.Equal(name, selector.Name);
+        Assert.Null(selector.Within);
+    }
+
+    [Theory]
+    [InlineData("name=A > ", "empty")]
+    [InlineData(" > name=B", "empty")]
+    [InlineData("window=crm > window=erp;name=B", "window")]
+    [InlineData("name=A > color=red", "unknown selector part")]
+    public void Invalid_containers_explain_why(string text, string expected)
+    {
+        Assert.False(ElementSelector.TryParse(text, out _, out var error));
+        Assert.Contains(expected, error);
+    }
+
+    [Theory]
+    [InlineData("name=Postfach Muster > name=Posteingang*;type=button")]
+    [InlineData("#adresse > .feld;index=2")]
+    [InlineData("help=Drucken;type=button")]
+    public void Containers_and_help_round_trip(string text) => Assert.Equal(text, Parse(text).ToString());
+
+    [Fact]
+    public void Candidates_use_the_tooltip_after_the_name()
+    {
+        var candidates = ElementSelector.Candidates("", "", "", "Button", "Drucken").Select(c => c.ToString());
+        Assert.Equal(["help=Drucken;type=button"], candidates);
+        // gleich wie der Name: nichts Neues
+        Assert.Equal(["name=OK;type=button", "name=OK"], ElementSelector.Candidates("", "OK", "", "Button", "OK").Select(c => c.ToString()));
+    }
+
+    [Theory]
+    [InlineData("Strasse", true)]
+    [InlineData("A;B", false)]
+    [InlineData("A > B", false)]
+    [InlineData(" ", false)]
+    public void Only_writable_values_become_selectors(string value, bool writable) =>
+        Assert.Equal(writable, ElementSelector.Writable(value));
+
     [Fact]
     public void Candidates_prefer_a_real_id_then_name_and_type_then_classes()
     {
