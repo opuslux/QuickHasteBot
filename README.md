@@ -185,6 +185,7 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
+- **Hovering** a tag, a comment or a script helper like `date` or `run` explains what it does, with the same text as in **Insert tag ▾**; on a red tag, the reason comes first.
 - **Line wrapping:** the ↵ button at the bottom right of the text switches it off and on, e.g. for snippets with aligned columns (`WrapEditor` in `settings.json`, on by default). Shift+mouse wheel scrolls long lines sideways.
 - **Preview** below the text shows what the snippet turns into while you type: scripts evaluated, keys as readable tags, and script errors in red. Nothing is sent.
 - **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. While it waits for that click, a card next to the mouse pointer and a banner in the editor say what will run. Cancel or Esc stops the wait.
@@ -222,7 +223,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `wait(ms)` | A pause before the next key or text, like `{wait,ms}`. |
 | `focus(el)`, `click(el)`, `set(el, value)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`. |
 | `window(app)` | Like [`{window,…}`](#other-programs-window-and-start): `window('crm')`. |
-| `run(file, args, options)` | Runs a script or program right where it stands and waits for it: `run('d:/scripts/number.bat')`. The result has `code`, `out` and `err`; as text it is its output. See [Running scripts](#running-scripts). |
+| `run(file, args, options)` | Runs a script or program right where it stands and waits for it: `run('d:/scripts/number.bat')`, with options such as `{ wait: 30, dir: 'd:/data' }`. The result has `code`, `out` and `err`; as text it is its output. See [Running scripts](#running-scripts). |
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - **A line of blocks that prints nothing goes away**, line break included, like a comment line. So assignments and checks can stand on lines of their own, and a line can depend on a condition: `{{ vip ? 'Priority handling' : '' }}` on its own line appears only for VIPs. If the blocks print something, the line stays as written. Empty lines you type yourself stay.
@@ -242,8 +243,9 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 {focus,#number}{{ r.out.trim() }}
 ```
 
-- **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. The script runs in its own folder. Slashes work in paths, so there are no `\` to double in JavaScript.
-- **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`.
+- **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. Slashes work in paths, so there are no `\` to double in JavaScript.
+- **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`. They can also go in the options as `args`: `run('tool.exe', { args: '-v', wait: 10 })`, but not both ways at once.
+- **Working folder** ("Start in"): `dir` sets it, e.g. `run('export.bat', { dir: 'd:/data' })`; environment variables like `%TEMP%` work. A script without a folder in its name is then looked for there too. Without `dir`, the script runs in its own folder. If the folder doesn't exist, the snippet stops with a message.
 - **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
 - **The result** `r` has `code` (exit code), `out` (what it printed) and `err` (error output), read in the code page of the command prompt. As text it is `out`, so `{{ run('date.bat') }}` types the output right away. Assigned with `const`, it prints nothing and stays available to every later block.
 - **Checking the result:** `throw new Error('…')` stops the snippet with that message, as in any block.
@@ -402,7 +404,7 @@ A recording starts with `{window,process=…}` for the program it was made in, s
 - For a single tag, `window=` in the element does the same: `{set,name=Search;type=combobox;window=crm,"Müller"}`.
 - The window guard follows: it now watches that window instead of turning off. `{guard,off}` still keeps it off.
 
-`{start,…}` does the same, but starts the program first if it isn't running, and then waits for it:
+`{start,…}` does the same, but starts the program first if it isn't running, and then waits for it. It also opens web addresses, [see below](#web-addresses):
 
 ```
 {start,crm}{set,name=Search;type=combobox,"Müller"}{enter}
@@ -412,8 +414,23 @@ A recording starts with `{window,process=…}` for the program it was made in, s
 - `{start,notepad}`: a program name that Windows knows (as in Win+R, e.g. `notepad`, `excel`, `chrome`) or a full path, `.exe` can be left out. A second argument in quotes is passed to the program, e.g. a file to open.
 - If a window of the program is already open, it's brought to the front, and no second copy starts. Otherwise QuickHasteBot starts it the way Explorer does with a double-click, waits up to 30 seconds for its window and until it accepts input, then the snippet goes on. Holding Esc stops the wait.
 - The window is recognized by the program's name, like `{window,process=…}`. Programs that open their window under another name (launchers, Store apps such as `calc`) aren't found this way: start them by hand and use `{window,title=…}`.
-- Only programs (`.exe`) start, no scripts (`.bat`, `.ps1`, …) or shortcuts; for those, use [`run()`](#running-scripts), which runs a script, waits for it and reads its output, but doesn't bring a window to the front. Only a `{start,…}` written in the snippet itself starts anything: `{start,…}` in a script's result or on the clipboard stays text. Every start is written to the log.
+- Only programs (`.exe`) and web addresses start, no scripts (`.bat`, `.ps1`, …) or shortcuts; for those, use [`run()`](#running-scripts), which runs a script, waits for it and reads its output, but doesn't bring a window to the front. Only a `{start,…}` written in the snippet itself starts anything: `{start,…}` in a script's result or on the clipboard stays text. Every start is written to the log.
 - A program that asks for administrator rights shows Windows' prompt. After that, Windows doesn't let QuickHasteBot send it keys (see below).
+
+#### Web addresses
+
+With a web address, `{start,…}` opens it in the default browser, and the rest of the snippet goes to that page:
+
+```
+{start,https://example.com/order}
+{set,#email,"max@example.com"}
+{click,name=Send;type=button}
+```
+
+- Only `http://` and `https://` addresses, without further arguments. An address with a comma goes in quotes: `{start,"https://example.com/?a=1,2"}`.
+- The address always opens, also when the browser is already running; then in a new tab. QuickHasteBot waits until a browser window shows the new page (up to 30 seconds while the browser starts) and brings it to the front.
+- Which browser that is, Windows decides (Settings › Apps › Default apps). To use a particular browser instead, start it and type the address: `{start,chrome}{ctrl+t}{ctrl+l}https://example.com{enter}`.
+- The element tags wait up to 5 seconds for their field while the page loads. For slower pages, put a `{wait,2000}` after the `{start,…}`.
 
 ### Programs running as administrator
 

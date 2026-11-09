@@ -38,6 +38,35 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void Every_entry_in_the_tag_menu_has_a_description_and_help()
+    {
+        var english = Texts("");
+        var german = Texts("de");
+        var entries = SnippetEditorWindow.TagGroups().SelectMany(g => g.Entries).OfType<SnippetEditorWindow.TagEntry>().ToList();
+
+        Assert.NotEmpty(entries);
+        foreach (var entry in entries)
+            foreach (var key in new[] { entry.Description, entry.Help })
+            {
+                Assert.True(english.TryGetValue(key, out var en) && en.Length > 0, $"{entry.Tag}: {key} (en)");
+                Assert.True(german.TryGetValue(key, out var de) && de.Length > 0, $"{entry.Tag}: {key} (de)");
+            }
+    }
+
+    [Fact]
+    public void Every_help_topic_in_the_editor_has_its_texts()
+    {
+        var english = Texts("");
+        var german = Texts("de");
+        foreach (var key in Core.TagHelp.AllKeys)
+            foreach (var name in new[] { key, key + "Help" })
+            {
+                Assert.True(english.ContainsKey(name), name + " (en)");
+                Assert.True(german.ContainsKey(name), name + " (de)");
+            }
+    }
+
+    [Fact]
     public void Unknown_language_falls_back_to_english() =>
         Assert.Equal("Snippets", Strings.ResourceManager.GetString(nameof(Strings.BreadcrumbRoot), CultureInfo.GetCultureInfo("fr")));
 

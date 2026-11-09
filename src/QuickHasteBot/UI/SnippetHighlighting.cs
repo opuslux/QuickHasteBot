@@ -137,25 +137,71 @@ internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisp
         }
     }
 
-    /// <summary>Über einem fehlerhaften Tag sagt ein Tooltip, was nicht stimmt.</summary>
+    /// <summary>
+    /// Über einem Tag oder Skript-Helfer erklärt ein Tooltip, was er tut (dieselben Texte wie im Menü "Tag einfügen"),
+    /// über einem fehlerhaften Tag steht zuerst, was nicht stimmt.
+    /// </summary>
     void OnMouseHover(object sender, MouseEventArgs e)
     {
         var view = _editor.TextArea.TextView;
-        if (ErrorAt(e.GetPosition(view)) is not { } error) return;
+        if (OffsetAt(e.GetPosition(view)) is not { } offset) return;
+        var error = ErrorAt(offset);
+        var topic = TagHelp.At(_editor.Document.Text, offset, _keyTags, _scripts);
+        if (error is null && topic is null) return;
         _toolTip.PlacementTarget = view;
-        _toolTip.Content = error;
+        _toolTip.Content = HelpContent(error, topic);
         _toolTip.IsOpen = true;
         e.Handled = true;
     }
 
-    /// <summary>Warum das Tag an <paramref name="point"/> (relativ zur TextView) nicht gilt, null wenn dort keins ist.</summary>
-    internal string? ErrorAt(Point point)
+    int? OffsetAt(Point point)
     {
         var view = _editor.TextArea.TextView;
         view.EnsureVisualLines();
-        if (view.GetPositionFloor(point + view.ScrollOffset) is not { } position) return null;
-        var offset = _editor.Document.GetOffset(position.Location);
-        return Spans().FirstOrDefault(s => s.Kind == SyntaxKind.Error && offset >= s.Start && offset < s.End).Error;
+        return view.GetPositionFloor(point + view.ScrollOffset) is { } position ? _editor.Document.GetOffset(position.Location) : null;
+    }
+
+    /// <summary>Warum das Tag an <paramref name="point"/> (relativ zur TextView) nicht gilt, null wenn dort keins ist.</summary>
+    internal string? ErrorAt(Point point) => OffsetAt(point) is { } offset ? ErrorAt(offset) : null;
+
+    string? ErrorAt(int offset) => Spans().FirstOrDefault(s => s.Kind == SyntaxKind.Error && offset >= s.Start && offset < s.End).Error;
+
+    /// <summary>Der Fehler (falls einer), die Kurzbeschreibung fett und der Hilfetext, umbrochen.</summary>
+    internal static StackPanel HelpContent(string? error, HelpTopic? topic)
+    {
+        var panel = new StackPanel { MaxWidth = 420 };
+        if (error is not null)
+        {
+            var problem = new TextBlock { Text = error, TextWrapping = TextWrapping.Wrap };
+            problem.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCriticalBrush");
+            panel.Children.Add(problem);
+        }
+        if (topic is not null)
+        {
+            if (error is not null)
+                panel.Children.Add(new Separator { Margin = new Thickness(0, 6, 0, 6) });
+            panel.Children.Add(new TextBlock { Text = HelpTitle(topic), FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            panel.Children.Add(new TextBlock { Text = HelpText(topic), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
+        }
+        return panel;
+    }
+
+    internal static string HelpTitle(HelpTopic topic)
+    {
+        var title = Local(topic.Key, topic.KeyName);
+        return title.Length > 0 ? char.ToUpper(title[0], Strings.Culture ?? System.Globalization.CultureInfo.CurrentUICulture) + title[1..] : title;
+    }
+
+    internal static string HelpText(HelpTopic topic)
+    {
+        var text = Local(topic.Key + "Help", topic.KeyName);
+        return topic.Repeated && topic.Key != TagHelp.Repeat ? text + "\n" + Local(TagHelp.Repeat + "Help", null) : text;
+    }
+
+    static string Local(string key, string? keyName)
+    {
+        var text = Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
+        return keyName is null ? text : string.Format(text, keyName);
     }
 
     void OnMouseHoverStopped(object sender, MouseEventArgs e) => _toolTip.IsOpen = false;

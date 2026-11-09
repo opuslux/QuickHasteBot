@@ -384,6 +384,32 @@ public class KeyTagsTests
     public void Start_tag_combines_with_elements_and_text() =>
         Assert.Equal("{start,notepad}«Hallo»{enter}«Welt»", Show("{start,notepad}Hallo{enter}Welt"));
 
+    [Fact]
+    public void Start_with_or_without_exe_is_the_same_program() =>
+        Assert.Equal(Start("{start,msedge}").Window, Start("{start,msedge.exe}").Window);
+
+    [Theory]
+    [InlineData("{start,https://example.com/formular}", "https://example.com/formular")]
+    [InlineData("{start, http://intranet/app?x=1 }", "http://intranet/app?x=1")]
+    [InlineData("{start,\"https://example.com/?a=1,2\"}", "https://example.com/?a=1,2")]
+    public void Start_with_a_web_address_opens_it(string tag, string url) =>
+        Assert.Equal(new OpenUrlStep(url), Assert.Single(Steps(tag)));
+
+    [Theory]
+    [InlineData("{start,https://example.com}")]
+    [InlineData("{start,\"https://example.com/?a=1,2\"}")]
+    public void Start_with_a_web_address_reads_back_as_written(string tag) => Assert.Equal(tag, Show(tag));
+
+    [Fact]
+    public void Web_address_takes_no_arguments() =>
+        Assert.Equal("«{start,https://example.com,\"x\"}»", Show("{start,https://example.com,\"x\"}"));
+
+    [Theory]
+    [InlineData("{start,ftp://example.com}")]
+    [InlineData("{start,file://C:/temp/a.txt}")]
+    public void Other_addresses_are_not_web_addresses(string text) =>
+        Assert.IsNotType<OpenUrlStep>(Steps(text).FirstOrDefault());
+
     [Theory]
     [InlineData("{start}")]
     [InlineData("{start,notepad,a,b}")]
@@ -410,6 +436,7 @@ public class KeyTagsTests
         // … auch nicht über key() …
         Assert.Throws<SnippetScriptException>(() => Steps("{{ key('start,notepad') }}"));
         Assert.Throws<SnippetScriptException>(() => Steps("{{ key(clipboard) }}", clipboard: "start,notepad"));
+        Assert.Throws<SnippetScriptException>(() => Steps("{{ key('start,https://example.com') }}"));
         // … und Ausgabe oder Zwischenablage mit {start,…} bleiben Text
         Assert.Equal([new TextStep("{start,notepad}{start,calc}")], Steps("{{ '{start,notepad}' }}{{ clipboard }}", clipboard: "{start,calc}"));
     }

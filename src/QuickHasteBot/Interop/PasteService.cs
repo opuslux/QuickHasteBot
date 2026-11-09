@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using QuickHasteBot.Core;
+using QuickHasteBot.UI;
 using static QuickHasteBot.Interop.NativeMethods;
 
 namespace QuickHasteBot.Interop;
@@ -45,6 +46,9 @@ internal sealed class PasteService
     /// <summary>Pause nach jeder Taste in Formularen, damit JavaScript (Autocomplete, Validierung) mitkommt. {delay,ms} ändert sie.</summary>
     const int DefaultKeyDelay = 30;
     const int PollInterval = 15;
+
+    /// <summary>{start,https://…} bei laufendem Browser: so lange auf einen neuen Tab warten, dann das oberste Fenster nehmen (ms).</summary>
+    const long UrlUnchangedTimeout = 3000;
 
     // Clipboard-Verlauf (Win+V) und Sync-Tools sollen unsere temporären Inhalte ignorieren
     const string ExcludeFromHistoryFormat = "ExcludeClipboardContentFromMonitorProcessing";
@@ -131,7 +135,7 @@ internal sealed class PasteService
     /// </summary>
     internal static FormStep? StartWindowStep(IEnumerable<FormStep> steps) =>
         steps.FirstOrDefault(s => s is not (DelayStep or GuardStep)) is { } first
-        && first is WindowStep or StartStep or ElementStep { Selector.Window: not null } ? first : null;
+        && first is WindowStep or StartStep or OpenUrlStep or ElementStep { Selector.Window: not null } ? first : null;
 
     /// <summary>
     /// Führt einen Formular-Baustein aus (Text und Tasten-Tags, siehe <see cref="KeyTags"/>). Immer getippt, damit Text
@@ -198,9 +202,11 @@ internal sealed class PasteService
                 ElementStep { Selector.Window: { } w } => w,
                 _ => null,
             };
-            if (window is not null)
+            if (window is not null || step is OpenUrlStep)
             {
-                var (hwnd, failure) = await BringToFrontAsync(window, i, step as StartStep);
+                var (hwnd, failure) = step is OpenUrlStep open
+                    ? await OpenUrlAsync(open, i)
+                    : await BringToFrontAsync(window!, i, step as StartStep);
                 if (failure is not null) return failure;
                 searchWindow = hwnd;
                 guardWindow = RootOwner(hwnd);
@@ -255,7 +261,7 @@ internal sealed class PasteService
                     keyDelay = charDelay = delay.Milliseconds;
                     break;
 
-                case WindowStep or StartStep:
+                case WindowStep or StartStep or OpenUrlStep:
                     // Schon oben nach vorne geholt, kurz Zeit lassen, bis das Programm Eingaben annimmt
                     await Task.Delay(Math.Max(keyDelay, 100));
                     break;
@@ -355,6 +361,51 @@ internal sealed class PasteService
             {
                 process?.Dispose();
             }
+        }
+
+        // {start,https://…}: im Standardbrowser öffnen, immer, auch wenn er schon läuft (dann in einem neuen Tab). Dann
+        // auf ein Browserfenster warten, das neu ist oder einen anderen Titel hat: Dort ist der neue Tab vorne, und die
+        // Element-Tags suchen nicht im alten. Ändert sich bei einem laufenden Browser nichts (dieselbe Seite war schon
+        // offen), gilt nach kurzer Zeit sein oberstes Fenster.
+        async Task<(nint Window, FormResult? Failure)> OpenUrlAsync(OpenUrlStep open, int step)
+        {
+            if (WindowFinder.DefaultBrowser() is not { } browser)
+                return (0, Aborted(FormOutcome.StartFailed, step, Strings.FormNoDefaultBrowser));
+            var selector = new WindowSelector(browser, null, null);
+            var before = await Task.Run(() => WindowFinder.Windows(selector));
+            var running = before.Count > 0;
+            if (!WindowFinder.TryOpen(open.Url, out var error))
+                return (0, Aborted(FormOutcome.StartFailed, step, error));
+
+            var started = Environment.TickCount64;
+            var timeout = running ? UrlUnchangedTimeout : (long)WindowFinder.StartTimeout.TotalMilliseconds;
+            nint hwnd = 0;
+            while (true)
+            {
+                if (EscapeDown()) return (0, Aborted(FormOutcome.EscapePressed, step));
+                await Task.Delay(200);
+                var now = await Task.Run(() => WindowFinder.Windows(selector));
+                var changed = now.FirstOrDefault(w => !before.Contains(w));
+                if (changed.Window != 0)
+                {
+                    hwnd = changed.Window;
+                    break;
+                }
+                if (Environment.TickCount64 - started > timeout)
+                {
+                    if (now.Count == 0)
+                        return (0, Aborted(FormOutcome.StartedWindowNotFound, step));
+                    hwnd = now[0].Window;
+                    Log.Info($"Kein neuer Tab erkannt, nehme das oberste Fenster von {browser}");
+                    break;
+                }
+            }
+            Log.Info($"Browserfenster für {{start}}: {browser} \"{WindowFinder.Title(hwnd)}\"");
+            if (ProcessAccess.IsBlocked(hwnd))
+                return (0, Aborted(FormOutcome.Elevated, step, ProcessAccess.ProcessName(hwnd)));
+            if (!await WindowFinder.ActivateAsync(hwnd))
+                return (0, Aborted(FormOutcome.WindowNotActivated, step));
+            return (hwnd, null);
         }
 
         FormResult Aborted(FormOutcome outcome, int step, string? error = null)

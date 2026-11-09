@@ -357,7 +357,53 @@ internal partial class SnippetEditorWindow : Window
     /// Name des Texts in <see cref="Strings"/>, z.B. nameof(Strings.TagNextField): angezeigt in der Sprache der Oberfläche,
     /// der Filter findet ihn auch auf Englisch.
     /// </param>
-    sealed record TagEntry(string Tag, string? Description = null, string? Select = null, bool OwnLine = false);
+    /// <param name="Description">Name des Texts mit der Kurzbeschreibung rechts im Menü. Der Hilfetext im Tooltip heisst
+    /// gleich mit "Help" dahinter (<see cref="Help"/>).</param>
+    internal sealed record TagEntry(string Tag, string Description, string? Select = null, bool OwnLine = false)
+    {
+        public string Help => Description + "Help";
+    }
+
+    /// <summary>
+    /// Die Einträge von "Tag einfügen ▾", nach Gruppen (Namen der Texte), null ist ein Trenner. Ein Test prüft, dass
+    /// jeder Eintrag Kurzbeschreibung und Hilfetext in allen Sprachen hat.
+    /// </summary>
+    internal static (string Header, TagEntry?[] Entries)[] TagGroups() =>
+    [
+        (nameof(Strings.EditorTagsKeys),
+        [
+            new("{tab}", nameof(Strings.TagNextField)), new("{shift+tab}", nameof(Strings.TagPreviousField)),
+            new("{enter}", nameof(Strings.TagSubmit)), new("{space}", nameof(Strings.TagCheckbox)), new("{esc}", nameof(Strings.TagCancel)), null,
+            new("{up}", nameof(Strings.TagUp)), new("{down}", nameof(Strings.TagDown)), new("{down,3}", nameof(Strings.TagRepeat)),
+            new("{left}", nameof(Strings.TagLeft)), new("{right}", nameof(Strings.TagRight)), new("{home}", nameof(Strings.TagHome)),
+            new("{end}", nameof(Strings.TagEnd)), null,
+            new("{bs}", nameof(Strings.TagBackspace)), new("{del}", nameof(Strings.TagDelete)), new("{ctrl+a}", nameof(Strings.TagSelectAll)),
+            new("{alt+down}", nameof(Strings.TagOpenDropdown)), new("{ctrl+enter}", nameof(Strings.TagSendChat)), new("{f5}", nameof(Strings.TagReload)),
+        ]),
+        (nameof(Strings.EditorTagsFlow),
+        [
+            new("{# " + Strings.TagCommentText + "}", nameof(Strings.TagComment), Strings.TagCommentText, OwnLine: true), null,
+            new("{wait,500}", nameof(Strings.TagWait), "500"), new("{delay,50}", nameof(Strings.TagDelay), "50"),
+            new("{clear}", nameof(Strings.TagClear)), null,
+            new("{guard,off}", nameof(Strings.TagGuardOff)), new("{guard,on}", nameof(Strings.TagGuardOn)),
+        ]),
+        (nameof(Strings.EditorTagsElements),
+        [
+            new("{focus,#id}", nameof(Strings.TagFocus), "id"), new("{click,name=Label}", nameof(Strings.TagClick), "Label"),
+            new("{set,#id,\"\"}", nameof(Strings.TagSet), "id"), null,
+            new("{window,program}", nameof(Strings.TagWindow), "program"), new("{start,program}", nameof(Strings.TagStart), "program"),
+            new("{start,https://example.com}", nameof(Strings.TagStartUrl), "https://example.com"),
+        ]),
+        (nameof(Strings.EditorTagsScripts),
+        [
+            new("{{ date() }}", nameof(Strings.TagDate)), new("{{ date('dd.MM.yyyy', 14) }}", nameof(Strings.TagDateIn), "14"),
+            new("{{ time() }}", nameof(Strings.TagTime)), new("{{ isoweek() }}", nameof(Strings.TagWeek)),
+            new("{{ clipboard }}", nameof(Strings.TagClipboard)), new("{{ user }}", nameof(Strings.TagUser)),
+            new("{{ guid() }}", nameof(Strings.TagGuid)), null,
+            new("{{ const r = run('d:/scripts/file.bat') }}", nameof(Strings.TagRun), "d:/scripts/file.bat", OwnLine: true),
+            new("{{ const r = run('d:/scripts/file.bat', { args: '', dir: 'd:/data' }) }}", nameof(Strings.TagRunOptions), "d:/scripts/file.bat", OwnLine: true),
+        ]),
+    ];
 
     /// <summary>Ein Text in der Sprache der Oberfläche.</summary>
     static string Local(string key) => Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
@@ -374,46 +420,19 @@ internal partial class SnippetEditorWindow : Window
 
     /// <summary>
     /// "Tag einfügen ▾": oben eine Filterzeile, darunter die Gruppen. Sobald gefiltert wird, stehen statt der Gruppen alle
-    /// passenden Tags in einer Liste (gesucht in Tag, Beschreibung und Gruppe, wie die Suche im Popup). Enter fügt den
-    /// ersten Treffer ein, ↓ geht in die Liste.
+    /// passenden Tags in einer Liste (gesucht in Tag, Beschreibung und Gruppe, wie die Suche im Popup, ohne Treffer in den
+    /// Hilfetexten). Enter fügt den ersten Treffer ein, ↓ geht in die Liste. Jeder Tag erklärt sich im Tooltip.
     /// </summary>
     internal ContextMenu TagMenu()
     {
         // Gruppen und Beschreibungen als Namen der Texte, siehe SearchText
-        (string Header, UIElement Icon, TagEntry?[] Entries)[] groups =
-        [
-            (nameof(Strings.EditorTagsKeys), MenuIcons.Glyph(MenuIcons.Keys),
-            [
-                new("{tab}", nameof(Strings.TagNextField)), new("{shift+tab}", nameof(Strings.TagPreviousField)),
-                new("{enter}", nameof(Strings.TagSubmit)), new("{space}", nameof(Strings.TagCheckbox)), new("{esc}", nameof(Strings.TagCancel)), null,
-                new("{up}", nameof(Strings.TagUp)), new("{down}", nameof(Strings.TagDown)), new("{down,3}", nameof(Strings.TagRepeat)),
-                new("{left}", nameof(Strings.TagLeft)), new("{right}", nameof(Strings.TagRight)), new("{home}", nameof(Strings.TagHome)),
-                new("{end}", nameof(Strings.TagEnd)), null,
-                new("{bs}", nameof(Strings.TagBackspace)), new("{del}", nameof(Strings.TagDelete)), new("{ctrl+a}", nameof(Strings.TagSelectAll)),
-                new("{alt+down}", nameof(Strings.TagOpenDropdown)), new("{ctrl+enter}", nameof(Strings.TagSendChat)), new("{f5}", nameof(Strings.TagReload)),
-            ]),
-            (nameof(Strings.EditorTagsFlow), MenuIcons.Glyph(MenuIcons.Flow),
-            [
-                new("{# " + Strings.TagCommentText + "}", nameof(Strings.TagComment), Strings.TagCommentText, OwnLine: true), null,
-                new("{wait,500}", nameof(Strings.TagWait), "500"), new("{delay,50}", nameof(Strings.TagDelay), "50"),
-                new("{clear}", nameof(Strings.TagClear)), null,
-                new("{guard,off}", nameof(Strings.TagGuardOff)), new("{guard,on}", nameof(Strings.TagGuardOn)),
-            ]),
-            (nameof(Strings.EditorTagsElements), MenuIcons.Crosshair(),
-            [
-                new("{focus,#id}", nameof(Strings.TagFocus), "id"), new("{click,name=Label}", nameof(Strings.TagClick), "Label"),
-                new("{set,#id,\"\"}", nameof(Strings.TagSet), "id"), null,
-                new("{window,program}", nameof(Strings.TagWindow), "program"), new("{start,program}", nameof(Strings.TagStart), "program"),
-            ]),
-            (nameof(Strings.EditorTagsScripts), MenuIcons.Glyph(MenuIcons.Script),
-            [
-                new("{{ date() }}", nameof(Strings.TagDate)), new("{{ date('dd.MM.yyyy', 14) }}", nameof(Strings.TagDateIn), "14"),
-                new("{{ time() }}", nameof(Strings.TagTime)), new("{{ isoweek() }}", nameof(Strings.TagWeek)),
-                new("{{ clipboard }}", nameof(Strings.TagClipboard)), new("{{ user }}", nameof(Strings.TagUser)),
-                new("{{ guid() }}", nameof(Strings.TagGuid)), null,
-                new("{{ const r = run('d:/scripts/file.bat') }}", nameof(Strings.TagRun), "d:/scripts/file.bat", OwnLine: true),
-            ]),
-        ];
+        var groups = TagGroups().Select(g => (g.Header, Icon: g.Header switch
+        {
+            nameof(Strings.EditorTagsKeys) => MenuIcons.Glyph(MenuIcons.Keys),
+            nameof(Strings.EditorTagsFlow) => MenuIcons.Glyph(MenuIcons.Flow),
+            nameof(Strings.EditorTagsElements) => MenuIcons.Crosshair(),
+            _ => MenuIcons.Glyph(MenuIcons.Script),
+        }, g.Entries)).ToArray();
 
         var menu = new ContextMenu();
         var filter = new TextBox { MinWidth = 220, VerticalContentAlignment = VerticalAlignment.Center };
@@ -446,15 +465,16 @@ internal partial class SnippetEditorWindow : Window
             menu.Items.Add(group);
         }
 
-        // Die flache Trefferliste, versteckt bis gefiltert wird
-        var results = new List<(MenuItem Item, string Text)>();
+        // Die flache Trefferliste, versteckt bis gefiltert wird. Die Hilfetexte zählen nur, wenn Tag, Beschreibung und
+        // Gruppe nichts finden: Sie erwähnen viele Wörter («Feld»), und die Liste soll kurz bleiben.
+        var results = new List<(MenuItem Item, string Text, string Help)>();
         foreach (var (header, _, entries) in groups)
             foreach (var entry in entries.OfType<TagEntry>())
-                results.Add((Tag(entry), SearchText(entry.Tag, entry.Description, header)));
+                results.Add((Tag(entry), SearchText(entry.Tag, entry.Description, header), SearchText(null, entry.Help)));
         results.Add((MenuIcons.Item(Strings.EditorPickerMenu, MenuIcons.Crosshair(), _app.ShowElementPicker),
-            SearchText(null, nameof(Strings.EditorPickerMenu), nameof(Strings.EditorTagsElements))));
+            SearchText(null, nameof(Strings.EditorPickerMenu), nameof(Strings.EditorTagsElements)), ""));
         var noMatch = new MenuItem { Header = Strings.EditorTagsNoMatch, IsEnabled = false };
-        foreach (var (item, _) in results)
+        foreach (var (item, _, _) in results)
         {
             item.Visibility = Visibility.Collapsed;
             menu.Items.Add(item);
@@ -469,10 +489,11 @@ internal partial class SnippetEditorWindow : Window
             placeholder.Visibility = filter.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             foreach (var group in groupItems)
                 group.Visibility = filtering ? Visibility.Collapsed : Visibility.Visible;
-            var any = false;
-            foreach (var (item, text) in results)
+            var any = filtering && results.Any(r => SnippetSearch.MatchesAll(r.Text, query));
+            var inHelp = filtering && !any;
+            foreach (var (item, text, help) in results)
             {
-                var match = filtering && SnippetSearch.MatchesAll(text, query);
+                var match = filtering && SnippetSearch.MatchesAll(inHelp ? help : text, query);
                 item.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
                 any |= match;
             }
@@ -501,10 +522,18 @@ internal partial class SnippetEditorWindow : Window
 
         MenuItem Tag(TagEntry entry)
         {
+            // Der Hilfetext im Tooltip, umbrochen und in der normalen Schrift statt der des Editors
             var item = new MenuItem
             {
-                Header = entry.Tag, InputGestureText = entry.Description is null ? "" : Local(entry.Description), FontFamily = BodyInput.FontFamily,
+                Header = entry.Tag, InputGestureText = Local(entry.Description), FontFamily = BodyInput.FontFamily,
+                ToolTip = new ToolTip
+                {
+                    Content = new TextBlock { Text = Local(entry.Help), TextWrapping = TextWrapping.Wrap, MaxWidth = 380 },
+                    FontFamily = FontFamily,
+                },
             };
+            ToolTipService.SetInitialShowDelay(item, 300);
+            ToolTipService.SetShowDuration(item, 30000);
             item.Click += (_, _) =>
             {
                 if (entry.OwnLine) InsertTag(entry.Tag, entry.Select);

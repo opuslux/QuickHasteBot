@@ -36,6 +36,7 @@ internal static class ScriptRunner
         }
 
         Log.Info($"run(): {request.File}" + (request.Arguments is null ? "" : $" mit \"{request.Arguments}\"")
+            + (request.Directory is null ? "" : $" in {info.WorkingDirectory}")
             + (request.Hidden ? ", versteckt" : "") + (wait ? $", wartet bis {request.WaitSeconds} s" : ", ohne zu warten"));
         Process process;
         try
@@ -137,6 +138,14 @@ internal static class ScriptRunner
         var path = Environment.ExpandEnvironmentVariables(request.File.Trim()).Replace('/', '\\');
         name = Path.GetFileName(path);
         var hasFolder = path.Contains('\\') || path.Contains(':');
+        var directory = request.Directory is null ? null : Folder(request.Directory);
+        // Ein Name ohne Ordner, der im Arbeitsordner liegt: selbst auflösen, cmd sucht dort nicht immer
+        // (NoDefaultCurrentDirectoryInExePath)
+        if (!hasFolder && directory is not null && File.Exists(Path.Combine(directory, path)))
+        {
+            path = Path.Combine(directory, path);
+            hasFolder = true;
+        }
         if (hasFolder && !File.Exists(path))
             throw new RunFailedException($"{path} not found");
 
@@ -151,7 +160,18 @@ internal static class ScriptRunner
         };
         info.UseShellExecute = false;
         info.CreateNoWindow = request.Hidden;
-        info.WorkingDirectory = hasFolder ? Path.GetDirectoryName(Path.GetFullPath(path)) ?? "" : Environment.CurrentDirectory;
+        info.WorkingDirectory = directory
+            ?? (hasFolder ? Path.GetDirectoryName(Path.GetFullPath(path)) ?? ""
+            : Environment.CurrentDirectory);
         return info;
+
+        // Wie beim Pfad: Umgebungsvariablen und Schrägstriche gehen
+        static string Folder(string directory)
+        {
+            var folder = Environment.ExpandEnvironmentVariables(directory.Trim()).Replace('/', '\\');
+            if (!Directory.Exists(folder))
+                throw new RunFailedException($"folder {folder} not found");
+            return Path.GetFullPath(folder);
+        }
     }
 }

@@ -56,12 +56,12 @@ public static partial class SnippetSyntax
         "this", "throw", "true", "try", "typeof", "undefined", "var", "void", "while",
     ];
 
-    static readonly HashSet<string> Helpers =
+    internal static readonly HashSet<string> Helpers =
         SnippetScript.Helpers.Select(h => h.Signature.Split('(')[0]).ToHashSet();
 
     // Kommentar (auch unvollständig), Zeichenkette (auch unvollständig), Zahl, Name
     [GeneratedRegex("""(?<c>//[^\r\n]*|/\*.*?(?:\*/|$))|(?<s>"(?:\\.|[^"\\\r\n])*"?|'(?:\\.|[^'\\\r\n])*'?|`(?:\\.|[^`\\])*`?)|(?<n>\b\d+(?:\.\d+)?\b)|(?<i>[A-Za-z_$][\w$]*)""", RegexOptions.Singleline)]
-    private static partial Regex ScriptToken();
+    internal static partial Regex ScriptToken();
 
     /// <param name="keyTags">Wie AppSettings.EvaluateKeyTags: aus, dann sind Tags Text.</param>
     /// <param name="scripts">Wie AppSettings.EvaluateScripts: aus, dann sind {{ … }} Text.</param>
@@ -194,7 +194,7 @@ public static partial class SnippetSyntax
         spans.Add(new(start + length - 2, 2, SyntaxKind.ScriptDelimiter));
     }
 
-    static bool PrecededByDot(string code, int index)
+    internal static bool PrecededByDot(string code, int index)
     {
         var i = index - 1;
         while (i >= 0 && char.IsWhiteSpace(code[i])) i--;

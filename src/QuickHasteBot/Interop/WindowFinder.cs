@@ -105,6 +105,60 @@ internal static class WindowFinder
     }
 
     /// <summary>
+    /// Das Programm, mit dem Windows https-Adressen öffnet (der Standardbrowser), als Name ohne ".exe", z.B. "msedge".
+    /// Null, wenn keins eingetragen ist.
+    /// </summary>
+    public static unsafe string? DefaultBrowser()
+    {
+        var buffer = stackalloc char[1024];
+        uint length = 1024;
+        if (AssocQueryString(ASSOCF_IS_PROTOCOL, ASSOCSTR_EXECUTABLE, "https", null, buffer, ref length) != 0 || length <= 1)
+            return null;
+        var path = new string(buffer, 0, (int)length - 1);
+        var name = Path.GetFileNameWithoutExtension(path);
+        return name.Length > 0 ? name : null;
+    }
+
+    /// <summary>Die Hauptfenster eines Programms mit ihren Titeln, das zuletzt benutzte zuerst.</summary>
+    public static List<(nint Window, string Title)> Windows(WindowSelector selector)
+    {
+        var result = new List<(nint, string)>();
+        var names = new Dictionary<uint, string>();
+        for (var hwnd = GetTopWindow(0); hwnd != 0; hwnd = GetWindow(hwnd, GW_HWNDNEXT))
+        {
+            if (!IsMainWindow(hwnd)) continue;
+            var pid = AppProcessId(hwnd);
+            if (pid == Environment.ProcessId) continue;
+            if (!names.TryGetValue(pid, out var name))
+                names[pid] = name = ProcessName(pid);
+            var title = Title(hwnd);
+            if (selector.Matches(name, title))
+                result.Add((hwnd, title));
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Öffnet eine Adresse für {start,https://…} per ShellExecute, also im Standardbrowser, wie ein Klick auf einen Link.
+    /// </summary>
+    public static bool TryOpen(string url, out string error)
+    {
+        Log.Info($"Öffne Adresse für {{start}}: {url}");
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
+            error = "";
+            return true;
+        }
+        catch (Win32Exception ex)
+        {
+            Log.Error($"Adresse konnte nicht geöffnet werden: {url}", ex);
+            error = new Win32Exception(ex.NativeErrorCode).Message;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Wartet, bis das gestartete Programm Eingaben annimmt (höchstens <paramref name="timeoutMilliseconds"/>).
     /// False, wenn <paramref name="cancelled"/> vorher zuschlägt. Programme ohne Nachrichtenschleife oder solche, die
     /// sich beenden und ein anderes weiterlaufen lassen, zählen als bereit.

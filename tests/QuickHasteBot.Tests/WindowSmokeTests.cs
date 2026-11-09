@@ -76,10 +76,10 @@ public class WindowSmokeTests
         Assert.True(help.ScrollTo(HelpWindow.EditorAnchor));
         help.UpdateLayout();
         Assert.True(scroller.VerticalOffset > 0);
-        // Die Überschrift oben im Fenster, nicht irgendwo am unteren Rand
+        // Die Überschrift oben im Fenster, nicht irgendwo am unteren Rand (ganz oben kann sie wegen Rundung bei -1e-12 stehen)
         var heading = (System.Windows.Documents.Paragraph)help.Markdown.Anchors[HelpWindow.EditorAnchor];
         var top = heading.ContentStart.GetCharacterRect(System.Windows.Documents.LogicalDirection.Forward).Top;
-        Assert.InRange(top, 0, 120);
+        Assert.InRange(top, -1, 120);
         Snapshot(help, "help-editor.png");
         Assert.True(help.ScrollTo("keys"));
         Snapshot(help, "help-table.png");
@@ -524,6 +524,13 @@ public class WindowSmokeTests
         filter.Text = "keys reload";
         Assert.Equal(["{f5}"], Visible());
 
+        // Jeder Tag erklärt sich im Tooltip. Findet der Filter sonst nichts, sucht er in diesen Hilfetexten.
+        Assert.All(tags, t => Assert.False(string.IsNullOrEmpty(((System.Windows.Controls.TextBlock)((System.Windows.Controls.ToolTip)t.ToolTip).Content).Text), (string)t.Header));
+        filter.Text = "arbeitsordner";
+        Assert.Equal(["{{ const r = run('d:/scripts/file.bat', { args: '', dir: 'd:/data' }) }}"], Visible());
+        filter.Text = "standardbrowser";
+        Assert.Equal(["{start,https://example.com}"], Visible());
+
         filter.Text = "kommentar";
         Assert.Equal(["{# Notiz}"], Visible());
         editor.BodyInput.Text = "Hallo";
@@ -555,6 +562,15 @@ public class WindowSmokeTests
         var at = view.GetVisualPosition(new TextViewPosition(1, 7), VisualYPosition.LineMiddle) - view.ScrollOffset;
         Assert.Contains("{tab,3}", editor.Highlighting.ErrorAt(at));
         Assert.Null(editor.Highlighting.ErrorAt(view.GetVisualPosition(new TextViewPosition(1, 2), VisualYPosition.LineMiddle) - view.ScrollOffset));
+
+        // Hover-Hilfe: erst der Fehler, dann Kurzbeschreibung und Hilfetext auf Deutsch; eine andere Taste nennt ihren Namen
+        var help = SnippetHighlighting.HelpContent("bad", TagHelp.At("{tab,x}", 2));
+        Assert.Equal(["bad", "Nächstes Feld"], help.Children.OfType<System.Windows.Controls.TextBlock>().Take(2).Select(t => t.Text));
+        Assert.StartsWith("Drückt Tab", help.Children.OfType<System.Windows.Controls.TextBlock>().Last().Text);
+        var other = TagHelp.At("{ctrl+s}", 2)!;
+        Assert.Equal("Taste ctrl+s", SnippetHighlighting.HelpTitle(other));
+        Assert.StartsWith("Drückt ctrl+s. Tasten verbinden sich mit +, z.B. {ctrl+s}", SnippetHighlighting.HelpText(other));
+        Assert.EndsWith("dreimal Pfeil runter. Geht mit jedem Tasten-Tag, z.B. {tab,2}.", SnippetHighlighting.HelpText(TagHelp.At("{down,3}", 2)!));
 
         // Die Test-Taste zeigt, was läuft: alles, die Auswahl, das Tag oder das Skript an der Schreibmarke
         editor.BodyInput.Text = "Max{tab}{{ 6 * 7 }}";
