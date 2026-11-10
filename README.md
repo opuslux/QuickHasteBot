@@ -418,9 +418,12 @@ The three buttons in the bar choose what fields become, and apply to the whole r
 | Text field | `{focus,f}` and the text typed | `{set,f,"text"}` | `{focus,f}` and the text typed |
 | Dropdown | `{set,f,"option"}` | `{set,f,"option"}` | `{focus,f}` and the option typed |
 | Checkbox | `{set,f,"on"}` | `{set,f,"on"}` | `{click,f}` |
+| Date or time field (browser) | `{focus,f}` and the digits typed | `{focus,f}` and the digits typed | `{focus,f}` and the digits typed |
 | Button, link, tab | `{click,f}` | `{click,f}` | `{click,f}` |
 
 Typing is what a person does, so web forms that check or complete input as you type react to it; `{set}` is shorter, but some web forms don't notice a value that was set directly. `{clear}` comes before typed text only when the field wasn't empty. Text that would be read as a tag, like a typed `{tab}`, is written as `{{ '…' }}` so that it is typed exactly as it was.
+
+Date and time fields in Chrome and Edge are always typed, because they ignore a value that is set directly. It doesn't matter how you fill them in, by typing, in the calendar or with Alt+↓: the recording takes the date that is in the field when you leave it and writes its digits in the order the field shows them, e.g. `{focus,#res-date}20112026` for 20.11.2026 or `1930` for 19:30. The browser moves to the next part by itself, so there are no dots or colons. Clicks on the calendar icon and in the calendar are left out.
 
 What the recording leaves out:
 

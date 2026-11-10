@@ -50,7 +50,8 @@ internal sealed class ActionRecorder : IDisposable
     int _pending;
 
     /// <summary>Das Feld, in dem man gerade ist, und wo es in der Aufnahme steht.</summary>
-    sealed record Field(AutomationElement Element, int Index, RecordedField Recorded);
+    /// <param name="Window">Sein Hauptfenster, um den aufgeklappten Kalender eines Datumsfelds zu erkennen.</param>
+    sealed record Field(AutomationElement Element, int Index, RecordedField Recorded, nint Window, int ProcessId);
 
     /// <param name="skip">
     /// Prozesse, die nicht aufgenommen werden. Standard: QuickHasteBot selbst (Editor, Leiste). Tests nehmen umgekehrt nur
@@ -237,16 +238,30 @@ internal sealed class ActionRecorder : IDisposable
     {
         var current = element.Current;
         if (_skip(current.ProcessId)) return;
+        // Tag, Monat und Jahr eines Datumsfelds sind eigene Teilfelder, der Fokus wandert beim Tippen weiter: ein Feld
+        var date = ElementAutomation.DateFieldOf(element);
+        if (date is not null)
+            element = date;
         if (_field is { } field)
         {
             if (Automation.Compare(element, field.Element)) return;
             // Die Optionen eines aufgeklappten Dropdowns: man ist noch beim Auswählen
             if (field.Recorded.Kind == FieldKind.Choice && Options.Contains(TypeName(current.ControlType))) return;
+            // Der aufgeklappte Kalender eines Datumsfelds: man ist noch beim Auswählen
+            if (InCalendar(field, current.ProcessId, () => ElementAutomation.Describe(element)?.Window)) return;
         }
         EndField();
-        if (KindOf(element) is not { } kind || ElementAutomation.Describe(element) is not { } info) return;
-        BeginField(element, info, kind, current.IsPassword, before: null);
+        var kind = date is not null ? FieldKind.Date : KindOf(element);
+        if (kind is null || ElementAutomation.Describe(element) is not { } info) return;
+        BeginField(element, info, kind.Value, date is null && current.IsPassword, before: null);
     }
+
+    /// <summary>
+    /// Chrome und Edge zeigen den Kalender eines Datumsfelds in einem eigenen Fenster. Fokus und Klicks dort gehören zum
+    /// Feld: Aufgenommen wird das Datum, das danach drinsteht.
+    /// </summary>
+    static bool InCalendar(Field field, int processId, Func<nint?> window) =>
+        field.Recorded.Kind == FieldKind.Date && processId == field.ProcessId && window() is { } root && root != field.Window;
 
     void OnClick(ElementInfo info)
     {
@@ -256,6 +271,12 @@ internal sealed class ActionRecorder : IDisposable
             return;
         }
         if (info.Element is null) return;
+        if (_field is { Recorded.Kind: FieldKind.Date } date)
+        {
+            // Der Kalender-Button im Datumsfeld und die Tage im aufgeklappten Kalender
+            if (InCalendar(date, info.Element.Current.ProcessId, () => info.Window)) return;
+            if (TreeWalker.RawViewWalker.GetParent(info.Element) is { } parent && Automation.Compare(parent, date.Element)) return;
+        }
 
         if (info.Type == "CheckBox")
         {
@@ -299,7 +320,7 @@ internal sealed class ActionRecorder : IDisposable
         }
         if (password)
             SetNote(RecordNote.Password);
-        before ??= password ? null : ElementAutomation.FullValue(element);
+        before ??= password ? null : Read(element, kind);
         Window(info.Process);
         var recorded = new RecordedField(selector, kind, before, before, password);
         int index;
@@ -308,7 +329,7 @@ internal sealed class ActionRecorder : IDisposable
             index = _actions.Count;
             _actions.Add(recorded);
         }
-        _field = new Field(element, index, recorded);
+        _field = new Field(element, index, recorded, info.Window, element.Current.ProcessId);
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
@@ -323,7 +344,7 @@ internal sealed class ActionRecorder : IDisposable
     void Refresh()
     {
         if (_field is not { Recorded.Password: false } field) return;
-        if (ElementAutomation.FullValue(field.Element) is not { } value || value == field.Recorded.After) return;
+        if (Read(field.Element, field.Recorded.Kind) is not { } value || value == field.Recorded.After) return;
         var recorded = field.Recorded with { After = value };
         lock (_lock)
             _actions[field.Index] = recorded;
@@ -352,6 +373,9 @@ internal sealed class ActionRecorder : IDisposable
         Note = note;
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    static string? Read(AutomationElement element, FieldKind kind) =>
+        kind == FieldKind.Date ? ElementAutomation.DateDigits(element) : ElementAutomation.FullValue(element);
 
     /// <summary>Textfelder, Dropdowns und Checkboxen. Ein schreibgeschütztes Feld (z.B. die ganze Webseite) zählt nicht.</summary>
     static FieldKind? KindOf(AutomationElement element)

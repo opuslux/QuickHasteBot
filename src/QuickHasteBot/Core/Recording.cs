@@ -26,6 +26,12 @@ public enum FieldKind
 
     /// <summary>Checkbox oder Schalter: "on" oder "off".</summary>
     Toggle,
+
+    /// <summary>
+    /// Datums- oder Zeitfeld im Browser (Tag, Monat, Jahr als einzelne Teilfelder): der Wert sind die Ziffern so, wie man
+    /// sie eintippt, z.B. "20112026". Chrome und Edge ignorieren Werte per UI Automation, darum wird immer getippt.
+    /// </summary>
+    Date,
 }
 
 /// <summary>Was der Recorder gesehen hat, in der Reihenfolge, in der es passiert ist.</summary>
@@ -59,6 +65,13 @@ public static class Recording
         "CheckBox" or "ComboBox" => ElementAction.Set,
         _ => ElementAction.Focus,
     };
+
+    /// <summary>
+    /// Die Teilfelder eines Datums- oder Zeitfelds (z.B. "20", "11", "2026" oder "9", "30", "PM") als Tastendrücke:
+    /// Zahlen mindestens zweistellig, damit der Browser nach jedem Teil ins nächste springt, AM/PM als Buchstabe.
+    /// </summary>
+    public static string TypedDate(IEnumerable<string> parts) => string.Concat(parts.Select(part =>
+        part.Length > 0 && part.All(char.IsAsciiDigit) ? part.PadLeft(2, '0') : part.Length > 0 ? part[..1] : ""));
 
     /// <summary>Der Bausteintext, mit einem Umbruch am Ende, damit die Schreibmarke danach auf einer neuen Zeile steht.</summary>
     public static string Build(IReadOnlyList<RecordedAction> actions, RecordMode mode, string newLine = "\r\n")
@@ -155,6 +168,9 @@ public static class Recording
                 return mode == RecordMode.AlwaysType
                     ? KeyTags.ElementTag(ElementAction.Focus, field.Selector) + Literal(value)
                     : KeyTags.ElementTag(ElementAction.Set, field.Selector, value);
+            case FieldKind.Date:
+                // Tippen überschreibt Teilfeld für Teilfeld, ein {clear} braucht es nicht
+                return KeyTags.ElementTag(ElementAction.Focus, field.Selector) + value;
         }
 
         // {set} verliert Anführungszeichen und Umbrüche (KeyTags.ElementTag), solche Werte werden lieber getippt

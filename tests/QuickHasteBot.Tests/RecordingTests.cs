@@ -163,4 +163,24 @@ public class RecordingTests
 
     [Fact]
     public void Nothing_recorded_is_empty_text() => Assert.Equal("", Build(RecordMode.Mixed));
+
+    [Theory]
+    [InlineData(RecordMode.Mixed)]
+    [InlineData(RecordMode.AlwaysSet)]
+    [InlineData(RecordMode.AlwaysType)]
+    public void Date_fields_are_always_typed_without_clear(RecordMode mode) =>
+        // Chrome ignoriert {set} bei Datumsfeldern, und Tippen überschreibt Tag, Monat und Jahr ohnehin
+        Assert.Equal("{focus,#res-date}20112026\n", Build(mode, new RecordedField(Sel("#res-date"), FieldKind.Date, "01012026", "20112026")));
+
+    [Fact]
+    public void Unchanged_date_is_dropped() =>
+        Assert.Equal("", Build(RecordMode.Mixed, new RecordedField(Sel("#d"), FieldKind.Date, "20112026", "20112026")));
+
+    [Theory]
+    [InlineData("20112026", "20", "11", "2026")]
+    [InlineData("05032026", "5", "3", "2026")]
+    [InlineData("0930P", "9", "30", "PM")]
+    [InlineData("", "", "", "")]
+    public void Date_parts_become_keystrokes(string expected, params string[] parts) =>
+        Assert.Equal(expected, Recording.TypedDate(parts));
 }
