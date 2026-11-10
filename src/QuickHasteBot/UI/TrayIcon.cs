@@ -26,6 +26,7 @@ internal sealed class TrayIcon : IDisposable
             ContextMenu = menu,
         };
         _icon.TrayMouseDoubleClick += (_, _) => app.ShowSettings();
+        _icon.TrayLeftMouseUp += (_, _) => app.BringKeptOpenPopupToFront();
 
         // false: kein "Efficiency Mode", der würde den Prozess drosseln und den Hotkey träge machen
         _icon.ForceCreate(enablesEfficiencyMode: false);

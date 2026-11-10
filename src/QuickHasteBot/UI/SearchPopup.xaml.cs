@@ -98,8 +98,9 @@ internal partial class SearchPopup : Window
     public nint TargetWindow => _targetWindow;
 
     /// <summary>
-    /// Das Schloss: Bekommt ein anderes Fenster den Fokus, schliesst das Popup nicht, sondern bleibt dahinter offen,
-    /// auch nach dem Einfügen, Bearbeiten usw. Esc schliesst es trotzdem. Gespeichert (<see cref="AppSettings.KeepPopupOpen"/>).
+    /// Das Schloss: Bekommt ein anderes Fenster den Fokus, schliesst das Popup nicht. Sonst nichts: Es ist dann ein
+    /// normales Fenster (nicht Topmost), das Windows wie jedes andere nach hinten und vorne holt. Esc schliesst es
+    /// trotzdem. Gespeichert (<see cref="AppSettings.KeepPopupOpen"/>).
     /// </summary>
     public bool KeepOpen
     {
@@ -113,7 +114,7 @@ internal partial class SearchPopup : Window
     {
         // Offen gelassen (Hotkey eines Ordners): dort weitermachen, wo das Popup steht
         var keptOpen = KeepOpen && IsVisible;
-        Topmost = true;
+        Topmost = !KeepOpen;
 
         _targetWindow = targetWindow;
         _viewModel.Reset(folder?.RelativePath);
@@ -131,15 +132,16 @@ internal partial class SearchPopup : Window
         FocusSearch();
     }
 
-    /// <summary>Hotkey bei offen gelassenem Popup: zurück ins Suchfeld, Ordner und Stelle bleiben.</summary>
-    /// <param name="foreground">Das Fenster, das beim Drücken vorne war. Ist es ein anderes Programm, fügt das Popup jetzt dort ein.</param>
+    /// <summary>Hotkey oder Klick aufs Tray-Symbol bei offen gelassenem Popup: nach vorne und zurück ins Suchfeld, Ordner und Stelle bleiben.</summary>
+    /// <param name="foreground">
+    /// Das Fenster, das beim Drücken vorne war. Ist es ein anderes Programm, fügt das Popup jetzt dort ein. 0 lässt das Ziel.
+    /// </param>
     public void Refocus(nint foreground)
     {
         // Läuft gerade ein Baustein, kommt das Popup danach von selbst wieder
         if (!IsVisible) return;
         if (foreground != 0 && !IsOwnWindow(foreground))
             _targetWindow = foreground;
-        Topmost = true;
         FocusSearch();
     }
 
@@ -163,8 +165,8 @@ internal partial class SearchPopup : Window
     {
         _foregroundWatcher?.Dispose();
         _foregroundWatcher = KeepOpen ? new ForegroundWatcher(OnForegroundChanged, ownProcess: true) : null;
-        if (!KeepOpen)
-            Topmost = true;
+        // Offen gelassen ein normales Fenster. Wird es gerade umgeschaltet, ist es aktiv und bleibt so vorne.
+        Topmost = !KeepOpen;
         if (_app.Settings.KeepPopupOpen != KeepOpen)
         {
             _app.Settings.KeepPopupOpen = KeepOpen;
@@ -174,41 +176,17 @@ internal partial class SearchPopup : Window
             Keyboard.Focus(SearchBox);
     }
 
-    // Offen gelassen und ein anderes Fenster bekommt den Fokus: Das Popup bleibt offen, aber dahinter. Klickt man in ein
-    // anderes Programm, fügt der nächste Baustein dort ein. Was ein laufender Baustein nach vorne holt ({window},
-    // {start}), zählt nicht.
+    // Klickt man bei offen gelassenem Popup in ein anderes Programm, fügt der nächste Baustein dort ein. Was ein
+    // laufender Baustein nach vorne holt ({window}, {start}), zählt nicht. Die Reihenfolge der Fenster bleibt Windows überlassen.
     internal void OnForegroundChanged(nint window)
     {
-        if (!IsVisible) return; // geschlossen oder während ein Baustein läuft
-        StayBehind(window);
-        if (!_running && !IsOwnWindow(window))
+        if (IsVisible && !_running && !IsOwnWindow(window))
             _targetWindow = window;
     }
 
     /// <summary>
-    /// Offen gelassen und ein anderes Fenster kommt nach vorne (ein fremdes Programm, der Editor, die Einstellungen …):
-    /// Das Popup reiht sich gleich dahinter ein, statt als Topmost-Fenster darüber zu bleiben. Kommt das Popup selbst
-    /// nach vorne, ist es wieder Topmost. Eigene Dialoge des Popups stehen ohnehin davor.
-    /// </summary>
-    void StayBehind(nint window)
-    {
-        var popup = new WindowInteropHelper(this).Handle;
-        if (popup == 0 || window == 0) return;
-        if (window == popup || NativeMethods.GetAncestor(window, NativeMethods.GA_ROOTOWNER) == popup)
-        {
-            Topmost = true;
-            return;
-        }
-        Topmost = false;
-        // Ohne Topmost stünde es zuoberst unter den normalen Fenstern, also noch immer vor dem Editor
-        NativeMethods.SetWindowPos(popup, window, 0, 0, 0, 0,
-            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
-    }
-
-    /// <summary>
     /// Versteckt das Popup, solange ein Baustein läuft: Das Zielfenster bekommt die Eingaben und {click} trifft nicht
-    /// das Popup. Offen gelassen ist es danach wieder an derselben Stelle, aber hinter dem Fenster, das jetzt vorne
-    /// ist, und ohne ihm den Fokus zu nehmen. Der Hotkey holt es nach vorne.
+    /// das Popup. Offen gelassen ist es danach wieder vorne an derselben Stelle, ohne dem Zielfenster den Fokus zu nehmen.
     /// </summary>
     public async Task RunHiddenAsync(Func<Task> run)
     {
@@ -224,9 +202,6 @@ internal partial class SearchPopup : Window
             _running = false;
             if (keepOpen && KeepOpen && !_closed && !IsVisible)
             {
-                // Schon vor dem Anzeigen einreihen, damit es nicht kurz über dem Zielfenster aufblitzt
-                var foreground = NativeMethods.GetForegroundWindow();
-                StayBehind(foreground);
                 ShowActivated = false;
                 try
                 {
@@ -236,7 +211,9 @@ internal partial class SearchPopup : Window
                 {
                     ShowActivated = true;
                 }
-                StayBehind(foreground);
+                // Nicht Topmost: Ohne Aktivieren käme es nicht von selbst vor das Zielfenster
+                NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, NativeMethods.HWND_TOP, 0, 0, 0, 0,
+                    NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
             }
         }
     }
