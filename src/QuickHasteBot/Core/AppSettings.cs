@@ -118,6 +118,9 @@ public sealed class AppSettings
     /// <summary>Suchtext beim letzten Schliessen. Gilt nur mit <see cref="RememberQuery"/>.</summary>
     public string LastQuery { get; set; } = "";
 
+    /// <summary>Das Schloss im Popup: Es schliesst nicht, wenn ein anderes Fenster den Fokus bekommt, sondern bleibt dahinter offen.</summary>
+    public bool KeepPopupOpen { get; set; }
+
     /// <summary>Auch von Hand eingetragene Werte lassen beide Spalten sichtbar, Unsinn ergibt den Standard.</summary>
     public static double ClampColumnShare(double share) =>
         double.IsFinite(share) ? Math.Clamp(share, 0.15, 0.85) : DefaultListColumnShare;

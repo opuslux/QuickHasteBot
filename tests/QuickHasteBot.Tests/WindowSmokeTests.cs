@@ -39,7 +39,7 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
-            KeptOpenPopupStaysBehindOwnWindows();
+            KeptOpenPopupStaysBehindOtherWindows();
             PopupPreviewColors();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
@@ -1336,40 +1336,52 @@ public class WindowSmokeTests
     }
 
     /// <summary>
-    /// Mit Schloss bleibt das Popup über fremden Programmen, aber Editor, Picker, Einstellungen kommen davor: Kommt ein
-    /// eigenes Fenster nach vorne, reiht es sich dahinter ein.
+    /// Mit Schloss bleibt das Popup offen, wenn ein anderes Fenster den Fokus bekommt, aber nicht darüber: Es reiht sich
+    /// dahinter ein, bei eigenen Fenstern (Editor, Einstellungen) wie bei fremden Programmen. Das Schloss wird gespeichert.
     /// </summary>
-    static void KeptOpenPopupStaysBehindOwnWindows()
+    static void KeptOpenPopupStaysBehindOtherWindows()
     {
         using var dir = new TempDirectory();
         dir.File("settings.json", """{ "Language": "de" }""");
         using var controller = new AppController(new AppPaths(dir.Path));
         var popup = new SearchPopup(controller);
         Snapshot(popup, "popup-kept-open.png");
+        Assert.False(popup.KeepOpen);
         popup.KeepOpenToggle.IsChecked = true;
+        Assert.True(controller.Settings.KeepPopupOpen);
+        Assert.Contains("\"KeepPopupOpen\": true", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
         var editor = new Window { Width = 200, Height = 100, ShowInTaskbar = false };
         Snapshot(editor, "popup-kept-open-editor.png");
         var popupHwnd = new System.Windows.Interop.WindowInteropHelper(popup).Handle;
         var editorHwnd = new System.Windows.Interop.WindowInteropHelper(editor).Handle;
 
         popup.OnForegroundChanged(editorHwnd);
+        Assert.True(popup.IsVisible, "offen gelassen");
         Assert.False(popup.Topmost);
         var below = false;
         for (var h = NativeMethods.GetWindow(editorHwnd, NativeMethods.GW_HWNDNEXT); h != 0 && !below; h = NativeMethods.GetWindow(h, NativeMethods.GW_HWNDNEXT))
             below = h == popupHwnd;
         Assert.True(below, "Popup hinter dem Editor");
 
-        // Ein fremdes Programm vorne (hier, was am Bildschirmrand liegt): wieder darüber
+        // Ein fremdes Programm vorne (hier, was am Bildschirmrand liegt): auch nicht mehr darüber
+        popup.OnForegroundChanged(popupHwnd);
+        Assert.True(popup.Topmost);
         var foreign = NativeMethods.WindowFromPoint(new NativeMethods.POINT { X = 0, Y = 0 });
         NativeMethods.GetWindowThreadProcessId(foreign, out var foreignPid);
         Assert.NotEqual((uint)Environment.ProcessId, foreignPid);
         popup.OnForegroundChanged(foreign);
-        Assert.True(popup.Topmost);
+        Assert.False(popup.Topmost);
 
-        // Hinter einem eigenen Fenster und dann das Schloss auf: wie immer zuoberst
+        // Ein neues Popup (nächster Start) übernimmt das Schloss
+        var next = new SearchPopup(controller);
+        Assert.True(next.KeepOpen);
+        next.Close();
+
+        // Hinter einem Fenster und dann das Schloss auf: wie immer zuoberst, und gespeichert
         popup.OnForegroundChanged(editorHwnd);
         popup.KeepOpenToggle.IsChecked = false;
         Assert.True(popup.Topmost);
+        Assert.False(controller.Settings.KeepPopupOpen);
         editor.Close();
         popup.Close();
     }

@@ -147,12 +147,12 @@ Pin and filter are also in the settings under **When opening**.
 
 ### Keeping it open
 
-To paste several snippets one after another, e.g. while filling in a form, the lock at the top right next to the search box (or Ctrl+T) keeps the popup open and on top:
+To paste several snippets one after another, e.g. while filling in a form, the lock at the top right next to the search box (or Ctrl+T) keeps the popup open when another window gets the focus. It is no longer on top then: it stays where it is, behind the window you clicked or pasted into.
 
-- After pasting, the popup comes back at the same place, in the same folder, without taking the focus away from the program you pasted into. Click the next snippet, or press the hotkey to get back into the search box.
+- After pasting, the popup is back at the same place and in the same folder, behind the program you pasted into, which keeps the focus. Press the hotkey (or click a visible part of the popup) to bring it to the front, with the cursor in the search box.
 - Clicking into another program makes it the new target: the next snippet goes there. Windows of QuickHasteBot itself, like the editor, never become the target, and neither does a window a snippet brings to the front.
-- Editing a snippet, Explorer and the settings leave the popup open too. If it covers the editor, drag it aside.
-- Esc closes it and switches this off; the next time the popup opens normally again. The setting isn't saved.
+- Editing a snippet, Explorer and the settings leave the popup open too, behind their windows.
+- Esc closes the popup, the lock stays on. The setting is saved (`KeepPopupOpen`) and applies until you switch it off again.
 
 ## Pasting: two methods
 
