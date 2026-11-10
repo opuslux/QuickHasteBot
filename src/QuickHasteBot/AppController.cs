@@ -96,7 +96,7 @@ internal sealed class AppController : IDisposable
         // aktualisiert das offene Popup (Library.Changed)
         _ = Library.VerifyAsync();
         // Offen gelassen: nur zurück ins Suchfeld, Ordner und Stelle bleiben
-        if (_popup is { KeepOpen: true } keptOpen)
+        if (_popup is { KeepOpen: true, IsVisible: true } keptOpen)
             keptOpen.Refocus(target);
         else
             _popup?.ShowFor(target);
