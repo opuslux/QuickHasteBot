@@ -192,6 +192,11 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial short GetAsyncKeyState(int vKey);
 
+    public const uint MAPVK_VK_TO_VSC_EX = 4;
+
+    [LibraryImport("user32.dll")]
+    public static partial uint MapVirtualKeyW(uint uCode, uint uMapType);
+
     [LibraryImport("user32.dll")]
     public static partial nint GetAncestor(nint hwnd, uint gaFlags);
 

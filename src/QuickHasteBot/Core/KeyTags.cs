@@ -12,7 +12,11 @@ public sealed record TextStep(string Text) : FormStep;
 
 /// <param name="Name">So wie er im Tag stand, kleingeschrieben, z.B. "shift+tab". Für Vorschau und Log.</param>
 /// <param name="SwitchesWindow">Die Taste wechselt typischerweise das Fenster (Startmenü, Alt+Tab …), danach ist der Fensterschutz aus.</param>
-public sealed record KeyStep(string Name, ushort Vk, IReadOnlyList<ushort> Modifiers, int Repeat, bool SwitchesWindow) : FormStep;
+/// <param name="Extended">
+/// Mit KEYEVENTF_EXTENDEDKEY senden (<see cref="KeyTags.IsExtended"/>), dazu Enter im Ziffernblock, das denselben
+/// Code wie Enter hat.
+/// </param>
+public sealed record KeyStep(string Name, ushort Vk, IReadOnlyList<ushort> Modifiers, int Repeat, bool SwitchesWindow, bool Extended) : FormStep;
 
 /// <summary>{wait,ms}: einmalige Pause.</summary>
 public sealed record WaitStep(int Milliseconds) : FormStep;
@@ -191,6 +195,16 @@ public static partial class KeyTags
     const ushort VK_PRIOR = 0x21, VK_NEXT = 0x22, VK_END = 0x23, VK_HOME = 0x24;
     const ushort VK_LEFT = 0x25, VK_UP = 0x26, VK_RIGHT = 0x27, VK_DOWN = 0x28;
     const ushort VK_INSERT = 0x2D, VK_DELETE = 0x2E, VK_APPS = 0x5D, VK_F1 = 0x70, VK_F4 = 0x73, VK_F10 = 0x79;
+    const ushort VK_PAUSE = 0x13, VK_CAPITAL = 0x14, VK_SNAPSHOT = 0x2C, VK_NUMLOCK = 0x90, VK_SCROLL = 0x91;
+    const ushort VK_NUMPAD0 = 0x60, VK_MULTIPLY = 0x6A, VK_ADD = 0x6B, VK_SUBTRACT = 0x6D, VK_DECIMAL = 0x6E, VK_DIVIDE = 0x6F;
+    // Diese vier Satzzeichen-Tasten sind in jedem Tastaturlayout dieselben, die übrigen VK_OEM_* nicht
+    const ushort VK_OEM_PLUS = 0xBB, VK_OEM_COMMA = 0xBC, VK_OEM_MINUS = 0xBD, VK_OEM_PERIOD = 0xBE;
+    const ushort VK_BROWSER_BACK = 0xA6, VK_BROWSER_FORWARD = 0xA7, VK_BROWSER_REFRESH = 0xA8, VK_BROWSER_HOME = 0xAC;
+    const ushort VK_VOLUME_MUTE = 0xAD, VK_VOLUME_DOWN = 0xAE, VK_VOLUME_UP = 0xAF;
+    const ushort VK_MEDIA_NEXT_TRACK = 0xB0, VK_MEDIA_PREV_TRACK = 0xB1, VK_MEDIA_STOP = 0xB2, VK_MEDIA_PLAY_PAUSE = 0xB3;
+
+    /// <summary>Enter im Ziffernblock: derselbe Code wie Enter, nur als erweiterte Taste gesendet.</summary>
+    const string NumEnter = "numenter";
 
     static readonly Dictionary<string, ushort> Modifiers = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -209,9 +223,26 @@ public static partial class KeyTags
             ["pgup"] = VK_PRIOR, ["pageup"] = VK_PRIOR, ["pgdn"] = VK_NEXT, ["pagedown"] = VK_NEXT,
             ["up"] = VK_UP, ["down"] = VK_DOWN, ["left"] = VK_LEFT, ["right"] = VK_RIGHT,
             ["apps"] = VK_APPS, ["menu"] = VK_APPS,
+
+            // Ziffernblock: Baumansichten wie die Ordnerliste in Outlook klappen nur mit diesen Tasten auf und zu
+            ["numplus"] = VK_ADD, ["numminus"] = VK_SUBTRACT, ["nummul"] = VK_MULTIPLY, ["numstar"] = VK_MULTIPLY,
+            ["numdiv"] = VK_DIVIDE, ["numdot"] = VK_DECIMAL, [NumEnter] = VK_RETURN,
+
+            // Satzzeichen als Taste, für Kombinationen wie {ctrl+plus} (Zoom)
+            ["plus"] = VK_OEM_PLUS, ["minus"] = VK_OEM_MINUS, ["comma"] = VK_OEM_COMMA, ["period"] = VK_OEM_PERIOD, ["dot"] = VK_OEM_PERIOD,
+
+            ["prtsc"] = VK_SNAPSHOT, ["printscreen"] = VK_SNAPSHOT, ["pause"] = VK_PAUSE, ["capslock"] = VK_CAPITAL,
+            ["numlock"] = VK_NUMLOCK, ["scrolllock"] = VK_SCROLL,
+
+            ["volumeup"] = VK_VOLUME_UP, ["volumedown"] = VK_VOLUME_DOWN, ["volumemute"] = VK_VOLUME_MUTE, ["mute"] = VK_VOLUME_MUTE,
+            ["playpause"] = VK_MEDIA_PLAY_PAUSE, ["mediastop"] = VK_MEDIA_STOP, ["nexttrack"] = VK_MEDIA_NEXT_TRACK, ["prevtrack"] = VK_MEDIA_PREV_TRACK,
+            ["browserback"] = VK_BROWSER_BACK, ["browserforward"] = VK_BROWSER_FORWARD, ["browserrefresh"] = VK_BROWSER_REFRESH,
+            ["browserhome"] = VK_BROWSER_HOME,
         };
-        for (var i = 0; i < 12; i++)
+        for (var i = 0; i < 24; i++)
             keys["f" + (i + 1)] = (ushort)(VK_F1 + i);
+        for (var i = 0; i < 10; i++)
+            keys["num" + i] = (ushort)(VK_NUMPAD0 + i);
         foreach (var (name, vk) in Modifiers)
             keys[name] = vk;
         return keys;
@@ -219,7 +250,12 @@ public static partial class KeyTags
 
     /// <summary>Tasten, die SendInput mit KEYEVENTF_EXTENDEDKEY senden muss, sonst kommen z.B. Pfeile als Ziffernblock an.</summary>
     static readonly HashSet<ushort> ExtendedKeys =
-        [VK_PRIOR, VK_NEXT, VK_END, VK_HOME, VK_LEFT, VK_UP, VK_RIGHT, VK_DOWN, VK_INSERT, VK_DELETE, VK_APPS, VK_LWIN];
+    [
+        VK_PRIOR, VK_NEXT, VK_END, VK_HOME, VK_LEFT, VK_UP, VK_RIGHT, VK_DOWN, VK_INSERT, VK_DELETE, VK_APPS, VK_LWIN,
+        VK_DIVIDE, VK_SNAPSHOT, VK_NUMLOCK,
+        VK_BROWSER_BACK, VK_BROWSER_FORWARD, VK_BROWSER_REFRESH, VK_BROWSER_HOME, VK_VOLUME_MUTE, VK_VOLUME_DOWN, VK_VOLUME_UP,
+        VK_MEDIA_NEXT_TRACK, VK_MEDIA_PREV_TRACK, VK_MEDIA_STOP, VK_MEDIA_PLAY_PAUSE,
+    ];
 
     public static bool IsExtended(ushort vk) => ExtendedKeys.Contains(vk);
 
@@ -232,7 +268,7 @@ public static partial class KeyTags
     internal static partial Regex NamePart();
 
     static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
-        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start" };
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start", "key" };
 
     /// <summary>Die Tags, die ein Element ansprechen, mit ihrem Namen im Text.</summary>
     internal static readonly IReadOnlyDictionary<string, ElementAction> ElementTags = new Dictionary<string, ElementAction>
@@ -338,6 +374,9 @@ public static partial class KeyTags
         if (spec == "start")
             return TryParseStart(args, out steps, out error);
 
+        if (spec == "key")
+            return TryParseLetterKey(args, count, out steps, out error);
+
         if (args.Count > 1)
         {
             error = $"too many arguments in \"{content}\"";
@@ -376,7 +415,7 @@ public static partial class KeyTags
                     error = "\"clear\" takes no arguments";
                     return false;
                 }
-                steps = [Key("ctrl+a", 0x41, [VK_CONTROL], 1), Key("del", VK_DELETE, [], 1)];
+                steps = [Key("ctrl+a", 0x41, [VK_CONTROL], 1, extended: false), Key("del", VK_DELETE, [], 1, extended: true)];
                 return true;
         }
 
@@ -404,7 +443,36 @@ public static partial class KeyTags
         else
             return false;
 
-        steps = [Key(spec, vk, modifiers, repeat)];
+        steps = [Key(spec, vk, modifiers, repeat, IsExtended(vk) || keyName == NumEnter)];
+        return true;
+    }
+
+    /// <summary>
+    /// {key,a}, {key,A}, {key,5,3}: ein Buchstabe oder eine Ziffer als echter Tastendruck statt als getipptes Zeichen,
+    /// für Programme, die Text nicht als Taste nehmen (Remote Desktop, Citrix, Tastenkürzel ohne Ctrl).
+    /// Ein Grossbuchstabe drückt Shift dazu.
+    /// </summary>
+    static bool TryParseLetterKey(List<string> args, int? count, out IReadOnlyList<FormStep> steps, out string error)
+    {
+        steps = [];
+        error = "\"key\" needs one letter or digit, e.g. {key,a} or {key,a,3}";
+        if (args.Count is < 1 or > 2 || args[0].Length != 1 || !char.IsAsciiLetterOrDigit(args[0][0]))
+            return false;
+
+        var repeat = 1;
+        if (count is { } c)
+            repeat = c;
+        else if (args.Count == 2 && !int.TryParse(args[1], NumberStyles.None, CultureInfo.InvariantCulture, out repeat))
+            repeat = 0;
+        if (repeat < 1)
+        {
+            error = "the number after the letter is how often to press it, e.g. {key,a,3}";
+            return false;
+        }
+
+        var letter = args[0][0];
+        var vk = char.ToUpperInvariant(letter); // VK von A-Z und 0-9 entspricht dem ASCII-Code
+        steps = [Key("key," + letter, vk, char.IsAsciiLetterUpper(letter) ? [VK_SHIFT] : [], Math.Min(repeat, MaxRepeat), extended: false)];
         return true;
     }
 
@@ -528,13 +596,13 @@ public static partial class KeyTags
         return tag + "}";
     }
 
-    static KeyStep Key(string name, ushort vk, IReadOnlyList<ushort> modifiers, int repeat) =>
-        new(name, vk, modifiers, repeat, SwitchesWindow(vk, modifiers));
+    static KeyStep Key(string name, ushort vk, IReadOnlyList<ushort> modifiers, int repeat, bool extended) =>
+        new(name, vk, modifiers, repeat, SwitchesWindow(vk, modifiers), extended);
 
-    /// <summary>Win-Taste und -Kombinationen, Alt allein, Alt+Tab/Esc/F4/Leertaste, Kontextmenü.</summary>
+    /// <summary>Win-Taste und -Kombinationen, Alt allein, Alt+Tab/Esc/F4/Leertaste, Kontextmenü, Druck (Snipping Tool).</summary>
     static bool SwitchesWindow(ushort vk, IReadOnlyList<ushort> modifiers)
     {
-        if (vk == VK_LWIN || modifiers.Contains(VK_LWIN) || vk == VK_APPS) return true;
+        if (vk == VK_LWIN || modifiers.Contains(VK_LWIN) || vk == VK_APPS || vk == VK_SNAPSHOT) return true;
         if (vk == VK_F10 && modifiers.Contains(VK_SHIFT)) return true; // Shift+F10 = Kontextmenü
         if (vk == VK_MENU && modifiers.Count == 0) return true;
         return modifiers.Contains(VK_MENU) && vk is VK_TAB or VK_ESCAPE or VK_F4 or VK_SPACE;

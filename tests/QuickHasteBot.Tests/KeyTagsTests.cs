@@ -125,6 +125,103 @@ public class KeyTagsTests
         Assert.False(KeyTags.IsExtended(Enter));
     }
 
+    [Theory]
+    [InlineData("{numplus}", 0x6B, false)]
+    [InlineData("{numminus}", 0x6D, false)]
+    [InlineData("{nummul}", 0x6A, false)]
+    [InlineData("{numstar}", 0x6A, false)]
+    [InlineData("{numdiv}", 0x6F, true)]
+    [InlineData("{numdot}", 0x6E, false)]
+    [InlineData("{num0}", 0x60, false)]
+    [InlineData("{num9}", 0x69, false)]
+    [InlineData("{numenter}", Enter, true)] // gleicher Code wie Enter, nur erweitert
+    [InlineData("{enter}", Enter, false)]
+    [InlineData("{plus}", 0xBB, false)]
+    [InlineData("{minus}", 0xBD, false)]
+    [InlineData("{comma}", 0xBC, false)]
+    [InlineData("{period}", 0xBE, false)]
+    [InlineData("{dot}", 0xBE, false)]
+    [InlineData("{f13}", 0x7C, false)]
+    [InlineData("{f24}", 0x87, false)]
+    [InlineData("{prtsc}", 0x2C, true)]
+    [InlineData("{pause}", 0x13, false)]
+    [InlineData("{capslock}", 0x14, false)]
+    [InlineData("{numlock}", 0x90, true)]
+    [InlineData("{scrolllock}", 0x91, false)]
+    [InlineData("{volumeup}", 0xAF, true)]
+    [InlineData("{volumedown}", 0xAE, true)]
+    [InlineData("{mute}", 0xAD, true)]
+    [InlineData("{playpause}", 0xB3, true)]
+    [InlineData("{nexttrack}", 0xB0, true)]
+    [InlineData("{prevtrack}", 0xB1, true)]
+    [InlineData("{mediastop}", 0xB2, true)]
+    [InlineData("{browserback}", 0xA6, true)]
+    [InlineData("{browserforward}", 0xA7, true)]
+    [InlineData("{browserrefresh}", 0xA8, true)]
+    [InlineData("{browserhome}", 0xAC, true)]
+    [InlineData("{down}", Down, true)]
+    public void Special_keys_have_their_code(string tag, ushort vk, bool extended)
+    {
+        var key = Key(tag);
+        Assert.Equal(vk, key.Vk);
+        Assert.Equal(extended, key.Extended);
+        Assert.Empty(key.Modifiers);
+    }
+
+    [Fact]
+    public void Numpad_and_punctuation_keys_combine()
+    {
+        var zoom = Key("{ctrl+plus}");
+        Assert.Equal(0xBB, zoom.Vk);
+        Assert.Equal(new[] { Ctrl }, zoom.Modifiers);
+
+        var numZoom = Key("{ctrl+numplus,2}");
+        Assert.Equal(0x6B, numZoom.Vk);
+        Assert.Equal(2, numZoom.Repeat);
+        Assert.Equal("«Ordner»{numplus}{down}{numminus}", Show("Ordner{numplus}{down}{numminus}"));
+    }
+
+    [Fact]
+    public void Letter_key_presses_the_key_instead_of_typing()
+    {
+        var a = Key("{key,a}");
+        Assert.Equal((ushort)'A', a.Vk);
+        Assert.Empty(a.Modifiers);
+        Assert.Equal(1, a.Repeat);
+
+        var capital = Key("{KEY,A}");
+        Assert.Equal((ushort)'A', capital.Vk);
+        Assert.Equal(new[] { Shift }, capital.Modifiers);
+
+        var digit = Key("{key, 5, 3}");
+        Assert.Equal((ushort)'5', digit.Vk);
+        Assert.Equal(3, digit.Repeat);
+
+        Assert.Equal("{key,j}{key,J,2}", Show("{key,j}{key,J,2}"));
+    }
+
+    [Fact]
+    public void Letter_key_works_from_scripts() =>
+        Assert.Equal("{key,k}", Show("{{ key('key,k') }}"));
+
+    [Theory]
+    [InlineData("{key}")]
+    [InlineData("{key,}")]
+    [InlineData("{key,ab}")]
+    [InlineData("{key,+}")]
+    [InlineData("{key,ä}")]
+    [InlineData("{key,a,0}")]
+    [InlineData("{key,a,x}")]
+    [InlineData("{key,a,2,3}")]
+    [InlineData("{shift+key,a}")]
+    [InlineData("{numplus,x}")]
+    [InlineData("{num10}")]
+    [InlineData("{f25}")]
+    public void Invalid_special_keys_stay_text(string text) => Assert.Equal("«" + text + "»", Show(text));
+
+    [Fact]
+    public void Print_screen_switches_windows() => Assert.True(Key("{prtsc}").SwitchesWindow);
+
     [Fact]
     public void Wait_delay_and_guard_take_arguments()
     {

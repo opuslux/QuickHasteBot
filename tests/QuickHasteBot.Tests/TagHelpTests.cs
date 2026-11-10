@@ -25,6 +25,11 @@ public class TagHelpTests
     [InlineData("{start,https://exa|mple.com}", "TagStartUrl")]
     [InlineData("{# eine |Notiz}", "TagComment")]
     [InlineData("{tab,|x}", "TagNextField")] // fehlerhaft, die Hilfe gibt es trotzdem
+    [InlineData("{num|plus}", "TagNumPlus")]
+    [InlineData("{ctrl+pl|us}", "TagZoomIn")]
+    [InlineData("{key,|a}", "TagLetterKey")]
+    [InlineData("{key,|ab}", "TagLetterKey")]
+    [InlineData("{print|screen}", "TagPrintScreen")]
     public void Tags_have_their_help(string marked, string key) => Assert.Equal(key, At(marked)?.Key);
 
     [Fact]

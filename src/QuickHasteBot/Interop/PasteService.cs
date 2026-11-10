@@ -435,8 +435,8 @@ internal sealed class PasteService
         var inputs = new List<INPUT>();
         foreach (var modifier in key.Modifiers)
             inputs.Add(Key(modifier, down: true));
-        inputs.Add(Key(key.Vk, down: true));
-        inputs.Add(Key(key.Vk, down: false));
+        inputs.Add(Key(key.Vk, down: true, key.Extended));
+        inputs.Add(Key(key.Vk, down: false, key.Extended));
         for (var m = key.Modifiers.Count - 1; m >= 0; m--)
             inputs.Add(Key(key.Modifiers[m], down: false));
         return inputs.ToArray();
@@ -549,14 +549,35 @@ internal sealed class PasteService
             Log.Error($"SendInput hat nur {sent} von {inputs.Length} Eingaben gesendet (Win32-Fehler {Marshal.GetLastPInvokeError()})");
     }
 
-    static INPUT Key(ushort vk, bool down) => new()
+    static INPUT Key(ushort vk, bool down) => Key(vk, down, KeyTags.IsExtended(vk));
+
+    /// <summary>
+    /// Mit dem Scancode der Taste: Windows selbst richtet sich nach dem Code, Remote Desktop, Citrix und manche Spiele
+    /// aber nach dem Scancode, und ohne ihn kommt dort nichts oder die falsche Taste an.
+    /// </summary>
+    static INPUT Key(ushort vk, bool down, bool extended) => new()
     {
         type = INPUT_KEYBOARD,
         u = new InputUnion
         {
-            ki = new KEYBDINPUT { wVk = vk, dwFlags = (down ? 0 : KEYEVENTF_KEYUP) | (KeyTags.IsExtended(vk) ? KEYEVENTF_EXTENDEDKEY : 0) },
+            ki = new KEYBDINPUT { wVk = vk, wScan = ScanCode(vk), dwFlags = (down ? 0 : KEYEVENTF_KEYUP) | (extended ? KEYEVENTF_EXTENDEDKEY : 0) },
         },
     };
+
+    /// <summary>
+    /// Der Scancode im aktuellen Tastaturlayout, ohne das Präfix der erweiterten Tasten (das ist KEYEVENTF_EXTENDEDKEY).
+    /// 0 für Tasten ohne einfachen Scancode wie Pause (E1-Folge); sie kommen dann wie bisher nur mit ihrem Code an.
+    /// </summary>
+    static ushort ScanCode(ushort vk)
+    {
+        var scan = MapVirtualKeyW(vk, MAPVK_VK_TO_VSC_EX);
+        return (scan >> 8) switch
+        {
+            0 => (ushort)scan,
+            0xE0 => (ushort)(scan & 0xFF),
+            _ => 0,
+        };
+    }
 
     static INPUT Unicode(char c, bool down) => new()
     {

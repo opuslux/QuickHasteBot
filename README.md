@@ -295,16 +295,22 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 | `{tab}` `{enter}` `{esc}` `{space}` | Next field, submit, cancel, tick a checkbox |
 | `{up}` `{down}` `{left}` `{right}` `{home}` `{end}` `{pgup}` `{pgdn}` | Arrows and navigation, e.g. `{down,3}` in a dropdown |
 | `{backspace}`/`{bs}` `{delete}`/`{del}` `{insert}`/`{ins}` | Editing |
-| `{f1}` … `{f12}` | Function keys, e.g. `{f5}` reloads a page |
+| `{f1}` … `{f24}` | Function keys, e.g. `{f5}` reloads a page |
+| `{numplus}` `{numminus}` `{nummul}`/`{numstar}` `{numdiv}` `{numdot}` `{numenter}` `{num0}` … `{num9}` | Numpad keys. Trees such as the folder list in Outlook or Explorer only react to these: `{numplus}` expands the selected folder, `{numminus}` collapses it, `{nummul}` expands everything below. A typed `+` doesn't do that |
+| `{plus}` `{minus}` `{comma}` `{period}`/`{dot}` | The punctuation keys as keys, for combinations: `{ctrl+plus}` and `{ctrl+minus}` zoom in browsers |
+| `{key,a}` `{key,A}` `{key,5,3}` | A letter or digit as a real key press instead of a typed character, for Remote Desktop, Citrix and single-key shortcuts such as j/k in webmail. A capital letter adds Shift |
+| `{prtsc}`/`{printscreen}` `{pause}` `{capslock}` `{numlock}` `{scrolllock}` | Print Screen and the lock keys. Caps Lock and Num Lock stay switched until pressed again |
+| `{volumeup}` `{volumedown}` `{volumemute}`/`{mute}` `{playpause}` `{nexttrack}` `{prevtrack}` `{mediastop}` | Media keys |
+| `{browserback}` `{browserforward}` `{browserrefresh}` `{browserhome}` | Browser keys |
 | `{win}` `{alt}` `{ctrl}` `{shift}` `{apps}`/`{menu}` | Modifiers alone: `{win}` opens the Start menu, `{alt}` the menu bar, `{apps}` the context menu |
-| `{ctrl+a}` `{shift+tab}` `{ctrl+shift+end}` | Combinations with `ctrl`, `alt`, `shift`, `win`, plus any key above or a single letter or digit |
+| `{ctrl+a}` `{shift+tab}` `{ctrl+shift+end}` `{ctrl+numplus}` | Combinations with `ctrl`, `alt`, `shift`, `win`, plus any key above or a single letter or digit |
 | `{tab,3}` | Repeats a key |
 | `{wait,500}` | Pauses 500 ms, e.g. until a dropdown opens or a page has loaded (at most 10 s) |
 | `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms and programs that lose or mix up characters, such as Notepad in Windows 11 (`{delay,30}`) (default: 30 ms after keys, none between characters) |
 | `{clear}` | `{ctrl+a}{del}`: empties a prefilled field before typing |
 | `{guard,off}` `{guard,on}` | Turns the [window guard](#window-guard) off or on from here |
 
-Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and [`{start,notepad}`](#other-programs-window-and-start) starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them), and Caps Lock and Num Lock are left out on purpose, since they would stay switched.
+Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and [`{start,notepad}`](#other-programs-window-and-start) starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them).
 
 - **Line breaks** in the text are sent as Shift+Enter: a new line in a multi-line field or chat box that doesn't submit the form. Only `{enter}` submits. A single line break at the very end of the file is ignored.
 - **Line breaks at a tag are only layout** and are not sent: right after a tag, right before a tag (spaces in between don't matter), and blank lines or indentation between two tags. So every tag can go on a line of its own:
@@ -327,7 +333,7 @@ Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdo
 
 If another window comes to the front while a snippet runs (e.g. you click elsewhere during a `{wait}`), the snippet stops, so keys don't end up in the wrong program. Dialogs of the target window don't count.
 
-- After a key that switches windows on purpose (`{win}` and `win+…`, `{alt}`, `alt+tab`, `alt+esc`, `alt+f4`, `alt+space`, `{apps}`, `shift+f10`), the guard is off for the rest of the snippet.
+- After a key that switches windows on purpose (`{win}` and `win+…`, `{alt}`, `alt+tab`, `alt+esc`, `alt+f4`, `alt+space`, `{apps}`, `shift+f10`, `{prtsc}`), the guard is off for the rest of the snippet.
 - `{guard,off}` turns it off explicitly, e.g. for `{guard,off}{win}{wait,500}Notepad{wait,300}{enter}`; `{guard,on}` turns it back on for the window that is in front at that moment.
 - The setting "Stop when another window comes to the front" (`KeyTagsWindowGuard`) turns it off for all snippets.
 
