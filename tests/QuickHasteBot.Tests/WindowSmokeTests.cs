@@ -39,7 +39,7 @@ public class WindowSmokeTests
             ThemeAndDialogs();
             FileHotkeys();
             PopupGrowsWithFolderList();
-            KeptOpenPopupStaysBehindOtherWindows();
+            KeptOpenPopupIsAnOrdinaryWindow();
             PopupPreviewColors();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
@@ -1336,10 +1336,11 @@ public class WindowSmokeTests
     }
 
     /// <summary>
-    /// Mit Schloss bleibt das Popup offen, wenn ein anderes Fenster den Fokus bekommt, aber nicht darüber: Es reiht sich
-    /// dahinter ein, bei eigenen Fenstern (Editor, Einstellungen) wie bei fremden Programmen. Das Schloss wird gespeichert.
+    /// Mit Schloss ist das Popup ein normales Fenster (nicht Topmost), und Fensterwechsel rühren seine Stelle in der
+    /// Reihenfolge nicht an: ob Editor, Popup oder ein fremdes Programm vorne ist. Ein fremdes Programm wird zum Ziel.
+    /// Das Schloss wird gespeichert.
     /// </summary>
-    static void KeptOpenPopupStaysBehindOtherWindows()
+    static void KeptOpenPopupIsAnOrdinaryWindow()
     {
         using var dir = new TempDirectory();
         dir.File("settings.json", """{ "Language": "de" }""");
@@ -1347,38 +1348,38 @@ public class WindowSmokeTests
         var popup = new SearchPopup(controller);
         Snapshot(popup, "popup-kept-open.png");
         Assert.False(popup.KeepOpen);
+        Assert.True(popup.Topmost);
         popup.KeepOpenToggle.IsChecked = true;
+        Assert.False(popup.Topmost);
         Assert.True(controller.Settings.KeepPopupOpen);
         Assert.Contains("\"KeepPopupOpen\": true", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
         var editor = new Window { Width = 200, Height = 100, ShowInTaskbar = false };
         Snapshot(editor, "popup-kept-open-editor.png");
         var popupHwnd = new System.Windows.Interop.WindowInteropHelper(popup).Handle;
         var editorHwnd = new System.Windows.Interop.WindowInteropHelper(editor).Handle;
-
-        popup.OnForegroundChanged(editorHwnd);
-        Assert.True(popup.IsVisible, "offen gelassen");
-        Assert.False(popup.Topmost);
-        var below = false;
-        for (var h = NativeMethods.GetWindow(editorHwnd, NativeMethods.GW_HWNDNEXT); h != 0 && !below; h = NativeMethods.GetWindow(h, NativeMethods.GW_HWNDNEXT))
-            below = h == popupHwnd;
-        Assert.True(below, "Popup hinter dem Editor");
-
-        // Ein fremdes Programm vorne (hier, was am Bildschirmrand liegt): auch nicht mehr darüber
-        popup.OnForegroundChanged(popupHwnd);
-        Assert.True(popup.Topmost);
         var foreign = NativeMethods.WindowFromPoint(new NativeMethods.POINT { X = 0, Y = 0 });
         NativeMethods.GetWindowThreadProcessId(foreign, out var foreignPid);
         Assert.NotEqual((uint)Environment.ProcessId, foreignPid);
-        popup.OnForegroundChanged(foreign);
-        Assert.False(popup.Topmost);
+
+        var behind = NativeMethods.GetWindow(popupHwnd, NativeMethods.GW_HWNDNEXT);
+        var target = popup.TargetWindow;
+        foreach (var window in new[] { editorHwnd, popupHwnd, foreign, editorHwnd })
+        {
+            popup.OnForegroundChanged(window);
+            Assert.True(popup.IsVisible, "offen gelassen");
+            Assert.False(popup.Topmost);
+            Assert.Equal(behind, NativeMethods.GetWindow(popupHwnd, NativeMethods.GW_HWNDNEXT));
+            if (window == foreign)
+                target = foreign;
+            Assert.Equal(target, popup.TargetWindow); // eigene Fenster werden nie zum Ziel
+        }
 
         // Ein neues Popup (nächster Start) übernimmt das Schloss
         var next = new SearchPopup(controller);
         Assert.True(next.KeepOpen);
         next.Close();
 
-        // Hinter einem Fenster und dann das Schloss auf: wie immer zuoberst, und gespeichert
-        popup.OnForegroundChanged(editorHwnd);
+        // Schloss auf: wieder zuoberst wie das Popup ohne Schloss, und gespeichert
         popup.KeepOpenToggle.IsChecked = false;
         Assert.True(popup.Topmost);
         Assert.False(controller.Settings.KeepPopupOpen);

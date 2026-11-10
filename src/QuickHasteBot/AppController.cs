@@ -102,6 +102,16 @@ internal sealed class AppController : IDisposable
             _popup?.ShowFor(target);
     }
 
+    /// <summary>
+    /// Linksklick aufs Tray-Symbol: Ein offen gelassenes Popup kommt nach vorne. Das Ziel bleibt, die Taskleiste ist
+    /// keines. Ein geschlossenes Popup öffnet es nicht, dafür gibt es den Hotkey.
+    /// </summary>
+    public void BringKeptOpenPopupToFront()
+    {
+        if (_popup is { KeepOpen: true, IsVisible: true } keptOpen)
+            keptOpen.Refocus(0);
+    }
+
     public void ShowSettings() => ShowSettings(position: null);
 
     /// <summary>Das KI-Prompt-Fenster gibt es nur einmal, ein weiterer Klick holt es nach vorne.</summary>
