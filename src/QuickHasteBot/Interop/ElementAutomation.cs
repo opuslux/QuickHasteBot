@@ -549,8 +549,86 @@ internal static class ElementAutomation
                 if (parent is null || !Interactive.Contains(parent.Current.ControlType)) break;
                 element = parent;
             }
+            // Tag, Monat, Jahr eines Datumsfelds zählen als das Feld. Den Button darin (Kalender, Passwort anzeigen)
+            // meldet Chrome nur genau in seiner Mitte, daneben das ganze Feld: dann selbst nachschauen.
+            if (DateFieldOf(element) is { } date)
+                element = date;
+            if (element.Current.ControlType == ControlType.Edit || IsDateField(element))
+                element = ButtonAt(element, point) ?? element;
 
             return Describe(element, root);
+        }
+        catch (Exception ex) when (ex is ElementNotAvailableException or COMException or InvalidOperationException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>In Chrome und Edge der Teil eines Datums- oder Zeitfelds mit den Teilfeldern (Tag, Monat, Jahr …).</summary>
+    const string DateTimeEdit = "date-time-edit";
+
+    /// <summary>
+    /// Das Datums- oder Zeitfeld (Chrome, Edge), zu dem ein Teilfeld wie "Tag" gehört, oder das Feld selbst. Sonst null.
+    /// Die Teilfelder sind Spinner, das Feld ein Edit (Datum) oder eine Group (Uhrzeit).
+    /// </summary>
+    public static AutomationElement? DateFieldOf(AutomationElement element)
+    {
+        if (IsDateField(element)) return element;
+        var walker = TreeWalker.RawViewWalker;
+        var current = element;
+        for (var i = 0; i < 3 && walker.GetParent(current) is { } parent; i++)
+        {
+            if (parent.Current.AutomationId == DateTimeEdit) return walker.GetParent(parent);
+            current = parent;
+        }
+        return null;
+    }
+
+    /// <summary>Die Teilfelder hängen im Raw-Baum als erstes Kind unter dem Feld (im Control-Baum fehlt die Gruppe).</summary>
+    static bool IsDateField(AutomationElement element)
+    {
+        var type = element.Current.ControlType;
+        return (type == ControlType.Edit || type == ControlType.Group)
+            && TreeWalker.RawViewWalker.GetFirstChild(element) is { } first && first.Current.AutomationId == DateTimeEdit;
+    }
+
+    static AutomationElement? ButtonAt(AutomationElement field, Point point)
+    {
+        foreach (AutomationElement button in field.FindAll(TreeScope.Descendants,
+                     new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)))
+        {
+            if (button.Current.BoundingRectangle.Contains(point))
+                return button;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Der Wert eines Datums- oder Zeitfelds so, wie man ihn eintippt (<see cref="Recording.TypedDate"/>), z.B.
+    /// "20112026". Leer, wenn das Feld (noch) kein vollständiges Datum hat. Null, wenn es weg ist.
+    /// </summary>
+    public static string? DateDigits(AutomationElement field)
+    {
+        try
+        {
+            if (Pattern<ValuePattern>(field, ValuePattern.Pattern) is not { } value) return null;
+            if (value.Current.Value.Length == 0) return "";
+            var walker = TreeWalker.RawViewWalker;
+            if (walker.GetFirstChild(field) is not { } edit || edit.Current.AutomationId != DateTimeEdit) return null;
+            var parts = new List<string>();
+            Collect(edit, 0);
+            return Recording.TypedDate(parts);
+
+            void Collect(AutomationElement parent, int depth)
+            {
+                for (var child = walker.GetFirstChild(parent); child is not null; child = walker.GetNextSibling(child))
+                {
+                    if (child.Current.ControlType == ControlType.Spinner)
+                        parts.Add(Pattern<ValuePattern>(child, ValuePattern.Pattern)?.Current.Value ?? "");
+                    else if (depth < 3)
+                        Collect(child, depth + 1);
+                }
+            }
         }
         catch (Exception ex) when (ex is ElementNotAvailableException or COMException or InvalidOperationException or ArgumentException)
         {
