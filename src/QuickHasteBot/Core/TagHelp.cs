@@ -29,7 +29,9 @@ public static class TagHelp
         ["esc"] = "TagCancel", ["escape"] = "TagCancel", ["up"] = "TagUp", ["down"] = "TagDown", ["left"] = "TagLeft",
         ["right"] = "TagRight", ["home"] = "TagHome", ["end"] = "TagEnd", ["bs"] = "TagBackspace", ["backspace"] = "TagBackspace",
         ["del"] = "TagDelete", ["delete"] = "TagDelete", ["ctrl+a"] = "TagSelectAll", ["alt+down"] = "TagOpenDropdown",
-        ["ctrl+enter"] = "TagSendChat", ["f5"] = "TagReload",
+        ["ctrl+enter"] = "TagSendChat", ["f5"] = "TagReload", ["numplus"] = "TagNumPlus", ["numminus"] = "TagNumMinus",
+        ["nummul"] = "TagNumMul", ["numstar"] = "TagNumMul", ["ctrl+plus"] = "TagZoomIn", ["prtsc"] = "TagPrintScreen",
+        ["printscreen"] = "TagPrintScreen", ["playpause"] = "TagPlayPause", ["browserback"] = "TagBrowserBack",
     };
 
     // Die Helfer in {{ … }}; focus, click, set, dblclick, rclick, window und wait erklären sich wie ihr Tag
@@ -45,7 +47,7 @@ public static class TagHelp
     public static IEnumerable<string> AllKeys =>
         KeyTopics.Values.Concat(HelperTopics.Values)
             .Concat(["TagComment", "TagWait", "TagDelay", "TagClear", "TagGuardOff", "TagGuardOn", "TagFocus", "TagClick", "TagSet",
-                "TagDoubleClick", "TagRightClick", "TagWindow", "TagStart", "TagStartUrl", AnyKey, Repeat])
+                "TagDoubleClick", "TagRightClick", "TagWindow", "TagStart", "TagStartUrl", "TagLetterKey", AnyKey, Repeat])
             .Distinct();
 
     /// <summary>
@@ -89,6 +91,7 @@ public static class TagHelp
             "rclick" => "TagRightClick",
             "window" => "TagWindow",
             "start" => KeyTags.IsWebAddress(first) ? "TagStartUrl" : "TagStart",
+            "key" => "TagLetterKey",
             _ => null,
         };
         if (key is not null) return new(0, 0, key);

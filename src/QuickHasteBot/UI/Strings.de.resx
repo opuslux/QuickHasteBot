@@ -167,6 +167,14 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagBackspace" xml:space="preserve"><value>Zeichen links löschen</value></data>
   <data name="TagDelete" xml:space="preserve"><value>Zeichen rechts löschen</value></data>
   <data name="TagReload" xml:space="preserve"><value>neu laden</value></data>
+  <data name="TagNumPlus" xml:space="preserve"><value>aufklappen (Num +)</value></data>
+  <data name="TagNumMinus" xml:space="preserve"><value>zuklappen (Num −)</value></data>
+  <data name="TagNumMul" xml:space="preserve"><value>alles darunter aufklappen (Num *)</value></data>
+  <data name="TagZoomIn" xml:space="preserve"><value>vergrössern (Zoom)</value></data>
+  <data name="TagLetterKey" xml:space="preserve"><value>Buchstabe als echter Tastendruck</value></data>
+  <data name="TagPrintScreen" xml:space="preserve"><value>Bildschirmfoto (Druck)</value></data>
+  <data name="TagPlayPause" xml:space="preserve"><value>Wiedergabe/Pause (Medientaste)</value></data>
+  <data name="TagBrowserBack" xml:space="preserve"><value>zurück (Browsertaste)</value></data>
   <data name="TagTime" xml:space="preserve"><value>aktuelle Uhrzeit</value></data>
   <data name="TagGuid" xml:space="preserve"><value>eindeutige Nummer (GUID)</value></data>
   <data name="TagComment" xml:space="preserve"><value>Kommentar, wird nicht eingefügt</value></data>
@@ -196,7 +204,15 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagSelectAllHelp" xml:space="preserve"><value>Strg+A: markiert alles im Feld. Um ein Feld vor dem Tippen zu leeren, ist {clear} kürzer.</value></data>
   <data name="TagOpenDropdownHelp" xml:space="preserve"><value>Alt+Pfeil runter: öffnet das Dropdown mit dem Fokus. Zum Auswählen einer Option ist {set,#id,"Option"} zuverlässiger.</value></data>
   <data name="TagSendChatHelp" xml:space="preserve"><value>Strg+Enter: sendet in Outlook, Teams und vielen Web-Editoren, wo Enter nur eine neue Zeile beginnt.</value></data>
-  <data name="TagReloadHelp" xml:space="preserve"><value>F5: lädt eine Webseite neu oder aktualisiert eine Ansicht. Jede Funktionstaste von {f1} bis {f12} geht gleich.</value></data>
+  <data name="TagReloadHelp" xml:space="preserve"><value>F5: lädt eine Webseite neu oder aktualisiert eine Ansicht. Jede Funktionstaste von {f1} bis {f24} geht gleich.</value></data>
+  <data name="TagNumPlusHelp" xml:space="preserve"><value>Num +: klappt den markierten Ordner oder Knoten in einer Baumansicht auf, z.B. die Ordnerliste in Outlook oder im Explorer. Ein getipptes + tut das nicht. Die übrigen Tasten im Ziffernblock: {num0} bis {num9}, {numdiv}, {numdot}, {numenter}.</value></data>
+  <data name="TagNumMinusHelp" xml:space="preserve"><value>Num −: klappt den markierten Ordner oder Knoten in einer Baumansicht zu.</value></data>
+  <data name="TagNumMulHelp" xml:space="preserve"><value>Num *: klappt den markierten Knoten mit allen Unterordnern auf. In grossen Bäumen dauert das einen Moment, {wait,500} danach hilft.</value></data>
+  <data name="TagZoomInHelp" xml:space="preserve"><value>Strg und die +-Taste: vergrössert in Browsern und vielen Programmen, {ctrl+minus} verkleinert, {ctrl+0} setzt zurück. {plus}, {minus}, {comma} und {period} lassen sich mit jeder Zusatztaste verbinden. Reagiert ein Programm nicht, hilft {ctrl+numplus}.</value></data>
+  <data name="TagLetterKeyHelp" xml:space="preserve"><value>{key,a} drückt die Taste A, statt den Buchstaben zu tippen: für Remote Desktop, Citrix und Tastenkürzel ohne Strg, z.B. j/k in Webmail. Ein Grossbuchstabe drückt Shift dazu ({key,A}), eine Zahl wiederholt ({key,a,3}). Nur Buchstaben und Ziffern.</value></data>
+  <data name="TagPrintScreenHelp" xml:space="preserve"><value>Druck: kopiert den Bildschirm oder öffnet das Snipping Tool, je nach Windows-Einstellung; {alt+prtsc} nur das aktive Fenster. Ebenso: {pause}, {capslock}, {numlock}, {scrolllock}.</value></data>
+  <data name="TagPlayPauseHelp" xml:space="preserve"><value>Medientaste Wiedergabe/Pause, geht an den Player, der gerade spielt. Ebenso: {nexttrack}, {prevtrack}, {mediastop}, {volumeup}, {volumedown}, {volumemute}.</value></data>
+  <data name="TagBrowserBackHelp" xml:space="preserve"><value>Die Browsertaste Zurück, wie Alt+Pfeil links im Browser. Ebenso: {browserforward}, {browserrefresh}, {browserhome}.</value></data>
   <data name="TagCommentHelp" xml:space="preserve"><value>Eine Notiz für dich, sie wird nie eingefügt. Sie darf über mehrere Zeilen gehen und endet beim ersten }. Steht sie allein auf einer Zeile, fällt die ganze Zeile weg.</value></data>
   <data name="TagWaitHelp" xml:space="preserve"><value>Wartet 500 ms, bevor es weitergeht, z.B. bis ein Dropdown offen ist oder ein Dialog erscheint. Höchstens 10 s. Für Felder nicht nötig: {focus}, {click} und {set} warten selbst bis zu 5 s auf ihr Element.</value></data>
   <data name="TagDelayHelp" xml:space="preserve"><value>Ab hier 50 ms Pause nach jeder Taste und jedem Zeichen. Für langsame Formulare und Programme, die Zeichen verlieren; Notepad in Windows 11 braucht {delay,30}.</value></data>

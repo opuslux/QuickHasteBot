@@ -378,7 +378,10 @@ internal partial class SnippetEditorWindow : Window
             new("{left}", nameof(Strings.TagLeft)), new("{right}", nameof(Strings.TagRight)), new("{home}", nameof(Strings.TagHome)),
             new("{end}", nameof(Strings.TagEnd)), null,
             new("{bs}", nameof(Strings.TagBackspace)), new("{del}", nameof(Strings.TagDelete)), new("{ctrl+a}", nameof(Strings.TagSelectAll)),
-            new("{alt+down}", nameof(Strings.TagOpenDropdown)), new("{ctrl+enter}", nameof(Strings.TagSendChat)), new("{f5}", nameof(Strings.TagReload)),
+            new("{alt+down}", nameof(Strings.TagOpenDropdown)), new("{ctrl+enter}", nameof(Strings.TagSendChat)), new("{f5}", nameof(Strings.TagReload)), null,
+            new("{numplus}", nameof(Strings.TagNumPlus)), new("{numminus}", nameof(Strings.TagNumMinus)), new("{nummul}", nameof(Strings.TagNumMul)),
+            new("{ctrl+plus}", nameof(Strings.TagZoomIn)), new("{key,a}", nameof(Strings.TagLetterKey), "a"), null,
+            new("{prtsc}", nameof(Strings.TagPrintScreen)), new("{playpause}", nameof(Strings.TagPlayPause)), new("{browserback}", nameof(Strings.TagBrowserBack)),
         ]),
         (nameof(Strings.EditorTagsFlow),
         [

@@ -167,6 +167,14 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagBackspace" xml:space="preserve"><value>delete to the left</value></data>
   <data name="TagDelete" xml:space="preserve"><value>delete to the right</value></data>
   <data name="TagReload" xml:space="preserve"><value>reload</value></data>
+  <data name="TagNumPlus" xml:space="preserve"><value>expand (numpad +)</value></data>
+  <data name="TagNumMinus" xml:space="preserve"><value>collapse (numpad −)</value></data>
+  <data name="TagNumMul" xml:space="preserve"><value>expand everything below (numpad *)</value></data>
+  <data name="TagZoomIn" xml:space="preserve"><value>zoom in</value></data>
+  <data name="TagLetterKey" xml:space="preserve"><value>letter as a real key press</value></data>
+  <data name="TagPrintScreen" xml:space="preserve"><value>screenshot (Print Screen)</value></data>
+  <data name="TagPlayPause" xml:space="preserve"><value>play/pause (media key)</value></data>
+  <data name="TagBrowserBack" xml:space="preserve"><value>back (browser key)</value></data>
   <data name="TagTime" xml:space="preserve"><value>current time</value></data>
   <data name="TagGuid" xml:space="preserve"><value>unique ID (GUID)</value></data>
   <data name="TagComment" xml:space="preserve"><value>comment, not pasted</value></data>
@@ -196,7 +204,15 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagSelectAllHelp" xml:space="preserve"><value>Ctrl+A: selects everything in the field. To empty a field before typing, {clear} is shorter.</value></data>
   <data name="TagOpenDropdownHelp" xml:space="preserve"><value>Alt+Down: opens the dropdown that has the focus. To pick an option, {set,#id,"option"} is more reliable.</value></data>
   <data name="TagSendChatHelp" xml:space="preserve"><value>Ctrl+Enter: sends in Outlook, Teams and many web editors, where Enter only starts a new line.</value></data>
-  <data name="TagReloadHelp" xml:space="preserve"><value>F5: reloads a web page or refreshes a view. Every function key from {f1} to {f12} works the same way.</value></data>
+  <data name="TagReloadHelp" xml:space="preserve"><value>F5: reloads a web page or refreshes a view. Every function key from {f1} to {f24} works the same way.</value></data>
+  <data name="TagNumPlusHelp" xml:space="preserve"><value>Numpad +: expands the selected folder or node in a tree, e.g. the folder list in Outlook or Explorer. A typed + does not do that. The other numpad keys: {num0} to {num9}, {numdiv}, {numdot}, {numenter}.</value></data>
+  <data name="TagNumMinusHelp" xml:space="preserve"><value>Numpad −: collapses the selected folder or node in a tree.</value></data>
+  <data name="TagNumMulHelp" xml:space="preserve"><value>Numpad *: expands the selected node with all its subfolders. In big trees this takes a moment, {wait,500} afterwards helps.</value></data>
+  <data name="TagZoomInHelp" xml:space="preserve"><value>Ctrl and the + key: zooms in in browsers and many programs, {ctrl+minus} zooms out, {ctrl+0} resets. {plus}, {minus}, {comma} and {period} combine with every modifier. If a program ignores it, try {ctrl+numplus}.</value></data>
+  <data name="TagLetterKeyHelp" xml:space="preserve"><value>{key,a} presses the A key instead of typing the letter: for Remote Desktop, Citrix and shortcuts without Ctrl, e.g. j/k in webmail. A capital letter adds Shift ({key,A}), a number repeats it ({key,a,3}). Letters and digits only.</value></data>
+  <data name="TagPrintScreenHelp" xml:space="preserve"><value>Print Screen: copies the screen or opens the Snipping Tool, depending on the Windows settings; {alt+prtsc} takes only the active window. Also there: {pause}, {capslock}, {numlock}, {scrolllock}.</value></data>
+  <data name="TagPlayPauseHelp" xml:space="preserve"><value>Media key play/pause, goes to the player that is playing. Also: {nexttrack}, {prevtrack}, {mediastop}, {volumeup}, {volumedown}, {volumemute}.</value></data>
+  <data name="TagBrowserBackHelp" xml:space="preserve"><value>The browser key Back, like Alt+Left in the browser. Also: {browserforward}, {browserrefresh}, {browserhome}.</value></data>
   <data name="TagCommentHelp" xml:space="preserve"><value>A note to yourself; it is never pasted. It may span several lines and ends at the first }. On a line of its own, the whole line goes.</value></data>
   <data name="TagWaitHelp" xml:space="preserve"><value>Waits 500 ms before going on, e.g. until a dropdown opens or a dialog appears. At most 10 s. Not needed for fields: {focus}, {click} and {set} wait up to 5 s for their element.</value></data>
   <data name="TagDelayHelp" xml:space="preserve"><value>From here on, pauses 50 ms after every key and character. For slow forms and programs that lose characters; Notepad in Windows 11 needs {delay,30}.</value></data>
