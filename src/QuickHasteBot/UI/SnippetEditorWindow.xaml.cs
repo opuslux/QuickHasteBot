@@ -406,6 +406,8 @@ internal partial class SnippetEditorWindow : Window
             new("{{ guid() }}", nameof(Strings.TagGuid)), null,
             new("{{ const r = run('d:/scripts/file.bat') }}", nameof(Strings.TagRun), "d:/scripts/file.bat", OwnLine: true),
             new("{{ const r = run('d:/scripts/file.bat', { args: '', dir: 'd:/data' }) }}", nameof(Strings.TagRunOptions), "d:/scripts/file.bat", OwnLine: true),
+            new("{{ run('powershell', '-NoProfile -Command \"$env:COMPUTERNAME\"', { hidden: true }).out.trim() }}", nameof(Strings.TagPowerShell), "$env:COMPUTERNAME"),
+            new("{{ run('msg', '* " + Strings.TagMessageText + "', { wait: 0, hidden: true }) }}", nameof(Strings.TagMessage), Strings.TagMessageText, OwnLine: true),
         ]),
     ];
 

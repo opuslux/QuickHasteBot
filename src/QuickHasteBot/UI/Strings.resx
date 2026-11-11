@@ -182,6 +182,9 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagCommentText" xml:space="preserve"><value>note</value></data>
   <data name="TagStartUrl" xml:space="preserve"><value>web address in the default browser</value></data>
   <data name="TagRunOptions" xml:space="preserve"><value>with arguments and folder</value></data>
+  <data name="TagPowerShell" xml:space="preserve"><value>PowerShell command, types its output</value></data>
+  <data name="TagMessage" xml:space="preserve"><value>message box (popup, alert)</value></data>
+  <data name="TagMessageText" xml:space="preserve"><value>Done</value></data>
   <data name="TagKey" xml:space="preserve"><value>key {0}</value></data>
   <data name="TagKeyHelper" xml:space="preserve"><value>a key from a script</value></data>
   <!-- Hilfetexte im Menü "Tag einfügen" und beim Hover im Editor: Name der Kurzbeschreibung + "Help" -->
@@ -236,6 +239,8 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagGuidHelp" xml:space="preserve"><value>A new unique ID every time, e.g. for reference numbers.</value></data>
   <data name="TagRunHelp" xml:space="preserve"><value>Runs a script or program at this point and waits until it is done (60 s by default). r.out is what it printed, r.code its exit code; {{ r.out.trim() }} types the output.</value></data>
   <data name="TagRunOptionsHelp" xml:space="preserve"><value>Like run(), with options: args is passed to the script, dir is its working folder ("Start in"; otherwise the script's folder), wait the seconds to wait, hidden: true starts it without a window.</value></data>
+  <data name="TagPowerShellHelp" xml:space="preserve"><value>Runs a PowerShell command and types what it prints, here the computer name; .trim() removes the line break at the end. Single quotes inside the command are written as \' in JavaScript. A .ps1 file runs directly: run('d:/scripts/file.ps1').</value></data>
+  <data name="TagMessageHelp" xml:space="preserve"><value>Shows a message box, e.g. at the end of a form: "Done". alert() doesn't exist in scripts; msg is the message of Windows (not on Windows Home; Help has a PowerShell message box instead). wait: 0 doesn't wait for it, so nothing is typed; hidden: true keeps a console window from flashing.</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Open with default program</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>New snippet…</value></data>
   <data name="UseBuiltInEditor" xml:space="preserve"><value>Edit snippets in the built-in editor</value></data>
