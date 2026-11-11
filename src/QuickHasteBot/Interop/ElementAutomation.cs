@@ -45,24 +45,35 @@ internal static class ElementAutomation
     /// <summary>Strg+A vor dem Eintippen, wenn sich ein Wert nicht direkt setzen lässt.</summary>
     public static readonly KeyStep SelectAll = KeyTags.TryParse("ctrl+a", null, out var steps, out _) ? (KeyStep)steps[0] : throw new InvalidOperationException();
 
-    /// <summary>Sucht das Element im Fenster (wartet bis <see cref="FindTimeout"/>) und führt die Aktion aus.</summary>
+    /// <summary>
+    /// Sucht das Element im Fenster und führt die Aktion aus. Wartet bis <see cref="FindTimeout"/>, bis es da und
+    /// freigegeben ist: Viele Formulare geben ein Feld erst frei, wenn das davor ausgefüllt ist (die Uhrzeit erst nach
+    /// dem Datum). Bleibt es gesperrt, wird es trotzdem versucht, und die Fehlermeldung sagt warum.
+    /// </summary>
     public static ElementResult Run(ElementStep step, nint window, Func<bool> cancelled)
     {
         var deadline = Environment.TickCount64 + (long)FindTimeout.TotalMilliseconds;
         AutomationElement? element = null;
-        while (element is null)
+        while (true)
         {
+            var enabled = false;
             try
             {
-                element = FindInWindow(window, step.Selector);
+                // Jedes Mal neu suchen: Webseiten ersetzen ein Feld oft, wenn sie es freigeben
+                element = FindInWindow(window, step.Selector) ?? element;
+                enabled = element?.Current.IsEnabled == true;
             }
             catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException)
             {
                 // Fenster oder Baum im Umbau (Seite lädt), gleich nochmals
             }
-            if (element is not null) break;
+            if (enabled) break;
             if (cancelled()) return new(ElementOutcome.Cancelled);
-            if (Environment.TickCount64 > deadline) return new(ElementOutcome.NotFound);
+            if (Environment.TickCount64 > deadline)
+            {
+                if (element is null) return new(ElementOutcome.NotFound);
+                break;
+            }
             Thread.Sleep(PollInterval);
         }
 
@@ -584,6 +595,27 @@ internal static class ElementAutomation
         return null;
     }
 
+    /// <summary>Für den Recorder: wie <see cref="DateFieldOf"/>, auch für den Kalender-Button im Feld.</summary>
+    public static AutomationElement? DateFieldOfPart(AutomationElement element) =>
+        DateFieldOf(element) ?? (element.Current.ControlType == ControlType.Button
+            && TreeWalker.RawViewWalker.GetParent(element) is { } parent && IsDateField(parent) ? parent : null);
+
+    /// <summary>
+    /// Das Dropdown, zu dem eine Option gehört. Chrome meldet beim Aufklappen den Fokus zuerst auf der gewählten Option,
+    /// nicht auf dem Dropdown. Null, wenn die Option nicht unter einem Dropdown hängt.
+    /// </summary>
+    public static AutomationElement? ComboBoxOf(AutomationElement option)
+    {
+        var walker = TreeWalker.ControlViewWalker;
+        var current = option;
+        for (var i = 0; i < 3 && walker.GetParent(current) is { } parent; i++)
+        {
+            if (parent.Current.ControlType == ControlType.ComboBox) return parent;
+            current = parent;
+        }
+        return null;
+    }
+
     /// <summary>Die Teilfelder hängen im Raw-Baum als erstes Kind unter dem Feld (im Control-Baum fehlt die Gruppe).</summary>
     static bool IsDateField(AutomationElement element)
     {
@@ -743,7 +775,8 @@ internal static class ElementAutomation
         {
             // Element inzwischen weg (Seite gewechselt): dann eben ungeprüft
         }
-        return ElementSelector.Candidates(info.Id, info.Name, info.ClassName, null, info.HelpText) is [var first, ..] ? first : null;
+        // Mit Typ: Ein Name allein passt oft zuerst auf die Beschriftung daneben ("Uhrzeit" über dem Dropdown)
+        return ElementSelector.Candidates(info.Id, info.Name, info.ClassName, KnownType(info.Type), info.HelpText) is [var first, ..] ? first : null;
     }
 
     static List<ElementSelector> VerifiedSelectors(ElementInfo info, bool firstOnly)
