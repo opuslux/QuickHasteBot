@@ -388,9 +388,10 @@
                     </Style>
                 </DockPanel.Resources>
                 <!-- Rechts in der Fusszeile: offen lassen, um mehrere Bausteine nacheinander einzufügen (Strg+T).
-                     Offenes Schloss, eingeschaltet geschlossen. -->
+                     Offenes Schloss, eingeschaltet geschlossen. Ragt oben und unten über die Zeile hinaus, damit
+                     sie so hoch bleibt wie die Tastenkästchen (sonst ändert sich die Höhe des ganzen Popups). -->
                 <ToggleButton x:Name="KeepOpenToggle" DockPanel.Dock="Right"
-                              Margin="12,0,0,0" VerticalAlignment="Center" ToolTip="{x:Static ui:Strings.KeepOpenTooltip}"
+                              Margin="12,-4,0,-4" VerticalAlignment="Center" ToolTip="{x:Static ui:Strings.KeepOpenTooltip}"
                               Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged">
                     <ToggleButton.Style>
                         <Style TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
