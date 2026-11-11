@@ -237,7 +237,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - **A line of blocks that prints nothing goes away**, line break included, like a comment line. So assignments and checks can stand on lines of their own, and a line can depend on a condition: `{{ vip ? 'Priority handling' : '' }}` on its own line appears only for VIPs. If the blocks print something, the line stays as written. Empty lines you type yourself stay.
-- There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist, and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
+- There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist (for a message box, see [Message box and PowerShell](#message-box-and-powershell)), and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 - If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts`).
@@ -262,6 +262,32 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 - **At its place:** blocks are normally all evaluated before the first key is sent. If a tag comes before the first `run()`, that block and all later ones are evaluated only when the snippet gets there, so the script runs after what comes before it and later blocks see its result. In the preview such blocks show as written, and in step-by-step runs each block (or line of blocks) is a step of its own; what it prints appears as steps behind it.
 - **Focus:** if the script's window comes to the front, the window that was in front before is brought back afterwards. Holding Esc stops the wait.
 - The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. With the [log](#portable) switched on, every start and exit code is written to it.
+
+#### Message box and PowerShell
+
+Scripts don't run in the browser, so there is no `alert()`. For a message box (popup), e.g. when a form is filled in, start the message of Windows with `run()`:
+
+```
+{click,name=Send;type=button}
+{{ run('msg', '* The automation is done', { wait: 0, hidden: true }) }}
+```
+
+- `msg` comes with Windows Pro and Enterprise; `*` sends the message to your own session. `wait: 0` doesn't wait for the box, so the snippet goes on and nothing is typed. `hidden: true` keeps a console window from flashing. Since a tag comes before it, the box shows only when the snippet gets there.
+- Windows Home has no `msg`. A message box from PowerShell works on every edition:
+
+```
+{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'The automation is done\')"', { wait: 0, hidden: true }) }}
+```
+
+Any PowerShell command runs the same way, and its output can be typed:
+
+```
+Computer: {{ run('powershell', '-NoProfile -Command "$env:COMPUTERNAME"', { hidden: true }).out.trim() }}
+```
+
+- `.trim()` removes the line break PowerShell prints at the end.
+- The command goes in double quotes. Single quotes inside it are written as `\'`, because the JavaScript text around it is in single quotes.
+- `-NoProfile` skips your PowerShell profile, so it starts faster and the same everywhere. Longer scripts are better off in a `.ps1` file: `run('d:/scripts/report.ps1')`.
 
 ### Writing a block with AI
 
