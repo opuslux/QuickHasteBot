@@ -99,11 +99,12 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="EditorPicker" xml:space="preserve"><value>Element erfassen</value></data>
   <data name="EditorPickerToolTip" xml:space="preserve"><value>Öffnet den Fadenkreuz-Picker; «In Editor einfügen» setzt den Tag hier an die Schreibmarke</value></data>
   <data name="EditorPickerMenu" xml:space="preserve"><value>Mit dem Fadenkreuz erfassen…</value></data>
-  <data name="EditorAi" xml:space="preserve"><value>KI</value></data>
-  <data name="EditorPreviewError" xml:space="preserve"><value>Vorschau: Skriptfehler, es würde nichts eingefügt</value></data>
-  <data name="EditorPreviewForm" xml:space="preserve"><value>Vorschau: ein Formular-Baustein, wird mit diesen Tasten getippt</value></data>
-  <data name="EditorPreviewPaste" xml:space="preserve"><value>Vorschau: wird so eingefügt</value></data>
-  <data name="EditorPreviewEmpty" xml:space="preserve"><value>(leer)</value></data>
+  <data name="EditorAi" xml:space="preserve"><value>JS-KI</value></data>
+  <data name="EditorPreviewError" xml:space="preserve"><value>Skriptfehler</value></data>
+  <data name="EditorPreviewScript" xml:space="preserve"><value>Dieser Block ergibt</value></data>
+  <data name="EditorPreviewSelection" xml:space="preserve"><value>Die Auswahl ergibt</value></data>
+  <data name="EditorPreviewRunNote" xml:space="preserve"><value>run() startet hier nichts und liefert ein leeres Ergebnis. Es läuft erst beim Testen (F5).</value></data>
+  <data name="EditorPreviewEmpty" xml:space="preserve"><value>(nichts)</value></data>
   <data name="EditorTest" xml:space="preserve"><value>Testen</value></data>
   <data name="EditorTestToolTip" xml:space="preserve"><value>Danach ins Zielfeld klicken: Der Baustein läuft dort wie beim Einfügen, mit dem Text, wie er jetzt dasteht. Ist etwas markiert, läuft nur die Markierung, steht die Schreibmarke in einem Tag oder Skript, nur dieses (F5)</value></data>
   <data name="EditorTestSelection" xml:space="preserve"><value>Auswahl testen</value></data>

@@ -472,7 +472,8 @@ public class WindowSmokeTests
         Assert.Equal("in Bausteine › Editor", editor.FolderText.Text);
         Assert.False(editor.IsDirty);
         Assert.Equal("Gruss – Baustein bearbeiten", editor.Title);
-        Assert.Equal("Vorschau: wird so eingefügt", editor.PreviewLabel.Text);
+        // Vorschau nur für Skripte: reiner Text steht im Editor schon so da
+        Assert.Equal(Visibility.Collapsed, editor.PreviewBox.Visibility);
 
         editor.BodyInput.Text = "Max{tab}";
         editor.BodyInput.Select(editor.BodyInput.Text.Length, 0);
@@ -481,9 +482,23 @@ public class WindowSmokeTests
         Assert.Equal("id", editor.BodyInput.SelectedText);
         editor.BodyInput.SelectedText = "email";
         editor.BodyInput.Text += "{{ 6 * 7 }}";
+        editor.BodyInput.Select(editor.BodyInput.Text.Length - 4, 0);
         editor.UpdatePreview();
-        Assert.Equal("Vorschau: ein Formular-Baustein, wird mit diesen Tasten getippt", editor.PreviewLabel.Text);
-        Assert.Equal("Max{tab}{focus,#email}«42»".Replace("«", "").Replace("»", ""), editor.PreviewText.Text);
+        Assert.Equal(Visibility.Visible, editor.PreviewBox.Visibility);
+        Assert.Equal("Dieser Block ergibt", editor.PreviewLabel.Text);
+        Assert.Equal("42", editor.PreviewText.Text);
+        Assert.Equal(Visibility.Collapsed, editor.PreviewNote.Visibility);
+        // Die Auswahl: Tasten als lesbare Tags, das Skript ausgewertet
+        editor.BodyInput.Select(0, editor.BodyInput.Text.Length);
+        editor.UpdatePreview();
+        Assert.Equal("Die Auswahl ergibt", editor.PreviewLabel.Text);
+        Assert.Equal("Max{tab}{focus,#email}42", editor.PreviewText.Text);
+        // Schreibmarke im Text, nicht im Skript: keine Vorschau
+        editor.BodyInput.Select(1, 0);
+        editor.UpdatePreview();
+        Assert.Equal(Visibility.Collapsed, editor.PreviewBox.Visibility);
+        editor.BodyInput.Select(editor.BodyInput.Text.Length - 4, 0);
+        editor.UpdatePreview();
         Assert.True(editor.IsDirty);
         Assert.StartsWith("● ", editor.Title);
         Snapshot(editor, "editor.png");
@@ -542,9 +557,9 @@ public class WindowSmokeTests
         Assert.Equal("Hallo\r\n{# Notiz}\r\n", editor.BodyInput.Text);
         Assert.Equal("Notiz", editor.BodyInput.SelectedText);
         editor.UpdatePreview();
-        Assert.Equal("Hallo", editor.PreviewText.Text);
+        Assert.Equal(Visibility.Collapsed, editor.PreviewBox.Visibility);
 
-        // run(): auf eine eigene Zeile, der Pfad markiert. Die Vorschau startet nichts und zeigt den Block, wie er dasteht.
+        // run(): auf eine eigene Zeile, der Pfad markiert. Die Vorschau startet nichts, run() liefert dort ein leeres Ergebnis.
         filter.Text = "ausführen";
         Assert.Equal(["{{ const r = run('d:/scripts/file.bat') }}"], Visible());
         editor.BodyInput.Text = "{tab}";
@@ -553,8 +568,17 @@ public class WindowSmokeTests
         Assert.Equal("{tab}\r\n{{ const r = run('d:/scripts/file.bat') }}\r\n", editor.BodyInput.Text);
         Assert.Equal("d:/scripts/file.bat", editor.BodyInput.SelectedText);
         editor.BodyInput.Text = "{tab}{{ const r = run('x.bat') }}{{ r.out }}";
+        editor.BodyInput.Select(editor.BodyInput.Text.Length - 4, 0);
         editor.UpdatePreview();
-        Assert.Equal("{tab}{{ const r = run('x.bat') }}{{ r.out }}", editor.PreviewText.Text);
+        Assert.Equal("(nichts)", editor.PreviewText.Text);
+        Assert.Equal(Visibility.Visible, editor.PreviewNote.Visibility);
+        Assert.StartsWith("run() startet hier nichts", editor.PreviewNote.Text);
+        // Variablen aus den Blöcken davor gelten
+        editor.BodyInput.Text = "{{ var n = 3; '' }}Wert: {{ n * 2 }}";
+        editor.BodyInput.Select(editor.BodyInput.Text.Length - 4, 0);
+        editor.UpdatePreview();
+        Assert.Equal("6", editor.PreviewText.Text);
+        Assert.Equal(Visibility.Collapsed, editor.PreviewNote.Visibility);
         filter.Text = "";
         Assert.Equal(["Tasten", "Ablauf", "Elemente und Fenster", "Skript"], Visible());
 
@@ -587,9 +611,15 @@ public class WindowSmokeTests
         Assert.Equal("Auswahl testen", editor.TestButton.Content);
 
         editor.BodyInput.Text = "{{ 1 + }}";
+        editor.BodyInput.Select(3, 0);
         editor.UpdatePreview();
-        Assert.Equal("Vorschau: Skriptfehler, es würde nichts eingefügt", editor.PreviewLabel.Text);
+        Assert.Equal("Skriptfehler", editor.PreviewLabel.Text);
         Assert.StartsWith("Block 1: ", editor.PreviewText.Text);
+        // Die Nummer zählt im ganzen Text, auch wenn ein Block davor fehlschlägt
+        editor.BodyInput.Text = "{{ x( }}{{ 1 + }}";
+        editor.BodyInput.Select(12, 0);
+        editor.UpdatePreview();
+        Assert.StartsWith("Block 2: ", editor.PreviewText.Text);
 
         editor.BodyInput.Text = "Grüsse aus Zürich";
         Assert.True(editor.Save());
@@ -597,6 +627,7 @@ public class WindowSmokeTests
         Assert.Equal("Grüsse aus Zürich", TextFile.Read(ansi).Text);
         Assert.False(editor.IsDirty);
         Assert.Equal("Gespeichert.", editor.StatusText.Text);
+        Snapshot(editor, "editor-saved.png");
         Assert.NotNull(controller.Library.Find(@"Editor\Gruss.txt"));
 
         editor.NameInput.Text = "Gruss Zürich";
@@ -691,14 +722,14 @@ public class WindowSmokeTests
         picker.ActionRightClick.IsChecked = true;
         Assert.Equal(ElementAction.RightClick, picker.SelectedAction);
 
-        // Ohne Editor ist Kopieren der blaue Knopf; mit Editor: Testen, Kopieren, dann blau „In Editor einfügen“
+        // Ohne Editor ist Kopieren der blaue Knopf; mit Editor links blau „In Editor einfügen“, rechts Kopieren und Testen
         picker.UpdateInsertButton();
         Assert.Equal(Visibility.Collapsed, picker.InsertButton.Visibility);
         Assert.Same(picker.FindResource("AccentButtonStyle"), picker.CopyButton.Style);
         picker.InsertButton.Visibility = Visibility.Visible;
         picker.UpdateLayout();
         double X(FrameworkElement button) => button.TranslatePoint(new Point(), picker.ResultPanel).X;
-        Assert.True(X(picker.TestButton) < X(picker.CopyButton) && X(picker.CopyButton) < X(picker.InsertButton));
+        Assert.True(X(picker.InsertButton) < X(picker.CopyButton) && X(picker.CopyButton) < X(picker.TestButton));
         Assert.Same(picker.FindResource("AccentButtonStyle"), picker.InsertButton.Style);
         Snapshot(picker, "element-picker-actions.png");
         picker.Close();
@@ -1750,7 +1781,8 @@ public class WindowSmokeTests
         viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "Spalten");
         Assert.Equal("Datum:  A\r\nZufälliger Satz:    B".ReplaceLineEndings(), viewModel.DetailText);
         var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
-        editor.BodyInput.Text = "Datum:\tA";
+        editor.BodyInput.Text = "{{ 'Datum:\tA' }}";
+        editor.BodyInput.Select(3, 0);
         editor.UpdatePreview();
         Assert.Equal("Datum:  A", editor.PreviewText.Text);
         editor.BodyInput.Text = "";

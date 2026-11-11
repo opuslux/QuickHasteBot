@@ -13,14 +13,14 @@ using static QuickHasteBot.Interop.NativeMethods;
 namespace QuickHasteBot.UI;
 
 /// <summary>
-/// Eingebauter Editor für Textbausteine: Name, Text, Tag-Palette, Element-Picker und KI, eine Vorschau dessen, was der
-/// Baustein ergibt, und ein Testlauf, der ihn ins nächste angeklickte Fenster schickt, mit dem ungespeicherten Text.
+/// Eingebauter Editor für Textbausteine: Name, Text, Tag-Palette, Element-Picker und KI, eine Vorschau dessen, was das
+/// Skript an der Schreibmarke ergibt, und ein Testlauf, der ihn ins nächste angeklickte Fenster schickt, mit dem ungespeicherten Text.
 /// Speichern behält die Zeichenkodierung der Datei (ANSI bleibt ANSI). Ein Fenster pro Datei.
 /// Strg+S speichert, F5 testet, Esc schliesst (fragt bei Änderungen).
 /// </summary>
 internal partial class SnippetEditorWindow : Window
 {
-    static readonly TimeSpan PreviewDelay = TimeSpan.FromMilliseconds(400);
+    static readonly TimeSpan PreviewDelay = TimeSpan.FromMilliseconds(300);
     static readonly TimeSpan TargetTimeout = TimeSpan.FromSeconds(30);
     const ushort VK_LBUTTON = 0x01;
 
@@ -129,9 +129,18 @@ internal partial class SnippetEditorWindow : Window
         area.SelectionCornerRadius = 0;
         area.Caret.CaretBrush = null;
 
-        // Die Test-Taste sagt, was gleich läuft: alles, die Auswahl oder das Tag an der Schreibmarke
-        area.SelectionChanged += (_, _) => UpdateTestButton();
-        area.Caret.PositionChanged += (_, _) => UpdateTestButton();
+        // Die Test-Taste sagt, was gleich läuft: alles, die Auswahl oder das Tag an der Schreibmarke.
+        // Die Vorschau zeigt, was das Skript dort ergibt.
+        area.SelectionChanged += (_, _) => OnCaretMoved();
+        area.Caret.PositionChanged += (_, _) => OnCaretMoved();
+    }
+
+    void OnCaretMoved()
+    {
+        UpdateTestButton();
+        if (_loading) return;
+        _previewTimer.Stop();
+        _previewTimer.Start();
     }
 
     (int Start, int Length, TestScope Scope) TestRange() =>
@@ -283,18 +292,39 @@ internal partial class SnippetEditorWindow : Window
 
     void UpdateTitle() => Title = (IsDirty ? "● " : "") + DisplayName + " – " + Strings.EditorTitle;
 
+    /// <summary>
+    /// Was das Skript an der Schreibmarke ergibt, bzw. die Auswahl, wenn darin ein Skript steht. Sonst keine Vorschau:
+    /// Text und Tasten-Tags stehen im Editor schon so da, wie sie laufen.
+    /// </summary>
     internal void UpdatePreview()
     {
         _previewTimer.Stop();
-        var preview = _app.Preview(BodyInput.Text);
+        var text = BodyInput.Text;
+        var (start, length, scope) = TestRange();
+        var part = text.Substring(start, length);
+        if (!_app.Settings.EvaluateScripts || scope is not (TestScope.Script or TestScope.Selection) || !SnippetScript.HasBlocks(part))
+        {
+            PreviewBox.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        PreviewBox.Visibility = Visibility.Visible;
+        var preview = _app.Preview(text, start, length);
+        PreviewNote.Text = Strings.EditorPreviewRunNote;
+        // Auch ein run() davor: seine Variable ist hier leer
+        PreviewNote.Visibility = ScriptSession.UsesRun(text[..(start + length)]) ? Visibility.Visible : Visibility.Collapsed;
         if (preview.Error is not null)
         {
             PreviewLabel.Text = Strings.EditorPreviewError;
+            PreviewIcon.Text = "\uEA39";
+            PreviewIcon.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCriticalBrush");
             PreviewText.Text = preview.Error;
             PreviewText.SetResourceReference(TextBlock.ForegroundProperty, "SystemFillColorCriticalBrush");
             return;
         }
-        PreviewLabel.Text = preview.IsForm ? Strings.EditorPreviewForm : Strings.EditorPreviewPaste;
+        PreviewLabel.Text = scope == TestScope.Script ? Strings.EditorPreviewScript : Strings.EditorPreviewSelection;
+        PreviewIcon.Text = "\uE943";
+        PreviewIcon.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
         PreviewText.Text = preview.Text.Length == 0 ? Strings.EditorPreviewEmpty : TabStops.Expand(preview.Text);
         PreviewText.SetResourceReference(TextBlock.ForegroundProperty,
             preview.Text.Length == 0 ? "TextFillColorTertiaryBrush" : "TextFillColorPrimaryBrush");
@@ -616,7 +646,7 @@ internal partial class SnippetEditorWindow : Window
                 NameInput.Text = name;
             _savedWriteTime = File.GetLastWriteTimeUtc(path);
             UpdateTitle();
-            ShowStatus(Strings.EditorSaved);
+            ShowStatus(Strings.EditorSaved, StatusKind.Success);
             _app.SnippetSaved(path);
             return true;
         }
@@ -628,10 +658,26 @@ internal partial class SnippetEditorWindow : Window
         }
     }
 
-    void ShowStatus(string text, bool error = false)
+    enum StatusKind { Info, Success, Error, Busy }
+
+    void ShowStatus(string text, bool error = false) => ShowStatus(text, error ? StatusKind.Error : StatusKind.Info);
+
+    /// <summary>Die Meldung links neben den Knöpfen: Symbol und getönte Fläche nach Art, wie eine InfoBar.</summary>
+    void ShowStatus(string text, StatusKind kind)
     {
+        var (icon, color, background) = kind switch
+        {
+            StatusKind.Success => ("\uE73E", "SystemFillColorSuccessBrush", "SystemFillColorSuccessBackgroundBrush"),
+            StatusKind.Error => ("\uEA39", "SystemFillColorCriticalBrush", "SystemFillColorCriticalBackgroundBrush"),
+            StatusKind.Busy => ("\uE768", "AccentTextFillColorPrimaryBrush", "SystemFillColorAttentionBackgroundBrush"),
+            _ => ("\uE946", "TextFillColorSecondaryBrush", "SubtleFillColorSecondaryBrush"),
+        };
         StatusText.Text = text;
-        StatusText.SetResourceReference(TextBlock.ForegroundProperty, error ? "SystemFillColorCriticalBrush" : "TextFillColorSecondaryBrush");
+        StatusIcon.Text = icon;
+        StatusIcon.SetResourceReference(TextBlock.ForegroundProperty, color);
+        StatusBox.SetResourceReference(Border.BackgroundProperty, background);
+        if (TestBanner.Visibility != Visibility.Visible)
+            StatusBox.Visibility = Visibility.Visible;
     }
 
     // --- Testlauf ---
@@ -670,9 +716,9 @@ internal partial class SnippetEditorWindow : Window
                 ShowStatus(Strings.EditorTestCancelled);
                 return;
             }
-            ShowStatus(Running(startTag, Strings.EditorTestRunning));
+            ShowStatus(Running(startTag, Strings.EditorTestRunning), StatusKind.Busy);
             var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target);
-            ShowStatus(problem?.Message ?? Strings.EditorTestDone, error: problem is not null);
+            ShowStatus(problem?.Message ?? Strings.EditorTestDone, problem is null ? StatusKind.Success : StatusKind.Error);
         }
         finally
         {
@@ -730,12 +776,12 @@ internal partial class SnippetEditorWindow : Window
         run.Changed += (_, view) => ShowStep(text, view);
         StepMarker.Clear();
         LockForStepRun(true);
-        ShowStatus(Running(startTag, Strings.EditorStepRunning));
+        ShowStatus(Running(startTag, Strings.EditorStepRunning), StatusKind.Busy);
         try
         {
             await run.RunAsync();
             ShowStatus(StepMarker.Mark == StepMark.Failed ? Strings.EditorStepRunFailed : Strings.EditorStepRunEnded,
-                error: StepMarker.Mark == StepMark.Failed);
+                StepMarker.Mark == StepMark.Failed ? StatusKind.Error : StatusKind.Success);
         }
         finally
         {
@@ -819,7 +865,7 @@ internal partial class SnippetEditorWindow : Window
         };
 
         LockForRecording(true);
-        ShowStatus(Strings.EditorRecording);
+        ShowStatus(Strings.EditorRecording, StatusKind.Busy);
         Log.Info($"Aufnahme: {DisplayName}");
         try
         {
@@ -837,7 +883,7 @@ internal partial class SnippetEditorWindow : Window
             {
                 LockForRecording(false);
                 InsertRecorded(text);
-                ShowStatus(string.Format(Strings.EditorRecordedFormat, Recording.Lines(actions, bar.Mode).Count));
+                ShowStatus(string.Format(Strings.EditorRecordedFormat, Recording.Lines(actions, bar.Mode).Count), StatusKind.Success);
             }
         }
         finally
@@ -927,7 +973,7 @@ internal partial class SnippetEditorWindow : Window
             inlines.Add(new Run(" "));
         }
         inlines.Add(new Run(Strings.EditorTestStops) { FontStyle = FontStyles.Italic });
-        StatusText.Visibility = Visibility.Collapsed;
+        StatusBox.Visibility = Visibility.Collapsed;
         TestBanner.Visibility = Visibility.Visible;
 
         _hint?.Close();
@@ -943,7 +989,7 @@ internal partial class SnippetEditorWindow : Window
         _hint?.Close();
         _hint = null;
         TestBanner.Visibility = Visibility.Collapsed;
-        StatusText.Visibility = Visibility.Visible;
+        StatusBox.Visibility = StatusText.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>Für die Statuszeile: eine Zeile, höchstens 60 Zeichen.</summary>
@@ -1015,8 +1061,6 @@ internal partial class SnippetEditorWindow : Window
         }
         e.Handled = true;
     }
-
-    void OnCloseClick(object sender, RoutedEventArgs e) => Close();
 
     void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {

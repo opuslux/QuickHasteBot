@@ -162,27 +162,11 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Suchfeld mit Platzhalter, links das App-Icon. Rechts oben, wo bei Fenstern die Titelknöpfe sitzen:
-                 offen und im Vordergrund lassen, um mehrere Bausteine nacheinander einzufügen (Strg+T). -->
+            <!-- Suchfeld mit Platzhalter, links das App-Icon -->
             <DockPanel Grid.Row="0">
                 <Image DockPanel.Dock="Left" Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
                        Width="32" Height="32" Margin="0,0,10,0" VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality" />
-                <!-- Offenes Schloss, eingeschaltet geschlossen -->
-                <ToggleButton x:Name="KeepOpenToggle" DockPanel.Dock="Right"
-                              Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="{x:Static ui:Strings.KeepOpenTooltip}"
-                              Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged">
-                    <ToggleButton.Style>
-                        <Style TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
-                            <Setter Property="Content" Value="&#xE785;" />
-                            <Style.Triggers>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter Property="Content" Value="&#xE72E;" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ToggleButton.Style>
-                </ToggleButton>
                 <Grid>
                     <TextBox x:Name="SearchBox"
                              Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
@@ -397,18 +381,34 @@
             </Grid>
 
             <!-- Tastenkürzel, Tasten als Kästchen. Bearbeiten, Explorer und Einstellungen lassen sich auch anklicken. -->
-            <StackPanel x:Name="HintBar" Grid.Row="3" Orientation="Horizontal" Margin="4,8,4,0">
-                <StackPanel.Resources>
+            <DockPanel x:Name="HintBar" Grid.Row="3" LastChildFill="False" Margin="4,8,0,0">
+                <DockPanel.Resources>
                     <Style TargetType="ui:KeyHint">
                         <Setter Property="Margin" Value="12,0,0,0" />
                     </Style>
-                </StackPanel.Resources>
+                </DockPanel.Resources>
+                <!-- Rechts in der Fusszeile: offen lassen, um mehrere Bausteine nacheinander einzufügen (Strg+T).
+                     Offenes Schloss, eingeschaltet geschlossen. -->
+                <ToggleButton x:Name="KeepOpenToggle" DockPanel.Dock="Right"
+                              Margin="12,0,0,0" VerticalAlignment="Center" ToolTip="{x:Static ui:Strings.KeepOpenTooltip}"
+                              Checked="OnKeepOpenChanged" Unchecked="OnKeepOpenChanged">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton" BasedOn="{StaticResource IconToggle}">
+                            <Setter Property="Content" Value="&#xE785;" />
+                            <Style.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Content" Value="&#xE72E;" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
                 <ui:KeyHint x:Name="EnterHint" Keys="Enter" Label="{Binding EnterHint}" Margin="0" />
                 <ui:KeyHint x:Name="ShiftEnterHint" Keys="Shift Enter" Label="{Binding ShiftEnterHint}" />
                 <ui:KeyHint Keys="Ctrl O" Label="{x:Static ui:Strings.HintEdit}" IsLink="True" MouseLeftButtonUp="OnEditClick" />
                 <ui:KeyHint Keys="Ctrl E" Label="{x:Static ui:Strings.HintExplorer}" IsLink="True" MouseLeftButtonUp="OnExplorerClick" />
                 <ui:KeyHint Keys="Ctrl ," Label="{x:Static ui:Strings.HintSettings}" IsLink="True" MouseLeftButtonUp="OnSettingsClick" />
-            </StackPanel>
+            </DockPanel>
         </Grid>
 
         <Thumb x:Name="LeftEdge" Style="{StaticResource ResizeEdge}" HorizontalAlignment="Left"

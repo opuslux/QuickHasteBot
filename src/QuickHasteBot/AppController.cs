@@ -439,24 +439,36 @@ internal sealed class AppController : IDisposable
     internal sealed record SnippetPreview(string Text, bool IsForm, string? Error);
 
     /// <summary>
-    /// Was ein Bausteintext ergibt, ohne etwas zu senden: für die Vorschau im Editor. Liest die Zwischenablage nur,
-    /// wenn ein Skript sie erwähnt.
+    /// Was ein Bausteintext ergibt, ohne etwas zu senden. Liest die Zwischenablage nur, wenn ein Skript sie erwähnt.
     /// </summary>
-    internal SnippetPreview Preview(string text)
+    internal SnippetPreview Preview(string text) => Preview(text, 0, text.Length);
+
+    /// <summary>
+    /// Was ein Stück eines Bausteintexts ergibt, ohne etwas zu senden: für die Vorschau im Editor, der Skriptblock an der
+    /// Schreibmarke oder die Auswahl. Die Blöcke davor laufen vorher still mit, damit ihre Variablen gelten. run()
+    /// startet nichts und liefert ein leeres Ergebnis.
+    /// </summary>
+    internal SnippetPreview Preview(string text, int start, int length)
     {
-        text = KeyTags.StripMarkers(text);
+        var before = KeyTags.StripMarkers(text[..start]);
+        text = KeyTags.StripMarkers(text.Substring(start, length));
         var form = Settings.EvaluateKeyTags ? new FormBuilder() : null;
         if (form is not null)
+        {
+            // Davor zählen nur die Variablen der Blöcke: Kommentare weg, die Tasten in einen eigenen Builder
+            before = KeyTags.MarkTags(before, new FormBuilder());
             text = KeyTags.MarkTags(text, form);
+        }
 
         if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
         {
-            var clipboard = SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
+            var clipboard = SnippetScript.UsesClipboard(before + text) ? PasteService.TryGetClipboardText() : "";
             try
             {
-                // Ohne Run startet run() nichts. Blöcke ab dem ersten run() zeigt die Vorschau, wie sie dastehen.
+                // Ohne Run startet run() nichts
                 using var session = new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard, Form: form));
-                text = form is not null && ScriptSession.UsesRun(text) ? session.RenderStaged(text) : session.Render(text);
+                session.Prepare(before);
+                text = session.Render(text);
             }
             catch (SnippetScriptException ex)
             {

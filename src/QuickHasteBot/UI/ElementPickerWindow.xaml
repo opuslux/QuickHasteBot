@@ -91,16 +91,16 @@
             <!-- Der Tag über die ganze Breite und umbrochen, damit man sieht, was eingefügt wird -->
             <TextBox x:Name="TagOutput" Margin="0,10,0,0" FontFamily="Cascadia Mono, Consolas" FontSize="12"
                      TextWrapping="Wrap" VerticalContentAlignment="Center" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                <!-- Den Tag wirklich ausführen, im Programm, in dem das Element erfasst wurde -->
-                <Button x:Name="TestButton" Content="{x:Static ui:Strings.PickerTest}" MinWidth="90"
-                        ToolTip="{x:Static ui:Strings.PickerTestToolTip}" Click="OnTest" />
-                <Button x:Name="CopyButton" Content="{x:Static ui:Strings.PickerCopy}" MinWidth="90" Margin="8,0,0,0"
-                        Style="{DynamicResource AccentButtonStyle}" Click="OnCopy" />
-                <!-- Nur wenn ein Editor offen ist: Tag dort an der Schreibmarke einfügen. Dann ist er der blaue, nicht Kopieren -->
-                <Button x:Name="InsertButton" Content="{x:Static ui:Strings.PickerInsert}" Margin="8,0,0,0"
+            <DockPanel LastChildFill="False" Margin="0,8,0,0">
+                <!-- Links und nur wenn ein Editor offen ist: Tag dort an der Schreibmarke einfügen. Dann ist er der blaue, nicht Kopieren -->
+                <Button x:Name="InsertButton" DockPanel.Dock="Left" Content="{x:Static ui:Strings.PickerInsert}"
                         Style="{DynamicResource AccentButtonStyle}" Visibility="Collapsed" Click="OnInsert" />
-            </StackPanel>
+                <!-- Den Tag wirklich ausführen, im Programm, in dem das Element erfasst wurde -->
+                <Button x:Name="TestButton" DockPanel.Dock="Right" Content="{x:Static ui:Strings.PickerTest}" MinWidth="90" Margin="8,0,0,0"
+                        ToolTip="{x:Static ui:Strings.PickerTestToolTip}" Click="OnTest" />
+                <Button x:Name="CopyButton" DockPanel.Dock="Right" Content="{x:Static ui:Strings.PickerCopy}" MinWidth="90"
+                        Style="{DynamicResource AccentButtonStyle}" Click="OnCopy" />
+            </DockPanel>
         </StackPanel>
         <TextBlock x:Name="StatusText" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
