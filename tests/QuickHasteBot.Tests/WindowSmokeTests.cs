@@ -1044,7 +1044,8 @@ public class WindowSmokeTests
         using var dir = new TempDirectory();
         dir.File("settings.json", """{ "Language": "de" }""");
         dir.File(@"structure\1-Kurz\Eins.txt", "eins");
-        for (var i = 1; i <= 25; i++)
+        // 20 Einträge: so passt das Popup auch auf einen 768 px hohen Bildschirm (manche CI-Runner), sonst scrollt es doch
+        for (var i = 1; i <= 20; i++)
             dir.File($@"structure\2-Lang\Text {i:00}.txt", $"text {i}");
         dir.File(@"structure\3-Notiz.txt", "notiz");
         using var controller = new AppController(new AppPaths(dir.Path));
@@ -1060,8 +1061,9 @@ public class WindowSmokeTests
         // Der lange Ordner passt ganz hinein, ohne Scrollbalken
         Select("2-Lang");
         Assert.True(popup.ActualHeight > shortHeight + 200, $"{popup.ActualHeight} nicht höher als {shortHeight}");
-        Assert.Equal(25, popup.DetailList.Items.Count);
-        Assert.Equal(0, detailScroll.ScrollableHeight);
+        Assert.Equal(20, popup.DetailList.Items.Count);
+        Assert.True(detailScroll.ScrollableHeight == 0,
+            $"Liste scrollt um {detailScroll.ScrollableHeight}, Popup {popup.ActualHeight} hoch, Bildschirm {SystemParameters.VirtualScreenHeight}");
         Snapshot(popup, "popup-grow-long.png");
         var longHeight = popup.ActualHeight;
 
