@@ -49,6 +49,25 @@ public sealed class ScriptSession : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Führt die Blöcke in <paramref name="text"/> nur wegen ihrer Variablen aus, die Ausgabe fällt weg und Fehler werden
+    /// übergangen. Für die Vorschau eines einzelnen Blocks: so kennt er, was die Blöcke davor festlegen. Die Nummern
+    /// zählen weiter, ein Fehler im Block danach nennt also seine Nummer im ganzen Text.
+    /// </summary>
+    public void Prepare(string text)
+    {
+        foreach (Match match in SnippetScript.Block().Matches(text))
+        {
+            try
+            {
+                SnippetScript.Evaluate(_engine, match.Groups[1].Value, ++_block);
+            }
+            catch (SnippetScriptException)
+            {
+            }
+        }
+    }
+
     /// <summary>Ob der Text irgendwo run() aufruft.</summary>
     public static bool UsesRun(string text) =>
         SnippetScript.Block().Matches(text).Any(m => SnippetScript.CallsRun(m.Groups[1].Value));

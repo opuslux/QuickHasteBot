@@ -147,7 +147,7 @@ Pin and filter are also in the settings under **When opening**.
 
 ### Keeping it open
 
-To paste several snippets one after another, e.g. while filling in a form, the lock at the top right next to the search box (or Ctrl+T) keeps the popup from closing when it loses the focus. That is all it does: the popup is then an ordinary window that goes behind other windows when you click them and comes to the front when you click it.
+To paste several snippets one after another, e.g. while filling in a form, the lock at the right end of the shortcut row at the bottom (or Ctrl+T) keeps the popup from closing when it loses the focus. That is all it does: the popup is then an ordinary window that goes behind other windows when you click them and comes to the front when you click it.
 
 - After pasting, the popup comes back to the front at the same place and in the same folder, without taking the focus away from the program you pasted into. Click the next snippet, or press the hotkey to get back into the search box. A left click on the tray icon brings it to the front too.
 - Clicking into another program makes it the new target: the next snippet goes there. Windows of QuickHasteBot itself, like the editor, never become the target, and neither does a window a snippet brings to the front.
@@ -193,17 +193,17 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Folder** next to the name ("in Snippets › 2-Email"): click it to choose another folder from the list of all folders, with collapsible subfolders. A new snippet is created there, an existing one moves there when saving.
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches, in the language of the interface or in English (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
 - **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
-- **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
+- **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **JS-AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
 - **Hovering** a tag, a comment or a script helper like `date` or `run` explains what it does, with the same text as in **Insert tag ▾**; on a red tag, the reason comes first.
 - **Line wrapping:** the ↵ button at the bottom right of the text switches it off and on, e.g. for snippets with aligned columns (`WrapEditor` in `settings.json`, on by default). Shift+mouse wheel scrolls long lines sideways.
-- **Preview** below the text shows what the snippet turns into while you type: scripts evaluated, keys as readable tags, and script errors in red. Nothing is sent.
+- **Preview:** with the cursor inside a `{{ … }}` block, a line below the text shows what that block gives, e.g. your user name for `{{ user }}`, or its error in red. With a selection that contains a script, it shows what the selection gives, keys as readable tags. Blocks further up run first, so their variables count. Nothing is sent, and `run()` starts nothing there. Plain text and tags need no preview, so the line only appears for scripts.
 - **Test** (F5): click into the target field afterwards, and the snippet runs there exactly as if pasted, with the text as it is in the editor, saved or not. While it waits for that click, a card next to the mouse pointer and a banner in the editor say what will run. Cancel or Esc stops the wait.
   - To debug one step at a time, select part of the snippet and only the selection runs. Tags and scripts cut off by the selection are included whole. Or put the cursor inside a tag or `{{ … }}` block and only that one runs.
   - The button says which: "Test", "Test selection", "Test tag" or "Test script".
   - A part that uses variables from an earlier script block fails, because that block doesn't run.
   - Holding Esc stops a running snippet.
-- **Save** (Ctrl+S) keeps the file's encoding: ANSI (Windows-1252) stays ANSI, UTF-8 and UTF-16 stay as they were. Only text that ANSI can't hold (e.g. an emoji) turns an ANSI file into UTF-8 with BOM, so that nothing is lost. If the file was changed in another program in the meantime, the editor asks before overwriting. Closing with unsaved changes asks too.
+- **Save** (Ctrl+S) keeps the file's encoding: ANSI (Windows-1252) stays ANSI, UTF-8 and UTF-16 stay as they were. Only text that ANSI can't hold (e.g. an emoji) turns an ANSI file into UTF-8 with BOM, so that nothing is lost. If the file was changed in another program in the meantime, the editor asks before overwriting. Esc or the window's close button closes the editor; with unsaved changes it asks first.
 
 To keep using another editor, turn off "Edit snippets in the built-in editor" (`UseBuiltInEditor`). The right-click menu offers both either way.
 
@@ -259,7 +259,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 - **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
 - **The result** `r` has `code` (exit code), `out` (what it printed) and `err` (error output), read in the code page of the command prompt. As text it is `out`, so `{{ run('date.bat') }}` types the output right away. Assigned with `const`, it prints nothing and stays available to every later block.
 - **Checking the result:** `throw new Error('…')` stops the snippet with that message, as in any block.
-- **At its place:** blocks are normally all evaluated before the first key is sent. If a tag comes before the first `run()`, that block and all later ones are evaluated only when the snippet gets there, so the script runs after what comes before it and later blocks see its result. In the preview such blocks show as written, and in step-by-step runs each block (or line of blocks) is a step of its own; what it prints appears as steps behind it.
+- **At its place:** blocks are normally all evaluated before the first key is sent. If a tag comes before the first `run()`, that block and all later ones are evaluated only when the snippet gets there, so the script runs after what comes before it and later blocks see its result. In step-by-step runs each block (or line of blocks) is a step of its own; what it prints appears as steps behind it.
 - **Focus:** if the script's window comes to the front, the window that was in front before is brought back afterwards. Holding Esc stops the wait.
 - The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. With the [log](#portable) switched on, every start and exit code is written to it.
 
@@ -291,7 +291,7 @@ Computer: {{ run('powershell', '-NoProfile -Command "$env:COMPUTERNAME"', { hidd
 
 ### Writing a block with AI
 
-The **AI** button in the editor or "Write a script block with AI…" in the tray menu opens a small prompt window:
+The **JS-AI** button in the editor or "Write a script block with AI…" in the tray menu opens a small prompt window:
 
 1. **Describe** what the block should insert, in any language, e.g. "the date in 14 days with the weekday". As long as there is no text of your own, the field starts with one of ten ready-made examples, selected so typing replaces it; the light bulb goes on to the next one.
 2. **Send** with "Open in ChatGPT" or Ctrl+Enter. QuickHasteBot adds the rules of the script engine, the helpers listed above and two examples, and opens the AI with the full prompt (it can be expanded in the window).
