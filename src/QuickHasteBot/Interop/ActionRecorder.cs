@@ -238,30 +238,27 @@ internal sealed class ActionRecorder : IDisposable
     {
         var current = element.Current;
         if (_skip(current.ProcessId)) return;
-        // Tag, Monat und Jahr eines Datumsfelds sind eigene Teilfelder, der Fokus wandert beim Tippen weiter: ein Feld
-        var date = ElementAutomation.DateFieldOf(element);
-        if (date is not null)
-            element = date;
+        var type = TypeName(current.ControlType);
+        // Tag, Monat, Jahr und der Kalender-Button eines Datumsfelds gehören zum Feld, der Fokus wandert beim Tippen weiter
+        var date = ElementAutomation.DateFieldOfPart(element);
+        // Chrome meldet beim Aufklappen eines Dropdowns den Fokus zuerst auf der gewählten Option, nicht auf dem Dropdown.
+        // Ohne das kennt die Aufnahme das Dropdown erst, wenn die neue Option schon gewählt ist.
+        var box = date is null && Options.Contains(type) ? ElementAutomation.ComboBoxOf(element) : null;
+        element = date ?? box ?? element;
         if (_field is { } field)
         {
             if (Automation.Compare(element, field.Element)) return;
-            // Die Optionen eines aufgeklappten Dropdowns: man ist noch beim Auswählen
-            if (field.Recorded.Kind == FieldKind.Choice && Options.Contains(TypeName(current.ControlType))) return;
-            // Der aufgeklappte Kalender eines Datumsfelds: man ist noch beim Auswählen
-            if (InCalendar(field, current.ProcessId, () => ElementAutomation.Describe(element)?.Window)) return;
+            // Die Optionen eines aufgeklappten Dropdowns, die nicht darunter hängen: man ist noch beim Auswählen
+            if (field.Recorded.Kind == FieldKind.Choice && box is null && Options.Contains(type)) return;
+            // Der aufgeklappte Kalender eines Datumsfelds (Monatsmenü, Tage): man ist noch beim Auswählen. Chrome meldet
+            // ihn als Teil des Hauptfensters, darum zählt alles, was kein Feld ist.
+            if (field.Recorded.Kind == FieldKind.Date && date is null && box is null && KindOf(element) is null) return;
         }
         EndField();
-        var kind = date is not null ? FieldKind.Date : KindOf(element);
+        var kind = date is not null ? FieldKind.Date : box is not null ? FieldKind.Choice : KindOf(element);
         if (kind is null || ElementAutomation.Describe(element) is not { } info) return;
-        BeginField(element, info, kind.Value, date is null && current.IsPassword, before: null);
+        BeginField(element, info, kind.Value, kind == FieldKind.Text && current.IsPassword, before: null);
     }
-
-    /// <summary>
-    /// Chrome und Edge zeigen den Kalender eines Datumsfelds in einem eigenen Fenster. Fokus und Klicks dort gehören zum
-    /// Feld: Aufgenommen wird das Datum, das danach drinsteht.
-    /// </summary>
-    static bool InCalendar(Field field, int processId, Func<nint?> window) =>
-        field.Recorded.Kind == FieldKind.Date && processId == field.ProcessId && window() is { } root && root != field.Window;
 
     void OnClick(ElementInfo info)
     {
@@ -271,12 +268,11 @@ internal sealed class ActionRecorder : IDisposable
             return;
         }
         if (info.Element is null) return;
-        if (_field is { Recorded.Kind: FieldKind.Date } date)
-        {
-            // Der Kalender-Button im Datumsfeld und die Tage im aufgeklappten Kalender
-            if (InCalendar(date, info.Element.Current.ProcessId, () => info.Window)) return;
-            if (TreeWalker.RawViewWalker.GetParent(info.Element) is { } parent && Automation.Compare(parent, date.Element)) return;
-        }
+        // Der Kalender-Button eines Datumsfelds: aufgenommen wird das Datum, das danach drinsteht
+        if (info.Type == "Button" && ElementAutomation.DateFieldOfPart(info.Element) is not null) return;
+        // Ein Klick im aufgeklappten Kalender, der als eigenes Fenster über der Seite liegt
+        if (_field is { Recorded.Kind: FieldKind.Date } date && info.Window != date.Window
+            && info.Element.Current.ProcessId == date.ProcessId) return;
 
         if (info.Type == "CheckBox")
         {

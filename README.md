@@ -387,7 +387,7 @@ When the same element appears more than once, e.g. "Street" in the billing and i
 
 The part on the left is a selector like any other, and it may contain the element anywhere inside, not only directly. If several parts match, they are searched one after the other; `index=2` on the left takes only the second one, `index=2` on the right the second element across all of them. Steps can be chained: `#orders > name=Delivery address > name=Street`. The picker suggests this form by itself when no other selector finds exactly the element.
 
-QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome, Edge and Firefox fill with the page's form, and Windows programs with their controls (in WinForms, `#name` is the control's name). Each element tag waits up to 5 seconds for the element to appear, e.g. while a page loads, so `{wait}` is rarely needed; on large pages the very first search takes a moment longer. If nothing turns up, the snippet stops with a message. Holding Esc stops the wait.
+QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome, Edge and Firefox fill with the page's form, and Windows programs with their controls (in WinForms, `#name` is the control's name). Each element tag waits up to 5 seconds for the element to appear, e.g. while a page loads, and for a disabled field to be enabled, e.g. a time dropdown that a form only enables once the date is filled in. So `{wait}` is rarely needed; on large pages the very first search takes a moment longer. If nothing turns up, the snippet stops with a message. Holding Esc stops the wait.
 
 **Element picker:** "Pick element" in the editor or "Pick element…" in the tray menu opens a small window at the top right of the screen that stays on top.
 
