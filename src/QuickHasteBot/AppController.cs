@@ -1013,7 +1013,30 @@ internal sealed class AppController : IDisposable
     {
         Settings.StructurePath = path;
         SaveSettings();
+        ReloadLibrary();
+    }
 
+    /// <summary>
+    /// Die Beispiele (wieder) in einen Ordner schreiben, aus den Einstellungen. Ist es der structure-Ordner, gleich neu
+    /// einlesen: Gab es ihn vorher nicht, läuft dort noch kein Watcher.
+    /// </summary>
+    /// <returns>Anzahl geschriebener Dateien.</returns>
+    public int ExportSamples(string folder)
+    {
+        Directory.CreateDirectory(folder);
+        var count = SampleStructure.Extract(folder, Strings.SampleLanguage);
+        Log.Info($"{count} Beispiele nach {folder} exportiert");
+        if (SamePath(folder, StructureRoot))
+            ReloadLibrary();
+        return count;
+    }
+
+    static bool SamePath(string a, string b) =>
+        string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
+            StringComparison.OrdinalIgnoreCase);
+
+    void ReloadLibrary()
+    {
         Library.Dispose();
         Library = CreateLibrary();
         _popup?.OnLibraryChanged();

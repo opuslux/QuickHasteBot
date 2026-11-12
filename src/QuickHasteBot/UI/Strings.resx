@@ -45,6 +45,18 @@
   <data name="StructureFilesFormat" xml:space="preserve"><value>{0}  ({1} files)</value></data>
   <data name="StructureMissingFormat" xml:space="preserve"><value>{0}  (does not exist)</value></data>
   <data name="StructureDialogTitle" xml:space="preserve"><value>Choose the folder with your snippets</value></data>
+  <data name="SamplesExport" xml:space="preserve"><value>Export samples…</value></data>
+  <data name="SamplesExportToolTip" xml:space="preserve"><value>Create the sample snippets from the first start again, in the snippets folder or elsewhere</value></data>
+  <data name="SamplesExportProposeFormat" xml:space="preserve"><value>Export the samples to {0}?</value></data>
+  <data name="SamplesExportOccupiedFormat" xml:space="preserve"><value>{0} already exists.
+
+Overwriting replaces sample files with the same name, all other files stay as they are.</value></data>
+  <data name="SamplesExportButton" xml:space="preserve"><value>Export</value></data>
+  <data name="SamplesOverwrite" xml:space="preserve"><value>Overwrite</value></data>
+  <data name="SamplesOtherFolder" xml:space="preserve"><value>Other folder…</value></data>
+  <data name="SamplesFolderDialogTitle" xml:space="preserve"><value>Choose a folder for the samples</value></data>
+  <data name="SamplesExportedFormat" xml:space="preserve"><value>Exported {0} sample files to {1}.</value></data>
+  <data name="SamplesExportErrorFormat" xml:space="preserve"><value>The samples could not be exported: {0}</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Also search the text inside the snippets</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>Run {{ … }} in snippets as JavaScript</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>When pasting, e.g. {{ date() }} becomes today's date. Off: {{ … }} is pasted as is.</value></data>

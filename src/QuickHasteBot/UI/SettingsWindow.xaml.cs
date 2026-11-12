@@ -308,6 +308,53 @@ internal partial class SettingsWindow : Window
 
     void OnOpenStructure(object sender, RoutedEventArgs e) => _app.OpenStructureFolder();
 
+    /// <summary>
+    /// Vorgeschlagen wird der structure-Ordner. Steht darin schon etwas, wird gefragt: überschreiben oder anderen Ordner
+    /// wählen. Überschrieben werden nur die Beispieldateien, eigene Textbausteine bleiben.
+    /// </summary>
+    void OnExportSamples(object sender, MouseButtonEventArgs e)
+    {
+        var folder = _app.StructureRoot;
+        var proposed = true;
+        while (true)
+        {
+            var occupied = Directory.Exists(folder) && Directory.EnumerateFileSystemEntries(folder).Any();
+            // Ein selbst gewählter, leerer Ordner braucht keine Rückfrage mehr
+            if (!occupied && !proposed) break;
+
+            var choice = MessageDialog.Show(this,
+                string.Format(occupied ? Strings.SamplesExportOccupiedFormat : Strings.SamplesExportProposeFormat, folder),
+                occupied ? MessageBoxImage.Warning : MessageBoxImage.Question, MessageBoxResult.Cancel,
+                (MessageBoxResult.Yes, occupied ? Strings.SamplesOverwrite : Strings.SamplesExportButton),
+                (MessageBoxResult.No, Strings.SamplesOtherFolder),
+                (MessageBoxResult.Cancel, Strings.Cancel));
+            if (choice == MessageBoxResult.Cancel) return;
+            if (choice == MessageBoxResult.Yes) break;
+
+            var dialog = new OpenFolderDialog
+            {
+                Title = Strings.SamplesFolderDialogTitle,
+                InitialDirectory = Directory.Exists(folder) ? folder : AppController.ExeDirectory,
+            };
+            // Abgebrochen: zurück zur Frage
+            if (dialog.ShowDialog(this) != true) continue;
+            folder = dialog.FolderName;
+            proposed = false;
+        }
+
+        try
+        {
+            var count = _app.ExportSamples(folder);
+            UpdateStructureResolved();
+            MessageDialog.Show(this, string.Format(Strings.SamplesExportedFormat, count, folder), MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"Beispiele konnten nicht exportiert werden: {folder}", ex);
+            MessageDialog.Show(this, string.Format(Strings.SamplesExportErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     void UpdateStructureResolved()
     {
         var root = _app.StructureRoot;
