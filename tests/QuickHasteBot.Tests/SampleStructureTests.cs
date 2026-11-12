@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using QuickHasteBot.Core;
+using QuickHasteBot.Interop;
 
 namespace QuickHasteBot.Tests;
 
@@ -25,7 +27,7 @@ public class SampleStructureTests
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(26, paths.Count);
+        Assert.Equal(28, paths.Count);
         Assert.Contains("Script-Samples.txt", paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -84,7 +86,7 @@ public class SampleStructureTests
     {
         var files = SampleStructure.Files(language);
         var examples = files.Where(f => f.Path.StartsWith("4-", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(16, examples.Count);
+        Assert.Equal(17, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -152,6 +154,29 @@ public class SampleStructureTests
     public void Clipboard_on_one_line_joins_lines_and_hyphenated_words() =>
         Assert.Equal("Text aus einem PDF mit Umbrüchen",
             Render(Sample("de", "Zwischenablage einzeilig"), "de-CH", "Text aus ei-\r\nnem PDF\r\nmit   Umbrüchen\r\n"));
+
+    /// <summary>Die Batch-Datei neben dem Beispiel: run() findet sie im Ordner des Bausteins, mit Kunde eine Nummer, ohne einen Fehler.</summary>
+    [Theory]
+    [InlineData("de", @"4-Beispiele\19-Nummer per Batch-Datei", "Kein Kunde angegeben")]
+    [InlineData("en", @"4-Examples\19-Number via batch file", "No customer given")]
+    public void Batch_example_runs_next_to_its_snippet(string language, string example, string error)
+    {
+        using var dir = new TempDirectory();
+        SampleStructure.Extract(dir.Path, language);
+        var snippet = Path.Combine(dir.Path, example + ".txt");
+        var text = File.ReadAllText(snippet);
+        var file = Regex.Match(text, @"run\('([^']+)'").Groups[1].Value;
+        Assert.Equal(Path.GetFileName(example) + ".bat", file);
+
+        RunResult Run(string arguments) =>
+            ScriptRunner.Run(new RunRequest(file, arguments, 10, Hidden: true, SnippetFolder: Path.GetDirectoryName(snippet)), () => false);
+        var ok = Run("\"Muster AG\"");
+        Assert.Equal(0, ok.Code);
+        Assert.Matches(@"^Muster AG-\d+$", ok.Out.Trim());
+        var failed = Run("\"\"");
+        Assert.Equal(2, failed.Code);
+        Assert.Equal(error, failed.Err.Trim());
+    }
 
     [Fact]
     public void Extract_writes_the_files_as_utf8_without_bom()

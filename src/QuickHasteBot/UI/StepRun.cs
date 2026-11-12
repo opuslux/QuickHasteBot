@@ -28,7 +28,8 @@ internal sealed record StepView(int Index, SourceSpan Source, StepMark Mark);
 /// Ein Schritt-für-Schritt-Lauf: F10 und F5 registrieren, die Leiste am Zielfenster zeigen, vor Element-Schritten das
 /// Zielfeld rahmen und am Ende das Ergebnis mit „Nochmal“ und „Schliessen“. Auf dem UI-Thread.
 /// </summary>
-internal sealed class StepRun(AppController app, string text, string name, nint target, Func<SourceSpan, int?> breakpoint)
+internal sealed class StepRun(AppController app, string text, string name, nint target, Func<SourceSpan, int?> breakpoint,
+    string? folder = null)
 {
     StepSession? _session;
     StepBar? _bar;
@@ -77,7 +78,7 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
                 session.Changed += (_, _) => OnChanged(session, bar, frame, taken);
                 Log.Info($"Schritt für Schritt: {name}");
 
-                var problem = await app.RunTextAsync(text, name, alternate: false, target, gate: session);
+                var problem = await app.RunTextAsync(text, name, alternate: false, target, gate: session, folder: folder);
                 keys.UnregisterStepKeys();
                 _version++;
                 frame.Hide();

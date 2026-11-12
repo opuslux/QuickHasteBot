@@ -23,16 +23,19 @@ namespace QuickHasteBot.Core;
 /// Was im Fenster von ask() eingegeben wurde, nach Beschriftung. Ohne, z.B. in der Vorschau, gibt ask() die Vorgabe oder
 /// "[Beschriftung]".
 /// </param>
+/// <param name="Folder">Der Ordner des Bausteins: run() sucht relative Pfade zuerst dort.</param>
 public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null,
     FormBuilder? Form = null, Func<RunRequest, RunResult>? Run = null, string Selection = "",
-    IReadOnlyDictionary<string, string>? Answers = null);
+    IReadOnlyDictionary<string, string>? Answers = null, string? Folder = null);
 
 /// <summary>Eine Frage aus ask(): die Beschriftung und die Vorgabe, wie sie im Baustein stehen.</summary>
 public sealed record Question(string Label, string Default);
 
 /// <summary>Was run() starten soll. <paramref name="WaitSeconds"/> 0: nur starten, nicht warten.</summary>
 /// <param name="Directory">Der Arbeitsordner („Ausführen in“), ohne Angabe der Ordner des Skripts.</param>
-public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden, string? Directory = null);
+/// <param name="SnippetFolder">Der Ordner des Bausteins: ein relativer Pfad, der dort liegt, wird dort gestartet.</param>
+public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden, string? Directory = null,
+    string? SnippetFolder = null);
 
 /// <param name="Code">Der Rückgabewert, null, wenn nicht gewartet wurde.</param>
 public sealed record RunResult(int? Code, string Out, string Err);
@@ -274,7 +277,7 @@ public static partial class SnippetScript
             directory = Text(o.Get("dir"));
         }
 
-        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden, directory)) ?? new RunResult(0, "", "");
+        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden, directory, context.Folder)) ?? new RunResult(0, "", "");
         // Das Warten zählt nicht zur Zeitgrenze eines Blocks, die gilt nur für JavaScript
         engine.Constraints.Reset();
         return JsObject.CreateFromEntries(engine,

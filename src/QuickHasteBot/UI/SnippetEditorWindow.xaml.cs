@@ -747,7 +747,7 @@ internal partial class SnippetEditorWindow : Window
                 return;
             }
             ShowStatus(Running(startTag, Strings.EditorTestRunning), StatusKind.Busy);
-            var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target);
+            var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target, folder: _folder);
             ShowStatus(problem?.Message ?? Strings.EditorTestDone, problem is null ? StatusKind.Success : StatusKind.Error);
         }
         finally
@@ -802,7 +802,7 @@ internal partial class SnippetEditorWindow : Window
             return;
         }
 
-        var run = _stepRun = new StepRun(_app, text, DisplayName, target, span => BreakpointLine(text, span));
+        var run = _stepRun = new StepRun(_app, text, DisplayName, target, span => BreakpointLine(text, span), _folder);
         run.Changed += (_, view) => ShowStep(text, view);
         StepMarker.Clear();
         LockForStepRun(true);

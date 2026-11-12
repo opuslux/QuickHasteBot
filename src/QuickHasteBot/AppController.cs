@@ -388,9 +388,11 @@ internal sealed class AppController : IDisposable
     /// <param name="gate">Schritt für Schritt: bekommt die Schritte samt Stelle im Text und darf vor jedem anhalten.
     /// Ein Baustein ohne Tasten-Tags ist dabei ein einziger Schritt, der alles einfügt.</param>
     /// <returns>Null, wenn alles geklappt hat (oder ohne Gate mit Esc gestoppt wurde).</returns>
+    /// <param name="folder">Wo run() relative Pfade zuerst sucht; ohne Angabe der Ordner von <paramref name="logPath"/>.</param>
     internal async Task<RunProblem?> RunTextAsync(string text, string name, bool alternate, nint targetWindow, string? logPath = null,
-        IStepGate? gate = null)
+        IStepGate? gate = null, string? folder = null)
     {
+        folder ??= logPath is null ? null : Path.GetDirectoryName(logPath);
         // Tasten-Tags werden zu Markern, bevor Skripte laufen: was ein Skript ausgibt oder aus der Zwischenablage kommt,
         // wird so nie als Tag gelesen, nur key() im Skript erzeugt bewusst Tasten. Eingebundene Bausteine davor, ihre Tags
         // gelten so wie die eigenen.
@@ -434,7 +436,8 @@ internal sealed class AppController : IDisposable
 
         using var session = scripts
             ? new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard,
-                Form: form, Run: request => ScriptRunner.Run(request, PasteService.EscapeDown), Selection: selection, Answers: answers))
+                Form: form, Run: request => ScriptRunner.Run(request, PasteService.EscapeDown), Selection: selection, Answers: answers,
+                Folder: folder))
             : null;
         if (session is not null)
         {
