@@ -75,6 +75,29 @@ public class ScriptRunnerTests
         Assert.Equal("gefunden", result.Out.Trim());
     }
 
+    [Theory]
+    [InlineData("neben.bat")]
+    [InlineData("skripte/neben.bat")]
+    public void Relative_path_is_found_next_to_the_snippet(string file)
+    {
+        using var dir = new TempDirectory();
+        Directory.CreateDirectory(Path.Combine(dir.Path, "skripte"));
+        Batch(dir, file.Replace('/', '\\'), "@echo neben dem Baustein\n");
+        var result = ScriptRunner.Run(new RunRequest(file, null, 10, Hidden: true, SnippetFolder: dir.Path), () => false);
+        Assert.Equal("neben dem Baustein", result.Out.Trim());
+    }
+
+    [Fact]
+    public void Given_folder_comes_before_the_snippet_folder()
+    {
+        using var snippets = new TempDirectory();
+        using var work = new TempDirectory();
+        Batch(snippets, "wer.bat", "@echo Baustein\n");
+        Batch(work, "wer.bat", "@echo Arbeitsordner\n");
+        var result = ScriptRunner.Run(new RunRequest("wer.bat", null, 10, Hidden: true, work.Path, snippets.Path), () => false);
+        Assert.Equal("Arbeitsordner", result.Out.Trim());
+    }
+
     [Fact]
     public void Missing_folder_is_reported() =>
         Assert.Contains("folder", Assert.Throws<RunFailedException>(() =>

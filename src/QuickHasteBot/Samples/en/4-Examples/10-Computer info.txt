@@ -1,0 +1,8 @@
+{# Runs Windows commands without a window and pastes what they print: computer name, Windows version and
+free space on drive C:, e.g. for a message to the help desk.
+run waits for the program and gives code (exit code), out (output) and err (error output).
+Your own scripts work the same way: run('d:/scripts/number.bat'). The preview in the editor runs nothing.}
+Computer:     {{ run('hostname', { hidden: true }).out.trim() }}
+User:         {{ user }}
+Windows:      {{ run('cmd', '/c ver', { hidden: true }).out.trim() }}
+Free on C:    {{ run('powershell', '-NoProfile -Command [math]::Round((Get-PSDrive C).Free / 1GB)', { hidden: true }).out.trim() }} GB

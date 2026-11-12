@@ -41,6 +41,12 @@ internal sealed class PasteService
     /// <summary>So lange bekommt das Zielprogramm Zeit, das Clipboard zu lesen, bevor wir es zurücksetzen.</summary>
     const int ClipboardRestoreDelay = 600;
     const int ModifierReleaseTimeout = 1500;
+
+    /// <summary>{cursor} beim Einfügen per Zwischenablage: so lange nach Strg+V, bevor die Pfeile kommen (ms).</summary>
+    const int CaretBackDelay = 80;
+
+    /// <summary>selection: so lange warten, bis Strg+C im Zielprogramm die Zwischenablage ändert (ms).</summary>
+    const int SelectionTimeout = 500;
     const int TypingChunkSize = 200;
 
     /// <summary>Pause nach jeder Taste in Formularen, damit JavaScript (Autocomplete, Validierung) mitkommt. {delay,ms} ändert sie.</summary>
@@ -59,8 +65,11 @@ internal sealed class PasteService
         DataFormats.UnicodeText, DataFormats.Text, DataFormats.Rtf, DataFormats.Html, DataFormats.Bitmap, DataFormats.FileDrop,
     ];
 
+    /// <param name="html">Formatierter Text ({html}-Block): kommt mit in die Zwischenablage, <paramref name="text"/> ist
+    /// dann der Klartext dazu. Beim Tippen zählt nur der Klartext.</param>
+    /// <param name="caretBack">{cursor}: so oft danach Pfeil links.</param>
     /// <returns>False, wenn das Zielprogramm mit Administratorrechten läuft und Windows die Eingabe verwerfen würde.</returns>
-    public async Task<bool> PasteAsync(string text, PasteMode mode, nint targetWindow)
+    public async Task<bool> PasteAsync(string text, PasteMode mode, nint targetWindow, string? html = null, int caretBack = 0)
     {
         if (!await WindowFocus.ActivateAndWaitAsync(targetWindow))
             Log.Info("Zielfenster konnte nicht aktiviert werden, sende trotzdem an das aktuelle Vordergrundfenster");
@@ -74,18 +83,23 @@ internal sealed class PasteService
         await WaitForModifiersReleasedAsync();
 
         if (mode == PasteMode.Clipboard)
-            await PasteViaClipboardAsync(text);
+            await PasteViaClipboardAsync(text, html, caretBack);
         else
+        {
             await TypeAsync(text);
+            await CaretBackAsync(caretBack);
+        }
         return true;
     }
 
-    static async Task PasteViaClipboardAsync(string text)
+    static async Task PasteViaClipboardAsync(string text, string? html = null, int caretBack = 0)
     {
         var backup = SnapshotClipboard();
 
         var data = new DataObject();
         data.SetText(NormalizeLineEndings(text), TextDataFormat.UnicodeText);
+        if (html is not null)
+            data.SetData(DataFormats.Html, new MemoryStream(HtmlText.ClipboardFormat(html)));
         data.SetData(ExcludeFromHistoryFormat, new MemoryStream([0, 0, 0, 0]));
         data.SetData(CanIncludeInHistoryFormat, new MemoryStream([0, 0, 0, 0]));
 
@@ -93,15 +107,80 @@ internal sealed class PasteService
         {
             Log.Error("Clipboard ist blockiert, tippe stattdessen");
             await TypeAsync(text);
+            await CaretBackAsync(caretBack);
             return;
         }
 
         Send([Key(VK_CONTROL, down: true), Key(VK_V, down: true), Key(VK_V, down: false), Key(VK_CONTROL, down: false)]);
+        if (caretBack > 0)
+        {
+            // Manche Programme (Chromium, Office) fügen nicht sofort ein, die Pfeile sollen erst danach kommen
+            await Task.Delay(CaretBackDelay);
+            await CaretBackAsync(caretBack);
+        }
 
         await Task.Delay(ClipboardRestoreDelay);
         if (backup is not null)
             TrySetClipboard(backup);
     }
+
+    /// <summary>{cursor}: die Schreibmarke so viele Stellen nach links, in Häppchen wie beim Tippen.</summary>
+    static async Task CaretBackAsync(int count)
+    {
+        var inputs = Enumerable.Range(0, count).SelectMany(_ => new[] { Key(VK_LEFT, down: true), Key(VK_LEFT, down: false) }).ToList();
+        for (var i = 0; i < inputs.Count; i += TypingChunkSize)
+        {
+            Send(inputs.Skip(i).Take(TypingChunkSize).ToArray());
+            await Task.Delay(10);
+        }
+    }
+
+    /// <summary>
+    /// Für selection: Strg+C im Zielfenster und den Text lesen, der damit kopiert wurde. Danach ist die Zwischenablage wieder
+    /// wie vorher. Leer, wenn nichts markiert war (die Zwischenablage ändert sich dann nicht).
+    /// </summary>
+    /// <returns>Null, wenn das Zielprogramm mit Administratorrechten läuft und Windows Strg+C verwerfen würde.</returns>
+    public async Task<string?> CopySelectionAsync(nint targetWindow)
+    {
+        if (!await WindowFocus.ActivateAndWaitAsync(targetWindow))
+            Log.Info("Zielfenster konnte nicht aktiviert werden, kopiere aus dem aktuellen Vordergrundfenster");
+        if (ProcessAccess.IsBlocked(GetForegroundWindow()))
+            return null;
+        await WaitForModifiersReleasedAsync();
+
+        var backup = SnapshotClipboard();
+        var before = GetClipboardSequenceNumber();
+        Send([Key(VK_CONTROL, down: true), Key(VK_C, down: true), Key(VK_C, down: false), Key(VK_CONTROL, down: false)]);
+        var deadline = Environment.TickCount64 + SelectionTimeout;
+        while (GetClipboardSequenceNumber() == before && Environment.TickCount64 < deadline)
+            await Task.Delay(PollInterval);
+        if (GetClipboardSequenceNumber() == before)
+            return "";
+
+        // Programme legen mehrere Formate nacheinander ab, kurz warten, bis alle da sind
+        await Task.Delay(PollInterval * 2);
+        var text = TryGetClipboardText();
+        if (backup is not null)
+            TrySetClipboard(backup);
+        else
+            TryClearClipboard();
+        return text;
+    }
+
+    static void TryClearClipboard()
+    {
+        try
+        {
+            Clipboard.Clear();
+        }
+        catch (Exception ex) when (ex is COMException or ExternalException)
+        {
+            Log.Error("Clipboard konnte nicht geleert werden", ex);
+        }
+    }
+
+    /// <summary>{html}-Block in einem Formular-Baustein: an dieser Stelle per Zwischenablage einfügen.</summary>
+    static Task PasteHtmlAsync(string html) => PasteViaClipboardAsync(HtmlText.ToPlain(html), html);
 
     static async Task TypeAsync(string text, bool shiftEnter = false)
     {
@@ -173,6 +252,7 @@ internal sealed class PasteService
         var charDelay = 0;
         nint checkedWindow = 0;
         var checkedBlocked = false;
+        int? afterCursor = null; // {cursor}: so viele Stellen Text kamen seither. Eine Taste danach macht ihn ungültig.
 
         for (var i = 0; i < steps.Count; i++)
         {
@@ -214,11 +294,24 @@ internal sealed class PasteService
             }
 
             // Programme mit Administratorrechten nehmen von uns nichts an (UIPI), ohne dass Windows es meldet
-            if (step is TextStep or KeyStep or ElementStep && Blocked(searchWindow))
+            if (step is TextStep or KeyStep or ElementStep or HtmlStep && Blocked(searchWindow))
                 return Aborted(FormOutcome.Elevated, i, ProcessAccess.ProcessName(searchWindow));
+
+            afterCursor = step switch
+            {
+                CursorStep => afterCursor ?? 0,
+                TextStep text => afterCursor + PasteContent.Positions(text.Text),
+                HtmlStep html => afterCursor + PasteContent.Positions(HtmlText.ToPlain(html.Html)),
+                KeyStep or ElementStep or WindowStep or StartStep or OpenUrlStep => null,
+                _ => afterCursor,
+            };
 
             switch (step)
             {
+                case HtmlStep html:
+                    await PasteHtmlAsync(html.Html);
+                    break;
+
                 case TextStep text when charDelay == 0:
                     await TypeAsync(text.Text, shiftEnter: true);
                     break;
@@ -313,6 +406,8 @@ internal sealed class PasteService
                     break;
             }
         }
+        if (afterCursor is > 0)
+            await CaretBackAsync(afterCursor.Value);
         return new FormResult(FormOutcome.Completed);
 
         bool Blocked(nint hwnd)
@@ -520,6 +615,30 @@ internal sealed class PasteService
         }
         Log.Error("Clipboard ist blockiert, Skripte sehen eine leere Zwischenablage");
         return "";
+    }
+
+    /// <summary>Formatierter Text aus der Zwischenablage ("HTML Format" samt Kopfzeilen), null wenn keiner da ist.</summary>
+    public static string? TryGetClipboardHtml()
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                if (!Clipboard.ContainsData(DataFormats.Html)) return null;
+                return Clipboard.GetData(DataFormats.Html) switch
+                {
+                    string text => text,
+                    Stream stream => new StreamReader(stream, System.Text.Encoding.UTF8).ReadToEnd().TrimEnd('\0'),
+                    _ => null,
+                };
+            }
+            catch (Exception ex) when (ex is COMException or ExternalException)
+            {
+                Thread.Sleep(50);
+            }
+        }
+        Log.Error("Clipboard ist blockiert, kein formatierter Text");
+        return null;
     }
 
     static bool TrySetClipboard(IDataObject data)

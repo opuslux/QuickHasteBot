@@ -1,0 +1,5 @@
+{# Füllt ein Formular mit der Tab-Taste aus: Text wird getippt, tab springt ins nächste Feld.
+Vorher ins erste Feld klicken. Passt die Reihenfolge nicht, Tabs ergänzen oder weglassen.
+clear leert ein vorausgefülltes Feld, bevor getippt wird.
+Mit Aufnehmen im Editor entsteht so ein Baustein per Mausklick, mit Feldnamen statt Tabs.}
+Max{tab}Muster{tab}max.muster@example.com{tab}{clear}+41 79 123 45 67

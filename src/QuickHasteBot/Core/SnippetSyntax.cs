@@ -65,22 +65,68 @@ public static partial class SnippetSyntax
 
     /// <param name="keyTags">Wie AppSettings.EvaluateKeyTags: aus, dann sind Tags Text.</param>
     /// <param name="scripts">Wie AppSettings.EvaluateScripts: aus, dann sind {{ … }} Text.</param>
-    public static IReadOnlyList<SyntaxSpan> Tokenize(string text, bool keyTags = true, bool scripts = true)
+    /// <param name="includeExists">Ob es den Baustein aus {include,…} gibt; ohne Angabe wird das nicht geprüft.</param>
+    public static IReadOnlyList<SyntaxSpan> Tokenize(string text, bool keyTags = true, bool scripts = true, Func<string, bool>? includeExists = null)
     {
         var spans = new List<SyntaxSpan>();
+        var html = keyTags ? KeyTags.HtmlPairs(text) : [];
+        var htmlClose = -1;
+        int? cursor = null; // die Spanne des ersten {cursor}
         foreach (Match match in KeyTags.Candidate().Matches(text))
         {
             if (match.Groups["note"].Success)
             {
                 // Kommentare gehören zu den Tags: ohne Tags sind sie Text
                 if (keyTags) spans.Add(new(match.Index, match.Length, SyntaxKind.Comment));
+                continue;
             }
-            else if (!match.Groups[1].Success)
+            if (!match.Groups[1].Success)
             {
                 if (scripts) Script(spans, text, match.Index, match.Length);
+                continue;
             }
-            else if (keyTags)
-                Tag(spans, match.Index, match.Groups[1].Value);
+            if (!keyTags) continue;
+
+            // {html}…{/html}: die beiden Tags wie {window}, dazwischen ist alles HTML, Tags darin sind Text
+            var content = match.Groups[1].Value;
+            if (htmlClose >= 0 && match.Index < htmlClose)
+                continue;
+            if (match.Index == htmlClose)
+            {
+                spans.Add(new(match.Index, match.Length, SyntaxKind.Element));
+                htmlClose = -1;
+                continue;
+            }
+            if (html.TryGetValue(match.Index, out var close))
+            {
+                spans.Add(new(match.Index, match.Length, SyntaxKind.Element));
+                htmlClose = close.CloseStart;
+                continue;
+            }
+            if (KeyTags.IsHtmlStart(content) || KeyTags.IsHtmlEnd(content))
+            {
+                spans.Add(new(match.Index, match.Length, SyntaxKind.Error,
+                    KeyTags.IsHtmlStart(content) ? "{html} needs a {/html} after the formatted text" : "{/html} needs an {html} before it"));
+                continue;
+            }
+
+            var steps = Tag(spans, match.Index, content, includeExists);
+            if (steps is [CursorStep])
+            {
+                if (cursor is null)
+                    cursor = spans.Count - 1;
+                else
+                    spans[^1] = spans[^1] with { Kind = SyntaxKind.Error, Error = "only the first {cursor} counts" };
+            }
+            else if (cursor is { } c && steps.Any(s => s is KeyStep or ElementStep or WindowStep or StartStep or OpenUrlStep)
+                     && spans[c].Kind != SyntaxKind.Error)
+            {
+                spans[c] = spans[c] with
+                {
+                    Kind = SyntaxKind.Error,
+                    Error = $"only text may follow {{cursor}}, but {text.Substring(match.Index, match.Length)} comes after it",
+                };
+            }
         }
         return spans;
     }
@@ -130,23 +176,29 @@ public static partial class SnippetSyntax
         }
     }
 
-    static void Tag(List<SyntaxSpan> spans, int start, string content)
+    /// <returns>Die Schritte des Tags, leer bei Text oder einem Fehler.</returns>
+    static IReadOnlyList<FormStep> Tag(List<SyntaxSpan> spans, int start, string content, Func<string, bool>? includeExists)
     {
         var name = KeyTags.NamePart().Match(content);
-        if (!name.Success || !KeyTags.IsTagName(name.Groups[1].Value)) return; // {name}, JSON: Text
+        if (!name.Success || !KeyTags.IsTagName(name.Groups[1].Value)) return []; // {name}, JSON: Text
 
         var length = content.Length + 2;
-        if (!KeyTags.TryParse(content, null, out _, out var error))
+        if (!KeyTags.TryParse(content, null, out var steps, out var error))
         {
             spans.Add(new(start, length, SyntaxKind.Error, error));
-            return;
+            return [];
+        }
+        if (steps is [IncludeStep include] && includeExists is not null && !includeExists(include.Path))
+        {
+            spans.Add(new(start, length, SyntaxKind.Error, $"there is no text snippet \"{include.Path}\""));
+            return [];
         }
 
         var spec = name.Groups[1].Value.ToLowerInvariant();
-        if (!KeyTags.ElementTags.ContainsKey(spec) && spec is not ("window" or "start"))
+        if (!KeyTags.ElementTags.ContainsKey(spec) && spec is not ("window" or "start" or "include"))
         {
             spans.Add(new(start, length, SyntaxKind.Key));
-            return;
+            return steps;
         }
 
         // {focus, #email}: Klammer, Name und Trenner, dann die Argumente, Anführungszeichen als Zeichenkette
@@ -173,6 +225,7 @@ public static partial class SnippetSyntax
             }
         }
         Add(spans, end, 1, SyntaxKind.Element);
+        return steps;
     }
 
     static void Script(List<SyntaxSpan> spans, string text, int start, int length)

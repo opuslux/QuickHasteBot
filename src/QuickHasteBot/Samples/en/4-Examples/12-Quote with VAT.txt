@@ -1,0 +1,8 @@
+{# Calculates while pasting: asks for the amount and the VAT rate and puts in net, VAT and total.
+var keeps a value for the blocks that follow. A line whose blocks print nothing goes away, line break included:
+so the first line doesn't show up in the text, and the note on paying in instalments only from 1000 on.}
+{{ var net = Number(ask('Net amount', '100').replace(/[^\d.-]/g, '')) || 0; var rate = Number(ask('VAT in %', '20')) || 0 }}
+Net amount:     {{ net.toFixed(2) }}
+VAT {{ rate }} %:       {{ (net * rate / 100).toFixed(2) }}
+Total:          {{ (net * (1 + rate / 100)).toFixed(2) }}
+{{ net >= 1000 ? 'Payment in two instalments on request.' : '' }}

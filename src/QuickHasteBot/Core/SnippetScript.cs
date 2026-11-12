@@ -18,12 +18,24 @@ namespace QuickHasteBot.Core;
 /// Führt run() wirklich aus (blockiert bis zum Ende oder zur Wartezeit). Ohne, z.B. in der Vorschau, startet run() nichts
 /// und liefert ein leeres Ergebnis.
 /// </param>
+/// <param name="Selection">Der Text, der im Zielfenster markiert war (selection), leer ohne.</param>
+/// <param name="Answers">
+/// Was im Fenster von ask() eingegeben wurde, nach Beschriftung. Ohne, z.B. in der Vorschau, gibt ask() die Vorgabe oder
+/// "[Beschriftung]".
+/// </param>
+/// <param name="Folder">Der Ordner des Bausteins: run() sucht relative Pfade zuerst dort.</param>
 public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null,
-    FormBuilder? Form = null, Func<RunRequest, RunResult>? Run = null);
+    FormBuilder? Form = null, Func<RunRequest, RunResult>? Run = null, string Selection = "",
+    IReadOnlyDictionary<string, string>? Answers = null, string? Folder = null);
+
+/// <summary>Eine Frage aus ask(): die Beschriftung und die Vorgabe, wie sie im Baustein stehen.</summary>
+public sealed record Question(string Label, string Default);
 
 /// <summary>Was run() starten soll. <paramref name="WaitSeconds"/> 0: nur starten, nicht warten.</summary>
 /// <param name="Directory">Der Arbeitsordner („Ausführen in“), ohne Angabe der Ordner des Skripts.</param>
-public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden, string? Directory = null);
+/// <param name="SnippetFolder">Der Ordner des Bausteins: ein relativer Pfad, der dort liegt, wird dort gestartet.</param>
+public sealed record RunRequest(string File, string? Arguments, int WaitSeconds, bool Hidden, string? Directory = null,
+    string? SnippetFolder = null);
 
 /// <param name="Code">Der Rückgabewert, null, wenn nicht gewartet wurde.</param>
 public sealed record RunResult(int? Code, string Out, string Err);
@@ -61,6 +73,8 @@ public static partial class SnippetScript
         ("time(format?)", ".NET time format, default HH:mm"),
         ("isoweek(days?)", "ISO week number"),
         ("clipboard", "clipboard text"),
+        ("selection", "the text selected in the target window before pasting, '' if none"),
+        ("ask(label, default?)", "asks the user before pasting, all ask() of a snippet in one window; label must be a fixed text"),
         ("user", "Windows user name"),
         ("guid()", "new GUID"),
         ("key(name, count?)", "presses a key, e.g. key('tab'), key('down', 3); put it and the next ones in the output"),
@@ -90,6 +104,47 @@ public static partial class SnippetScript
 
     /// <summary>Die Zwischenablage wird nur gelesen, wenn ein Skript sie überhaupt erwähnt.</summary>
     public static bool UsesClipboard(string text) => text.Contains("clipboard");
+
+    [GeneratedRegex(@"(?<![\w$.])selection\b")]
+    private static partial Regex SelectionWord();
+
+    /// <summary>
+    /// Ob ein Skript selection erwähnt: Nur dann wird vor dem Einfügen Strg+C im Zielfenster gedrückt. Text ausserhalb
+    /// der Blöcke zählt nicht, das Wort kommt in Mails vor.
+    /// </summary>
+    public static bool UsesSelection(string text) =>
+        text.Contains("selection") && Block().Matches(text).Any(m => SelectionWord().IsMatch(m.Groups[1].Value));
+
+    // ask('Kunde') oder ask("Kunde", 'Muster'): nur feste Texte, damit alle Fragen vor dem ersten Block feststehen
+    [GeneratedRegex("""(?<![\w$.])ask\s*\(\s*(?:'(?<l>(?:\\.|[^'\\\r\n])*)'|"(?<l>(?:\\.|[^"\\\r\n])*)")\s*(?:,\s*(?:'(?<d>(?:\\.|[^'\\\r\n])*)'|"(?<d>(?:\\.|[^"\\\r\n])*)")\s*)?\)""")]
+    private static partial Regex AskCall();
+
+    /// <summary>Ob ein Skript ask() aufruft: Nur dann kommt vor dem Einfügen das Fenster mit den Fragen.</summary>
+    public static bool UsesAsk(string text) => text.Contains("ask") && Questions(text).Count > 0;
+
+    /// <summary>
+    /// Die Fragen aus ask() in den Blöcken, in ihrer Reihenfolge, jede Beschriftung einmal (die erste Vorgabe gilt). Ein
+    /// ask() mit einer Variablen statt eines festen Texts fehlt hier und meldet beim Auswerten einen Fehler.
+    /// </summary>
+    public static IReadOnlyList<Question> Questions(string text)
+    {
+        if (!text.Contains("ask")) return [];
+        var questions = new List<Question>();
+        foreach (Match block in Block().Matches(text))
+        {
+            foreach (Match call in AskCall().Matches(block.Groups[1].Value))
+            {
+                var label = Unescape(call.Groups["l"].Value);
+                if (label.Length > 0 && !questions.Any(q => q.Label == label))
+                    questions.Add(new(label, Unescape(call.Groups["d"].Value)));
+            }
+        }
+        return questions;
+    }
+
+    /// <summary>Die üblichen Escapes in einer JavaScript-Zeichenkette: \' \" \\ \n \t.</summary>
+    static string Unescape(string text) =>
+        !text.Contains('\\') ? text : Regex.Replace(text, @"\\(.)", m => m.Groups[1].Value switch { "n" => "\n", "t" => "\t", var c => c });
 
     /// <exception cref="SnippetScriptException">Syntax- oder Laufzeitfehler, Zeit- oder Speicherlimit in einem Block.</exception>
     public static string Render(string text, ScriptContext context)
@@ -143,6 +198,7 @@ public static partial class SnippetScript
 
         // Marker aus der Zwischenablage weg, sonst könnte kopierter Text Tasten auslösen
         engine.SetValue("clipboard", KeyTags.StripMarkers(context.Clipboard));
+        engine.SetValue("selection", KeyTags.StripMarkers(context.Selection));
         engine.SetValue("user", Environment.UserName);
 
         // date(format, tage): .NET-Datumsformat in der Kultur von Windows, ohne Format das kurze Datum ("03.11.2026")
@@ -155,6 +211,9 @@ public static partial class SnippetScript
         Function("isoweek", 1, args => ISOWeek.GetWeekOfYear(now.AddDays(Number(args, 0)).DateTime).ToString(CultureInfo.InvariantCulture));
 
         Function("guid", 0, _ => Guid.NewGuid().ToString());
+
+        // ask("Kunde", "Muster"): was im Fenster vor dem Einfügen eingegeben wurde. Ohne Fenster (Vorschau) die Vorgabe.
+        Function("ask", 2, args => Ask(context, Format(args, 0), Format(args, 1)));
 
         // key("tab"), key("shift+tab"), key("down", 3), key("wait,500"): dieselbe Syntax wie die Tags im Text.
         // Liefert einen unsichtbaren Marker, der im Ergebnis stehen muss, damit die Taste gedrückt wird.
@@ -178,6 +237,18 @@ public static partial class SnippetScript
 
         void Function(string name, int length, Func<JsValue[], string> body) =>
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
+    }
+
+    static string Ask(ScriptContext context, string? label, string? fallback)
+    {
+        if (string.IsNullOrEmpty(label))
+            throw new ArgumentException("ask needs a label, e.g. ask('Customer')");
+        if (context.Answers is null)
+            return KeyTags.StripMarkers(string.IsNullOrEmpty(fallback) ? "[" + label + "]" : fallback);
+        if (!context.Answers.TryGetValue(label, out var answer))
+            throw new ArgumentException($"ask() needs a fixed text as its label, e.g. ask('{label}'), not a variable");
+        // Marker weg: Eingetipptes soll keine Tasten auslösen
+        return KeyTags.StripMarkers(answer);
     }
 
     static JsValue Run(Engine engine, ScriptContext context, JsValue[] args)
@@ -206,7 +277,7 @@ public static partial class SnippetScript
             directory = Text(o.Get("dir"));
         }
 
-        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden, directory)) ?? new RunResult(0, "", "");
+        var result = context.Run?.Invoke(new RunRequest(file, arguments, wait, hidden, directory, context.Folder)) ?? new RunResult(0, "", "");
         // Das Warten zählt nicht zur Zeitgrenze eines Blocks, die gilt nur für JavaScript
         engine.Constraints.Reset();
         return JsObject.CreateFromEntries(engine,
@@ -226,6 +297,8 @@ public static partial class SnippetScript
         // Programme startet nur, was wörtlich im Baustein steht, nie Skript-Ausgabe oder die Zwischenablage
         if (steps.Any(s => s is StartStep or OpenUrlStep))
             throw new ArgumentException("scripts can't start programs, write {start,…} in the snippet text");
+        if (steps.Any(s => s is IncludeStep or HtmlMarkStep))
+            throw new ArgumentException("{include} and {html} only work in the snippet text, not in key()");
         return context.Form.Markers(steps);
     }
 

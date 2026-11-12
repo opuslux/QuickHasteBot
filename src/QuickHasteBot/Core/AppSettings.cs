@@ -46,6 +46,15 @@ public sealed class AppSettings
     /// <summary>QuickHasteBot.log neben der exe schreiben (Fehler, Start, gestartete Programme und Skripte). Standard: aus.</summary>
     public bool WriteLog { get; set; }
 
+    /// <summary>Einmal am Tag bei GitHub nach einer neuen Version fragen und im Tray und in den Einstellungen darauf hinweisen.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Wann zuletzt gefragt wurde, damit es auch über Neustarts hinweg höchstens einmal am Tag ist.</summary>
+    public DateTimeOffset? LastUpdateCheck { get; set; }
+
+    /// <summary>Das neueste Release bei der letzten Anfrage, z.B. "v2.16.0": Der Hinweis bleibt so bis zum Update.</summary>
+    public string? LatestRelease { get; set; }
+
     /// <summary>Ein Klick im Popup fügt ein bzw. öffnet den Ordner, sonst wählt er nur aus und es braucht einen Doppelklick.</summary>
     public bool SingleClick { get; set; } = true;
 

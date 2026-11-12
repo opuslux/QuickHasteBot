@@ -1,0 +1,11 @@
+{# Fragt vor dem Einfügen nach Name, Bestellnummer und Lieferfrist und setzt die Antworten in den Text ein.
+Alle Fragen kommen zusammen in einem Fenster: Enter fügt ein, Esc bricht ab und es wird nichts eingefügt.
+ask('Lieferfrist in Tagen', '3') schlägt 3 vor. Ohne Vorschlag steht im Feld, was du beim letzten Mal eingegeben hast.
+Der Tag cursor setzt die Schreibmarke nach dem Einfügen an seine Stelle, dort schreibst du gleich weiter.}
+Guten Tag {{ ask('Name') }}
+
+Vielen Dank für Ihre Bestellung {{ ask('Bestellnummer') }}. Wir versenden sie am {{ date('dddd, d. MMMM', Number(ask('Lieferfrist in Tagen', '3'))) }}.
+
+{cursor}
+
+Freundliche Grüsse

@@ -1,0 +1,9 @@
+{# Runs a program or script, waits for it and checks the result, here a random number from PowerShell.
+run gives code (exit code, 0 means all good), out (output) and err (error messages). const r keeps it for the blocks that follow.
+throw stops: then nothing is pasted, and a message shows the text.
+Your own scripts work the same way, e.g. run('d:/scripts/number.bat', 'Muster') with an argument. The options wait and dir
+set how long to wait and which folder the script runs in.}
+{{ const r = run('powershell', '-NoProfile -Command Get-Random -Minimum 10000 -Maximum 99999', { wait: 10, hidden: true }) }}
+{{ if (r.code != 0) throw new Error('PowerShell reports ' + r.code + ': ' + r.err.trim()) }}
+Reference number: {{ r.out.trim() }}
+Created on {{ date() }} at {{ time() }} by {{ user }}

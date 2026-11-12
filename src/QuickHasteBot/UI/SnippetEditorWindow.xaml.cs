@@ -66,7 +66,8 @@ internal partial class SnippetEditorWindow : Window
         SetUpBody();
         WrapToggle.IsChecked = app.Settings.WrapEditor;
         ApplyWrap(app.Settings.WrapEditor);
-        Highlighting = SnippetHighlighting.Attach(BodyInput, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts);
+        Highlighting = SnippetHighlighting.Attach(BodyInput, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts,
+            path => app.Library.FindIncluded(path) is not null);
         BodyInput.TextArea.LeftMargins.Insert(0, Breakpoints);
         StepMarker = new StepMarker(BodyInput.TextArea.TextView);
         BodyInput.TextArea.TextView.BackgroundRenderers.Add(StepMarker);
@@ -310,9 +311,16 @@ internal partial class SnippetEditorWindow : Window
 
         PreviewBox.Visibility = Visibility.Visible;
         var preview = _app.Preview(text, start, length);
-        PreviewNote.Text = Strings.EditorPreviewRunNote;
-        // Auch ein run() davor: seine Variable ist hier leer
-        PreviewNote.Visibility = ScriptSession.UsesRun(text[..(start + length)]) ? Visibility.Visible : Visibility.Collapsed;
+        // Auch ein run() davor: seine Variable ist hier leer. ask() und selection gibt es erst beim Einfügen.
+        var upTo = text[..(start + length)];
+        string[] notes =
+        [
+            .. ScriptSession.UsesRun(upTo) ? [Strings.EditorPreviewRunNote] : Array.Empty<string>(),
+            .. SnippetScript.UsesAsk(upTo) ? [Strings.EditorPreviewAskNote] : Array.Empty<string>(),
+            .. SnippetScript.UsesSelection(upTo) ? [Strings.EditorPreviewSelectionNote] : Array.Empty<string>(),
+        ];
+        PreviewNote.Text = string.Join(" ", notes);
+        PreviewNote.Visibility = notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         if (preview.Error is not null)
         {
             PreviewLabel.Text = Strings.EditorPreviewError;
@@ -371,6 +379,22 @@ internal partial class SnippetEditorWindow : Window
         Insert((before ? newLine : "") + tag + (after || endLine.NextLine is null ? newLine : ""), select);
     }
 
+    /// <summary>
+    /// Strg+Umschalt+V: den formatierten Text aus der Zwischenablage (z.B. eine Signatur aus Outlook) als {html}-Block auf
+    /// eigenen Zeilen. Ohne formatierten Text sagt die Statuszeile das.
+    /// </summary>
+    internal void PasteFormatted()
+    {
+        if (PasteService.TryGetClipboardHtml() is not { } html || HtmlText.CleanFragment(html) is not { Length: > 0 } fragment)
+        {
+            ShowStatus(Strings.EditorNoFormattedText, StatusKind.Info);
+            return;
+        }
+        var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(BodyInput.Document,
+            BodyInput.Document.GetLineByOffset(BodyInput.CaretOffset).LineNumber);
+        InsertTag("{html}" + newLine + fragment.ReplaceLineEndings(newLine) + newLine + "{/html}");
+    }
+
     void OnTagsClick(object sender, RoutedEventArgs e)
     {
         var menu = TagMenu();
@@ -389,7 +413,8 @@ internal partial class SnippetEditorWindow : Window
     /// </param>
     /// <param name="Description">Name des Texts mit der Kurzbeschreibung rechts im Menü. Der Hilfetext im Tooltip heisst
     /// gleich mit "Help" dahinter (<see cref="Help"/>).</param>
-    internal sealed record TagEntry(string Tag, string Description, string? Select = null, bool OwnLine = false)
+    /// <param name="FromClipboard">Statt <see cref="Tag"/> den formatierten Text aus der Zwischenablage als {html}-Block.</param>
+    internal sealed record TagEntry(string Tag, string Description, string? Select = null, bool OwnLine = false, bool FromClipboard = false)
     {
         public string Help => Description + "Help";
     }
@@ -417,7 +442,10 @@ internal partial class SnippetEditorWindow : Window
         [
             new("{# " + Strings.TagCommentText + "}", nameof(Strings.TagComment), Strings.TagCommentText, OwnLine: true), null,
             new("{wait,500}", nameof(Strings.TagWait), "500"), new("{delay,50}", nameof(Strings.TagDelay), "50"),
-            new("{clear}", nameof(Strings.TagClear)), null,
+            new("{clear}", nameof(Strings.TagClear)), new("{cursor}", nameof(Strings.TagCursor)), null,
+            new("{include,Folder/Name}", nameof(Strings.TagInclude), "Folder/Name"),
+            new("{html}…{/html}", nameof(Strings.TagHtmlPaste), FromClipboard: true),
+            new("{html}<b>" + Strings.TagHtmlText + "</b>{/html}", nameof(Strings.TagHtml), Strings.TagHtmlText), null,
             new("{guard,off}", nameof(Strings.TagGuardOff)), new("{guard,on}", nameof(Strings.TagGuardOn)),
         ]),
         (nameof(Strings.EditorTagsElements),
@@ -432,7 +460,8 @@ internal partial class SnippetEditorWindow : Window
         [
             new("{{ date() }}", nameof(Strings.TagDate)), new("{{ date('dd.MM.yyyy', 14) }}", nameof(Strings.TagDateIn), "14"),
             new("{{ time() }}", nameof(Strings.TagTime)), new("{{ isoweek() }}", nameof(Strings.TagWeek)),
-            new("{{ clipboard }}", nameof(Strings.TagClipboard)), new("{{ user }}", nameof(Strings.TagUser)),
+            new("{{ clipboard }}", nameof(Strings.TagClipboard)), new("{{ selection }}", nameof(Strings.TagSelection)),
+            new("{{ ask('" + Strings.TagAskLabel + "') }}", nameof(Strings.TagAsk), Strings.TagAskLabel), new("{{ user }}", nameof(Strings.TagUser)),
             new("{{ guid() }}", nameof(Strings.TagGuid)), null,
             new("{{ const r = run('d:/scripts/file.bat') }}", nameof(Strings.TagRun), "d:/scripts/file.bat", OwnLine: true),
             new("{{ const r = run('d:/scripts/file.bat', { args: '', dir: 'd:/data' }) }}", nameof(Strings.TagRunOptions), "d:/scripts/file.bat", OwnLine: true),
@@ -572,7 +601,8 @@ internal partial class SnippetEditorWindow : Window
             ToolTipService.SetShowDuration(item, 30000);
             item.Click += (_, _) =>
             {
-                if (entry.OwnLine) InsertTag(entry.Tag, entry.Select);
+                if (entry.FromClipboard) PasteFormatted();
+                else if (entry.OwnLine) InsertTag(entry.Tag, entry.Select);
                 else Insert(entry.Tag, entry.Select);
             };
             return item;
@@ -717,7 +747,7 @@ internal partial class SnippetEditorWindow : Window
                 return;
             }
             ShowStatus(Running(startTag, Strings.EditorTestRunning), StatusKind.Busy);
-            var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target);
+            var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target, folder: _folder);
             ShowStatus(problem?.Message ?? Strings.EditorTestDone, problem is null ? StatusKind.Success : StatusKind.Error);
         }
         finally
@@ -772,7 +802,7 @@ internal partial class SnippetEditorWindow : Window
             return;
         }
 
-        var run = _stepRun = new StepRun(_app, text, DisplayName, target, span => BreakpointLine(text, span));
+        var run = _stepRun = new StepRun(_app, text, DisplayName, target, span => BreakpointLine(text, span), _folder);
         run.Changed += (_, view) => ShowStep(text, view);
         StepMarker.Clear();
         LockForStepRun(true);
@@ -1034,6 +1064,9 @@ internal partial class SnippetEditorWindow : Window
         {
             case Key.S when ctrl:
                 Save();
+                break;
+            case Key.V when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                PasteFormatted();
                 break;
             case Key.F1:
                 _app.ShowHelp(HelpWindow.EditorAnchor);

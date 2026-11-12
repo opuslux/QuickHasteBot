@@ -25,6 +25,8 @@ internal static partial class NativeMethods
     public const ushort VK_LWIN = 0x5B;
     public const ushort VK_RWIN = 0x5C;
     public const ushort VK_V = 0x56;
+    public const ushort VK_C = 0x43;
+    public const ushort VK_LEFT = 0x25;
     public const ushort VK_ESCAPE = 0x1B;
 
     public const uint GA_ROOT = 2;
@@ -158,6 +160,10 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool UnhookWinEvent(nint hook);
+
+    /// <summary>Zählt bei jeder Änderung der Zwischenablage hoch: so merkt man, ob Strg+C etwas kopiert hat.</summary>
+    [LibraryImport("user32.dll")]
+    public static partial uint GetClipboardSequenceNumber();
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

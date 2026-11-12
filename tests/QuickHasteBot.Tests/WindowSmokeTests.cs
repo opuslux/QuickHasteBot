@@ -41,6 +41,7 @@ public class WindowSmokeTests
             PopupGrowsWithFolderList();
             KeptOpenPopupIsAnOrdinaryWindow();
             PopupPreviewColors();
+            AskDialogAndUpdateLink();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
             EditorStartsWithWindow();
@@ -1093,6 +1094,37 @@ public class WindowSmokeTests
             viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == name);
             popup.UpdateLayout();
         }
+    }
+
+    /// <summary>ask(): alle Fragen in einem Fenster, Vorgabe vor letzter Antwort. Und der Hinweis auf eine neue Version.</summary>
+    static void AskDialogAndUpdateLink()
+    {
+        UiLanguage.Apply("de");
+        var dialog = new AskDialog("Offerte", [new Question("Kunde", "Muster"), new Question("Betreff", "")],
+            new Dictionary<string, string> { ["Kunde"] = "Meier", ["Betreff"] = "Anfrage" });
+        Snapshot(dialog, "ask.png");
+        Assert.Equal("Offerte – QuickHasteBot", dialog.Title);
+        Assert.Equal(["Muster", "Anfrage"], dialog.Inputs.Select(i => i.Text));
+        dialog.Inputs[1].Text = "Rückfrage";
+        Assert.Equal("Rückfrage", dialog.Answers["Betreff"]);
+        dialog.Close();
+
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de", "LatestRelease": "v99.0.0" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var settings = new SettingsWindow(controller);
+        Snapshot(settings, "settings-update.png");
+        var link = (System.Windows.Controls.TextBlock)settings.FindName("UpdateLink");
+        // Ohne git (Version 0.0.0) gibt es keinen Vergleich, also auch keinen Hinweis
+        if (AppVersion.Numeric(AppVersion.Informational) is null)
+            Assert.Equal(Visibility.Collapsed, link.Visibility);
+        else
+        {
+            Assert.Equal(Visibility.Visible, link.Visibility);
+            Assert.Equal("Version 99.0.0 herunterladen", link.Text);
+        }
+        Assert.True(((System.Windows.Controls.CheckBox)settings.FindName("CheckForUpdatesInput")).IsChecked);
+        settings.Close();
     }
 
     /// <summary>Die Leiste des Schritt-für-Schritt-Laufs: Schritte, Ergebnis, und dass sie nie aktiv wird.</summary>

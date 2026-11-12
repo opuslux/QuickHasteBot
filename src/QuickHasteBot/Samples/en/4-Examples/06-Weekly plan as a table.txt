@@ -1,0 +1,9 @@
+{# A formatted table with the calendar week and Monday of this and the next three weeks,
+to paste into Outlook, Word, Teams or OneNote.
+Scripts run inside the html block too: here one builds the table rows. What a script prints there is HTML.}
+{html}
+<table border="1" cellpadding="6" style="border-collapse:collapse">
+<tr style="background:#e8e8e8"><th>Week</th><th>Monday</th><th>Topic</th></tr>
+{{ [0, 7, 14, 21].map(days => { const monday = days - (new Date().getDay() + 6) % 7; return `<tr><td>${isoweek(monday)}</td><td>${date('MMM d, yyyy', monday)}</td><td></td></tr>`; }).join('') }}
+</table>
+{/html}

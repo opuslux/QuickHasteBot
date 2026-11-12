@@ -20,7 +20,8 @@ internal partial class SettingsWindow : Window
         _app = app;
 
         _loading = true;
-        VersionText.Text = string.Format(Strings.VersionFormat, DisplayVersion());
+        VersionText.Text = string.Format(Strings.VersionFormat, AppVersion.Display());
+        ShowUpdate();
         HotkeyInput.Gesture = app.ConfiguredHotkey;
         PasteClipboard.IsChecked = app.Settings.PasteMode == PasteMode.Clipboard;
         PasteTyping.IsChecked = app.Settings.PasteMode == PasteMode.Typing;
@@ -39,6 +40,7 @@ internal partial class SettingsWindow : Window
         AutostartInput.IsChecked = Autostart.IsEnabled(AppController.ExePath);
         TrayInput.IsChecked = app.Settings.ShowTrayIcon;
         WriteLogInput.IsChecked = app.Settings.WriteLog;
+        CheckForUpdatesInput.IsChecked = app.Settings.CheckForUpdates;
         LanguageInput.ItemsSource = UiLanguage.Choices;
         LanguageInput.SelectedItem = UiLanguage.Choices.FirstOrDefault(c => c.Code == app.Settings.Language) ?? UiLanguage.Choices[0];
         ThemeInput.ItemsSource = UiTheme.Choices;
@@ -331,6 +333,19 @@ internal partial class SettingsWindow : Window
         Log.Info("Log eingeschaltet");
     }
 
+    void OnCheckForUpdatesChanged(object sender, RoutedEventArgs e) => _app.SetCheckForUpdates(CheckForUpdatesInput.IsChecked == true);
+
+    /// <summary>Neben der Version: "Version 2.16.0 herunterladen", wenn es auf GitHub eine neuere gibt.</summary>
+    internal void ShowUpdate()
+    {
+        var visible = _app.AvailableUpdate is not null ? Visibility.Visible : Visibility.Collapsed;
+        UpdateLink.Visibility = UpdateSeparator.Visibility = visible;
+        if (_app.AvailableUpdate is { } tag)
+            UpdateLink.Text = string.Format(Strings.UpdateAvailableFormat, tag.TrimStart('v', 'V'));
+    }
+
+    void OnUpdateClick(object sender, MouseButtonEventArgs e) => _app.OpenUpdatePage();
+
     void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || LanguageInput.SelectedItem is not LanguageChoice choice || choice.Code == _app.Settings.Language) return;
@@ -356,12 +371,4 @@ internal partial class SettingsWindow : Window
     void OnExit(object sender, RoutedEventArgs e) => _app.Exit();
 
     void OnClose(object sender, RoutedEventArgs e) => Close();
-
-    static string DisplayVersion()
-    {
-        // Das SDK hängt den Commit an ("2.0.0+abc123…"), der kurze Hash reicht
-        var version = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
-        var plus = version.IndexOf('+');
-        return plus < 0 ? version : $"{version[..plus]} ({version[(plus + 1)..Math.Min(version.Length, plus + 8)]})";
-    }
 }

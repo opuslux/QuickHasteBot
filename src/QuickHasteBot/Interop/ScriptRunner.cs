@@ -146,6 +146,13 @@ internal static class ScriptRunner
             path = Path.Combine(directory, path);
             hasFolder = true;
         }
+        // Ein relativer Pfad neben dem Baustein, z.B. run('nummer.bat') für eine .bat im selben Ordner: dort starten,
+        // egal von wo QuickHasteBot gestartet wurde
+        else if (!Path.IsPathRooted(path) && request.SnippetFolder is { Length: > 0 } here && File.Exists(Path.Combine(here, path)))
+        {
+            path = Path.GetFullPath(Path.Combine(here, path));
+            hasFolder = true;
+        }
         if (hasFolder && !File.Exists(path))
             throw new RunFailedException($"{path} not found");
 

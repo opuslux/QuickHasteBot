@@ -1,0 +1,5 @@
+{# Fills in a form with the Tab key: text is typed, tab jumps to the next field.
+Click into the first field first. If the order doesn't fit, add or remove tabs.
+clear empties a prefilled field before typing.
+Record in the editor makes such a snippet by clicking, with field names instead of tabs.}
+Max{tab}Muster{tab}max.muster@example.com{tab}{clear}+1 555 0100

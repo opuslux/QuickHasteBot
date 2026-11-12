@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>QuickHasteBot-Testformular</title>
+<style>
+  body { font-family: "Segoe UI", sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+  fieldset { margin: 12px 0; border: 1px solid #bbb; border-radius: 6px; }
+  p { margin: 6px 0; }
+  label.feld { display: inline-block; min-width: 110px; }
+  #ergebnis { white-space: pre-wrap; background: #eef6ee; padding: 8px; display: none; }
+</style>
+</head>
+<body>
+<h1>Testformular</h1>
+<p>Zum Ausprobieren von QuickHasteBot: Der Baustein „Testformular ausfüllen“ füllt alles aus. Nichts wird verschickt, die Seite läuft nur auf deinem Computer.</p>
+<p><button type="button" ondblclick="this.textContent = 'Doppelklick erkannt ✓'">Doppelklick hier</button></p>
+
+<fieldset><legend>Person</legend>
+  <p><label class="feld" for="vorname">Vorname</label><input id="vorname"></p>
+  <p><label class="feld" for="nachname">Nachname</label><input id="nachname"></p>
+  <p><label class="feld" for="email">E-Mail</label><input id="email" type="email"></p>
+  <p><label class="feld" for="land">Land</label><select id="land"><option></option><option>Deutschland</option><option>Österreich</option><option>Schweiz</option></select></p>
+</fieldset>
+
+<fieldset><legend>Rechnungsadresse</legend>
+  <p><label class="feld" for="r-strasse">Strasse</label><input id="r-strasse"></p>
+  <p><label class="feld" for="r-ort">PLZ und Ort</label><input id="r-ort"></p>
+</fieldset>
+
+<fieldset><legend>Lieferadresse</legend>
+  <p><label class="feld" for="l-strasse">Strasse</label><input id="l-strasse"></p>
+  <p><label class="feld" for="l-ort">PLZ und Ort</label><input id="l-ort"></p>
+</fieldset>
+
+<fieldset><legend>Kontakt</legend>
+  <p><input type="radio" name="kontakt" id="k-mail"><label for="k-mail">Per E-Mail</label>
+     <input type="radio" name="kontakt" id="k-tel"><label for="k-tel">Per Telefon</label></p>
+  <p><input type="checkbox" id="newsletter"><label for="newsletter">Newsletter abonnieren</label></p>
+  <p><textarea id="nachricht" rows="3" cols="50" placeholder="Ihre Nachricht an uns"></textarea></p>
+</fieldset>
+
+<p><button type="button" onclick="zeigen()">Absenden</button></p>
+<div id="ergebnis"></div>
+
+<script>
+  function zeigen() {
+    const wert = id => document.getElementById(id).value;
+    const an = id => document.getElementById(id).checked ? 'ja' : 'nein';
+    const box = document.getElementById('ergebnis');
+    box.textContent = 'Empfangen:\n'
+      + wert('vorname') + ' ' + wert('nachname') + ', ' + wert('email') + ', ' + wert('land') + '\n'
+      + 'Rechnung: ' + wert('r-strasse') + ', ' + wert('r-ort') + '\n'
+      + 'Lieferung: ' + wert('l-strasse') + ', ' + wert('l-ort') + '\n'
+      + 'Per E-Mail: ' + an('k-mail') + ', per Telefon: ' + an('k-tel') + ', Newsletter: ' + an('newsletter') + '\n'
+      + 'Nachricht: ' + wert('nachricht');
+    box.style.display = 'block';
+  }
+</script>
+</body>
+</html>

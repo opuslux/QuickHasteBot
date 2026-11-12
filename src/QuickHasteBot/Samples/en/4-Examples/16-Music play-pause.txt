@@ -1,0 +1,5 @@
+{# Presses the media key Play/Pause: pauses or resumes music or video, in the browser, in Spotify and elsewhere.
+With right-click › Set hotkey… the snippet gets a shortcut of its own, e.g. Ctrl+Alt+P, and then runs without the popup.
+The shortcut is then in square brackets in the file name.
+More special keys: volumemute, volumeup, nexttrack, prtsc, numplus on the numpad, key,a for a real key press.}
+{playpause}

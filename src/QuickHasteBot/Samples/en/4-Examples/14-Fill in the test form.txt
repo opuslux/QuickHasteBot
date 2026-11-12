@@ -1,0 +1,22 @@
+{# Fills in the test form. First open 13-Test form in the popup, it shows up in the browser. Then pick this snippet, from whatever window.
+window brings the browser window with this title to the front. The element tags find the fields via UI Automation, without counting tabs:
+#firstname by the id, name=Last name by the label, help= by the grey placeholder text, and * stands for any text.
+name=Delivery address > name=Street looks for the street only in the Delivery address box, as there are two streets.
+set fills a field, picks from a dropdown and ticks a box. click clicks, dblclick double-clicks with the mouse.
+For your own forms, pick an element in the editor (crosshair) or use Record.
+At the end, a PowerShell window says that everything is done.}
+{window,title=QuickHasteBot test form}
+{dblclick,name=Double-click here;type=button}
+{focus,#firstname}{clear}Max
+{set,name=Last name,"Muster"}
+{set,#email,"max.muster@example.com"}
+{set,name=Country;type=combobox,"United Kingdom"}
+{set,name=Billing address > name=Street,"PO Box 12"}
+{set,name=Billing address > name=City,"London"}
+{set,name=Delivery address > name=Street,"1 High Street"}
+{set,name=Delivery address > name=City,"Oxford"}
+{click,name=By email}
+{set,#newsletter,on}
+{focus,help=Your message*}{clear}Hello, QuickHasteBot typed this.
+{click,name=Send;type=button}
+{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'The test form is filled in.\')"', { wait: 0, hidden: true }) }}

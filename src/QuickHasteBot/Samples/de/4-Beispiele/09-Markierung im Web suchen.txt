@@ -1,0 +1,5 @@
+{# Sucht den markierten Text im Web: Text markieren, Baustein wählen.
+Edge wird gestartet oder nach vorne geholt, ctrl+t öffnet einen neuen Tab, ctrl+l springt in die Adresszeile.
+Statt msedge geht auch chrome oder firefox. Eine feste Webadresse öffnet start direkt im Standardbrowser,
+z.B. start,https://example.com in geschweiften Klammern.}
+{start,msedge}{ctrl+t}{ctrl+l}{{ selection.trim().replace(/\s+/g, ' ') || 'QuickHasteBot' }}{enter}

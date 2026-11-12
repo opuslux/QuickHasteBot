@@ -1,0 +1,11 @@
+{# Fügt formatierten Text ein: fett, grau und mit Link. Das klappt in Outlook, Word, Teams und Web-Mail,
+Programme ohne Formatierung wie Notepad bekommen den reinen Text.
+Alles zwischen html und /html ist HTML. Ohne HTML zu schreiben: formatierten Text kopieren, etwa die eigene
+Signatur aus Outlook, und im Editor Strg+Umschalt+V drücken, das fügt ihn als solchen Block ein.
+Bilder brauchen eine Webadresse, Bilder von der eigenen Festplatte sieht der Empfänger nicht.}
+{html}
+<p>Freundliche Grüsse</p>
+<p><b>Vorname Nachname</b><br>
+<span style="color:#666666">Funktion | Firma AG</span><br>
+<a href="https://example.com">example.com</a></p>
+{/html}

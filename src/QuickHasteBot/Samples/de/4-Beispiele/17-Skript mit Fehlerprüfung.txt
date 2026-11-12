@@ -1,0 +1,9 @@
+{# Startet ein Programm oder Skript, wartet darauf und prüft das Ergebnis, hier eine Zufallszahl aus PowerShell.
+run liefert code (Rückgabewert, 0 heisst alles gut), out (Ausgabe) und err (Fehlermeldungen). const r merkt sich das für die folgenden Blöcke.
+throw bricht ab: Dann wird nichts eingefügt, und eine Meldung zeigt den Text.
+Eigene Skripte gehen gleich, z.B. run('d:/scripts/nummer.bat', 'Muster') mit einem Argument. Die Optionen wait und dir
+legen fest, wie lange gewartet wird und in welchem Ordner das Skript läuft.}
+{{ const r = run('powershell', '-NoProfile -Command Get-Random -Minimum 10000 -Maximum 99999', { wait: 10, hidden: true }) }}
+{{ if (r.code != 0) throw new Error('PowerShell meldet ' + r.code + ': ' + r.err.trim()) }}
+Referenznummer: {{ r.out.trim() }}
+Erstellt am {{ date() }} um {{ time() }} von {{ user }}

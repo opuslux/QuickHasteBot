@@ -1,0 +1,5 @@
+{# Setzt den markierten Text in «Anführungszeichen».
+Erst Text markieren, dann das Popup öffnen und diesen Baustein wählen. QuickHasteBot holt die Markierung mit Strg+C,
+das Einfügen ersetzt sie, und die Zwischenablage ist danach wie vorher.
+Ist nichts markiert, kommen nur die Anführungszeichen, und die Schreibmarke steht dazwischen.}
+«{{ selection.trim() }}{cursor}»

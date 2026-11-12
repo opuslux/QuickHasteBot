@@ -57,11 +57,11 @@ public static class ScriptPrompt
 
     /// <summary>
     /// run() nicht: Die KI soll keine Programme starten. dblclick() und rclick() auch nicht, die braucht ein Block kaum,
-    /// und die Adresse bliebe sonst nicht kurz genug für Google.
+    /// und die Adresse bliebe sonst nicht kurz genug für Google. ask() und selection auch nicht: Im KI-Fenster gibt es
+    /// weder ein Fenster mit Fragen noch ein Ziel, der Block liesse sich dort nicht testen.
     /// </summary>
     internal static bool InPrompt(string signature) =>
-        !signature.StartsWith("run(", StringComparison.Ordinal) && !signature.StartsWith("dblclick(", StringComparison.Ordinal)
-        && !signature.StartsWith("rclick(", StringComparison.Ordinal);
+        !new[] { "run(", "dblclick(", "rclick(", "ask(", "selection" }.Any(name => signature.StartsWith(name, StringComparison.Ordinal));
 
     /// <param name="template">Inhalt von ai-prompt.txt, ohne Datei oder ohne {task} der eingebaute Prompt.</param>
     public static string Build(string task, string? template)

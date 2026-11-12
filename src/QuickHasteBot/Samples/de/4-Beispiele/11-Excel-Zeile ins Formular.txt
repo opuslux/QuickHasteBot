@@ -1,0 +1,4 @@
+{# Tippt eine kopierte Excel-Zeile in ein Formular: Zellen nebeneinander markieren, Strg+C, ins erste Feld klicken, Baustein wählen.
+Excel trennt die Zellen mit Tabs. Das Skript setzt dafür key('tab') ein, das drückt die Tab-Taste und springt so ins nächste Feld.
+Was aus der Zwischenablage kommt, löst selbst nie Tasten aus. Ist sie leer, bricht throw ab und eine Meldung sagt warum.}
+{{ if (!clipboard.trim()) throw new Error('Erst eine Zeile in Excel kopieren'); clipboard.split(/\r?\n/)[0].split('\t').join(key('tab')) }}

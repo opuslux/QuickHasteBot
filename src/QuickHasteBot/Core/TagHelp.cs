@@ -37,7 +37,7 @@ public static class TagHelp
     // Die Helfer in {{ … }}; focus, click, set, dblclick, rclick, window und wait erklären sich wie ihr Tag
     static readonly Dictionary<string, string> HelperTopics = new()
     {
-        ["date"] = "TagDate", ["time"] = "TagTime", ["isoweek"] = "TagWeek", ["clipboard"] = "TagClipboard", ["user"] = "TagUser",
+        ["date"] = "TagDate", ["time"] = "TagTime", ["isoweek"] = "TagWeek", ["clipboard"] = "TagClipboard", ["selection"] = "TagSelection", ["ask"] = "TagAsk", ["user"] = "TagUser",
         ["guid"] = "TagGuid", ["key"] = "TagKeyHelper", ["wait"] = "TagWait", ["focus"] = "TagFocus", ["click"] = "TagClick",
         ["set"] = "TagSet", ["dblclick"] = "TagDoubleClick", ["rclick"] = "TagRightClick", ["window"] = "TagWindow",
         ["run"] = "TagRunOptions",
@@ -47,7 +47,8 @@ public static class TagHelp
     public static IEnumerable<string> AllKeys =>
         KeyTopics.Values.Concat(HelperTopics.Values)
             .Concat(["TagComment", "TagWait", "TagDelay", "TagClear", "TagGuardOff", "TagGuardOn", "TagFocus", "TagClick", "TagSet",
-                "TagDoubleClick", "TagRightClick", "TagWindow", "TagStart", "TagStartUrl", "TagLetterKey", AnyKey, Repeat])
+                "TagDoubleClick", "TagRightClick", "TagWindow", "TagStart", "TagStartUrl", "TagLetterKey", "TagCursor", "TagHtml", "TagInclude",
+                AnyKey, Repeat])
             .Distinct();
 
     /// <summary>
@@ -72,6 +73,7 @@ public static class TagHelp
 
     static HelpTopic? Tag(string content)
     {
+        if (KeyTags.IsHtmlEnd(content)) return new(0, 0, "TagHtml");
         var name = KeyTags.NamePart().Match(content);
         if (!name.Success || !KeyTags.IsTagName(name.Groups[1].Value)) return null; // {name}, JSON: Text
 
@@ -92,6 +94,9 @@ public static class TagHelp
             "window" => "TagWindow",
             "start" => KeyTags.IsWebAddress(first) ? "TagStartUrl" : "TagStart",
             "key" => "TagLetterKey",
+            "cursor" => "TagCursor",
+            "html" => "TagHtml",
+            "include" => "TagInclude",
             _ => null,
         };
         if (key is not null) return new(0, 0, key);

@@ -54,23 +54,26 @@ internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisp
     readonly TextEditor _editor;
     readonly bool _keyTags;
     readonly bool _scripts;
+    readonly Func<string, bool>? _includeExists;
     readonly DependencyPropertyDescriptor _foreground = DependencyPropertyDescriptor.FromProperty(Control.ForegroundProperty, typeof(TextEditor));
     readonly ToolTip _toolTip = new();
     IReadOnlyList<SyntaxSpan> _spans = [];
     ITextSourceVersion? _version;
     Palette _palette = Light;
 
-    SnippetHighlighting(TextEditor editor, bool keyTags, bool scripts)
+    SnippetHighlighting(TextEditor editor, bool keyTags, bool scripts, Func<string, bool>? includeExists)
     {
         _editor = editor;
         _keyTags = keyTags;
         _scripts = scripts;
+        _includeExists = includeExists;
     }
 
     /// <summary>Hängt die Farben an <paramref name="editor"/>. Beim Schliessen Dispose aufrufen.</summary>
-    public static SnippetHighlighting Attach(TextEditor editor, bool keyTags, bool scripts)
+    /// <param name="includeExists">Ob es den Baustein aus {include,…} gibt, sonst ist das Tag rot.</param>
+    public static SnippetHighlighting Attach(TextEditor editor, bool keyTags, bool scripts, Func<string, bool>? includeExists = null)
     {
-        var highlighting = new SnippetHighlighting(editor, keyTags, scripts);
+        var highlighting = new SnippetHighlighting(editor, keyTags, scripts, includeExists);
         highlighting.UpdatePalette();
         editor.TextArea.TextView.LineTransformers.Add(highlighting);
         // Eine Änderung kann andere Zeilen umfärben ("{{" ohne Ende, dann "}}" drei Zeilen weiter)
@@ -103,7 +106,7 @@ internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisp
         var document = _editor.Document;
         if (_version is null || !_version.Equals(document.Version))
         {
-            _spans = SnippetSyntax.Tokenize(document.Text, _keyTags, _scripts);
+            _spans = SnippetSyntax.Tokenize(document.Text, _keyTags, _scripts, _includeExists);
             _version = document.Version;
         }
         return _spans;

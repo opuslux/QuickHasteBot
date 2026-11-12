@@ -1,0 +1,11 @@
+{# Asks for name, order number and delivery time before pasting, and puts the answers into the text.
+All questions come together in one window: Enter pastes, Esc cancels and nothing is pasted.
+ask('Delivery in days', '3') suggests 3. Without a suggestion, the field offers what you typed last time.
+The cursor tag puts the cursor at its place after pasting, so you can go on writing there.}
+Hello {{ ask('Name') }},
+
+thank you for your order {{ ask('Order number') }}. We will ship it on {{ date('dddd, MMMM d', Number(ask('Delivery in days', '3'))) }}.
+
+{cursor}
+
+Kind regards

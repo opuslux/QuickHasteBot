@@ -1,0 +1,4 @@
+{# Types a copied Excel row into a form: select cells side by side, Ctrl+C, click into the first field, pick the snippet.
+Excel separates the cells with tabs. The script puts key('tab') in their place, which presses the Tab key and so jumps to the next field.
+What comes from the clipboard never presses keys by itself. If it is empty, throw stops and a message says why.}
+{{ if (!clipboard.trim()) throw new Error('Copy a row in Excel first'); clipboard.split(/\r?\n/)[0].split('\t').join(key('tab')) }}

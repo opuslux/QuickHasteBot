@@ -1,0 +1,5 @@
+{# Searches the web for the selected text: select some text, pick the snippet.
+Edge is started or brought to the front, ctrl+t opens a new tab, ctrl+l jumps to the address bar.
+Instead of msedge, chrome or firefox work too. A fixed web address is opened by start right away in the
+default browser, e.g. start,https://example.com in curly braces.}
+{start,msedge}{ctrl+t}{ctrl+l}{{ selection.trim().replace(/\s+/g, ' ') || 'QuickHasteBot' }}{enter}

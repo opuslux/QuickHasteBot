@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuickHasteBot test form</title>
+<style>
+  body { font-family: "Segoe UI", sans-serif; max-width: 640px; margin: 24px auto; padding: 0 16px; }
+  fieldset { margin: 12px 0; border: 1px solid #bbb; border-radius: 6px; }
+  p { margin: 6px 0; }
+  label.field { display: inline-block; min-width: 110px; }
+  #result { white-space: pre-wrap; background: #eef6ee; padding: 8px; display: none; }
+</style>
+</head>
+<body>
+<h1>Test form</h1>
+<p>For trying out QuickHasteBot: the snippet "Fill in the test form" fills in everything. Nothing is sent, the page only runs on your computer.</p>
+<p><button type="button" ondblclick="this.textContent = 'Double-click detected ✓'">Double-click here</button></p>
+
+<fieldset><legend>Person</legend>
+  <p><label class="field" for="firstname">First name</label><input id="firstname"></p>
+  <p><label class="field" for="lastname">Last name</label><input id="lastname"></p>
+  <p><label class="field" for="email">Email</label><input id="email" type="email"></p>
+  <p><label class="field" for="country">Country</label><select id="country"><option></option><option>Canada</option><option>United Kingdom</option><option>United States</option></select></p>
+</fieldset>
+
+<fieldset><legend>Billing address</legend>
+  <p><label class="field" for="b-street">Street</label><input id="b-street"></p>
+  <p><label class="field" for="b-city">City</label><input id="b-city"></p>
+</fieldset>
+
+<fieldset><legend>Delivery address</legend>
+  <p><label class="field" for="d-street">Street</label><input id="d-street"></p>
+  <p><label class="field" for="d-city">City</label><input id="d-city"></p>
+</fieldset>
+
+<fieldset><legend>Contact</legend>
+  <p><input type="radio" name="contact" id="c-mail"><label for="c-mail">By email</label>
+     <input type="radio" name="contact" id="c-phone"><label for="c-phone">By phone</label></p>
+  <p><input type="checkbox" id="newsletter"><label for="newsletter">Subscribe to the newsletter</label></p>
+  <p><textarea id="message" rows="3" cols="50" placeholder="Your message to us"></textarea></p>
+</fieldset>
+
+<p><button type="button" onclick="show()">Send</button></p>
+<div id="result"></div>
+
+<script>
+  function show() {
+    const value = id => document.getElementById(id).value;
+    const on = id => document.getElementById(id).checked ? 'yes' : 'no';
+    const box = document.getElementById('result');
+    box.textContent = 'Received:\n'
+      + value('firstname') + ' ' + value('lastname') + ', ' + value('email') + ', ' + value('country') + '\n'
+      + 'Billing: ' + value('b-street') + ', ' + value('b-city') + '\n'
+      + 'Delivery: ' + value('d-street') + ', ' + value('d-city') + '\n'
+      + 'By email: ' + on('c-mail') + ', by phone: ' + on('c-phone') + ', newsletter: ' + on('newsletter') + '\n'
+      + 'Message: ' + value('message');
+    box.style.display = 'block';
+  }
+</script>
+</body>
+</html>

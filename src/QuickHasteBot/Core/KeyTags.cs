@@ -64,6 +64,24 @@ public sealed record ElementStep(ElementAction Action, ElementSelector Selector,
 /// </param>
 public sealed record DeferredStep(int Block, string Text) : FormStep;
 
+/// <summary>
+/// {cursor}: wo die Schreibmarke nach dem Einfügen stehen soll. Am Ende geht sie so viele Zeichen nach links, wie danach
+/// noch Text kam. Kein Tag für die Umbruch-Regel: Umbrüche daneben bleiben Text.
+/// </summary>
+public sealed record CursorStep : FormStep;
+
+/// <summary>{html} bzw. {/html}: Anfang und Ende eines Blocks, der als formatierter Text eingefügt wird.</summary>
+public sealed record HtmlMarkStep(bool Start) : FormStep;
+
+/// <summary>Ein ganzer {html}…{/html}-Block mit seinem fertigen Inhalt (Skripte ausgewertet), wird per Zwischenablage eingefügt.</summary>
+public sealed record HtmlStep(string Html) : FormStep;
+
+/// <summary>
+/// {include,Ordner/Name}: wird vor allem anderen durch den Text dieses Bausteins ersetzt (<see cref="SnippetIncludes"/>).
+/// Als Schritt nur, wo das nicht geschah; dort tut er nichts.
+/// </summary>
+public sealed record IncludeStep(string Path) : FormStep;
+
 /// <summary>Eine Stelle im Bausteintext, so wie er an <see cref="KeyTags.MarkTags"/> ging.</summary>
 public readonly record struct SourceSpan(int Start, int Length)
 {
@@ -95,13 +113,19 @@ public sealed class FormBuilder
     /// <summary>Text mit Markern → Text mit Skript-Ausgaben statt {{ … }}.</summary>
     internal TextMap Scripts { get; } = new();
 
+    /// <summary>
+    /// Bausteintext → Text mit eingebundenen Bausteinen statt {include,…} (<see cref="SnippetIncludes"/>), davor. Alles aus
+    /// einem eingebundenen Baustein stammt vom ganzen {include,…}-Tag.
+    /// </summary>
+    internal TextMap Includes { get; } = new();
+
     public IReadOnlyList<FormStep> Steps => _steps;
 
-    /// <param name="source">Wo der Tag im Bausteintext steht. Ohne Angabe der Skriptblock, der gerade läuft.</param>
+    /// <param name="source">Wo der Tag im Text steht, wie er an MarkTags ging. Ohne Angabe der Skriptblock, der gerade läuft.</param>
     public string Marker(FormStep step, SourceSpan? source = null)
     {
         _steps.Add(step);
-        _sources.Add(source ?? _block ?? default);
+        _sources.Add(source is { } s ? Includes.Back(s.Start, s.End) : _block ?? default);
         return KeyTags.MarkerStart + (_steps.Count - 1).ToString(CultureInfo.InvariantCulture) + KeyTags.MarkerEnd;
     }
 
@@ -111,7 +135,7 @@ public sealed class FormBuilder
     internal SourceSpan SourceOf(int step) => _sources[step];
 
     /// <summary>Ein {{ … }}-Block (Stelle im Text mit Markern) beginnt, key() und Co. stammen ab jetzt von dort.</summary>
-    internal void BeginScript(int index, int length) => _block = Tags.Back(index, index + length);
+    internal void BeginScript(int index, int length) => _block = Back(Tags.Back(index, index + length));
 
     internal void EndScript() => _block = null;
 
@@ -124,8 +148,10 @@ public sealed class FormBuilder
     internal SourceSpan SourceOfText(int start, int end)
     {
         var marked = Scripts.Back(start, end);
-        return Tags.Back(marked.Start, marked.End);
+        return Back(Tags.Back(marked.Start, marked.End));
     }
+
+    SourceSpan Back(SourceSpan span) => Includes.Back(span.Start, span.End);
 }
 
 /// <summary>
@@ -268,7 +294,38 @@ public static partial class KeyTags
     internal static partial Regex NamePart();
 
     static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
-        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start", "key" };
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start", "key", "cursor", "html", "include" };
+
+    /// <summary>Das Ende eines {html}-Blocks, das einzige Tag mit "/".</summary>
+    internal const string HtmlEnd = "/html";
+
+    internal static bool IsHtmlEnd(string content) => content.Trim().Equals(HtmlEnd, StringComparison.OrdinalIgnoreCase);
+
+    internal static bool IsHtmlStart(string content) => content.Trim().Equals("html", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Die {html}…{/html}-Paare in <paramref name="text"/>, als Stellen der beiden Tags (Index des Treffers von
+    /// <see cref="Candidate"/>). Nur ein vollständiges Paar zählt, verschachtelte {html} darin sind Text. Ein {html} ohne
+    /// Ende oder ein {/html} ohne Anfang ist kein Tag.
+    /// </summary>
+    internal static Dictionary<int, (int CloseStart, int CloseEnd)> HtmlPairs(string text)
+    {
+        var pairs = new Dictionary<int, (int, int)>();
+        int? open = null;
+        foreach (Match match in Candidate().Matches(text))
+        {
+            if (match.Groups["note"].Success || !match.Groups[1].Success) continue;
+            var content = match.Groups[1].Value;
+            if (open is null && IsHtmlStart(content))
+                open = match.Index;
+            else if (open is { } start && IsHtmlEnd(content))
+            {
+                pairs[start] = (match.Index, match.Index + match.Length);
+                open = null;
+            }
+        }
+        return pairs;
+    }
 
     /// <summary>Die Tags, die ein Element ansprechen, mit ihrem Namen im Text.</summary>
     internal static readonly IReadOnlyDictionary<string, ElementAction> ElementTags = new Dictionary<string, ElementAction>
@@ -298,6 +355,8 @@ public static partial class KeyTags
     {
         var result = new StringBuilder(text.Length);
         var pos = 0;
+        var html = HtmlPairs(text);
+        var htmlClose = -1; // im {html}-Block: wo sein {/html} steht. Tags darin sind Teil des HTML.
         foreach (Match match in Candidate().Matches(text))
         {
             string replacement;
@@ -308,8 +367,23 @@ public static partial class KeyTags
                 start = Math.Max(start, pos); // der Umbruch davor gehörte schon zum Kommentar davor
                 replacement = "";
             }
-            else if (!match.Groups[1].Success || !TryParse(match.Groups[1].Value, null, out var steps, out _))
-                continue; // Skriptblock oder Text in Klammern
+            else if (!match.Groups[1].Success)
+                continue; // Skriptblock
+            else if (htmlClose >= 0 && match.Index < htmlClose)
+                continue;
+            else if (htmlClose == match.Index)
+            {
+                replacement = form.Marker(new HtmlMarkStep(false), new SourceSpan(match.Index, match.Length));
+                htmlClose = -1;
+            }
+            else if (html.TryGetValue(match.Index, out var close))
+            {
+                replacement = form.Marker(new HtmlMarkStep(true), new SourceSpan(match.Index, match.Length));
+                htmlClose = close.CloseStart;
+            }
+            else if (IsHtmlStart(match.Groups[1].Value) || IsHtmlEnd(match.Groups[1].Value)
+                     || !TryParse(match.Groups[1].Value, null, out var steps, out _))
+                continue; // Text in Klammern, auch ein {html} ohne Gegenstück
             else
                 replacement = form.Markers(steps, new SourceSpan(match.Index, match.Length));
 
@@ -357,6 +431,12 @@ public static partial class KeyTags
         steps = [];
         error = $"unknown key \"{content}\"";
 
+        if (IsHtmlEnd(content))
+        {
+            steps = [new HtmlMarkStep(false)];
+            return true;
+        }
+
         // Bewusst streng: "{ end }" in Code-Bausteinen soll keine Taste sein
         var name = NamePart().Match(content);
         if (!name.Success) return false;
@@ -376,6 +456,17 @@ public static partial class KeyTags
 
         if (spec == "key")
             return TryParseLetterKey(args, count, out steps, out error);
+
+        if (spec == "include")
+        {
+            if (args.Count != 1 || args[0].Trim().Trim('/', '\\').Length == 0)
+            {
+                error = "\"include\" needs a snippet, e.g. {include,Sign-offs/Kind regards}";
+                return false;
+            }
+            steps = [new IncludeStep(args[0].Trim())];
+            return true;
+        }
 
         if (args.Count > 1)
         {
@@ -416,6 +507,14 @@ public static partial class KeyTags
                     return false;
                 }
                 steps = [Key("ctrl+a", 0x41, [VK_CONTROL], 1, extended: false), Key("del", VK_DELETE, [], 1, extended: true)];
+                return true;
+            case "cursor" or "html":
+                if (arg is not null)
+                {
+                    error = $"\"{spec}\" takes no arguments";
+                    return false;
+                }
+                steps = [spec == "cursor" ? new CursorStep() : new HtmlMarkStep(true)];
                 return true;
         }
 
@@ -699,7 +798,7 @@ public static partial class KeyTags
             }
             var step = int.TryParse(text.AsSpan(start + 1, end - start - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
                 && index < form.Steps.Count ? form.Steps[index] : null;
-            var isTag = step is not DeferredStep;
+            var isTag = step is not (DeferredStep or CursorStep);
             AddText(pos, start, afterTag, beforeTag: isTag);
             afterTag = isTag;
             if (step is not null)
@@ -717,7 +816,7 @@ public static partial class KeyTags
             else if (trimmed.Length < last.Text.Length)
                 steps[^1] = new(new TextStep(trimmed), form.SourceOfText(lastTextStart, lastTextStart + trimmed.Length));
         }
-        return steps;
+        return GroupHtml(steps);
 
         void AddText(int from, int to, bool afterTag, bool beforeTag)
         {
@@ -732,6 +831,38 @@ public static partial class KeyTags
             steps.Add(new(new TextStep(text[from..to]), output ?? form.SourceOfText(from, to)));
             lastTextStart = from;
         }
+    }
+
+    /// <summary>
+    /// Fasst {html}, den Text danach und {/html} zu einem <see cref="HtmlStep"/> zusammen. Kommt im Block etwas anderes
+    /// als Text (key() in einem Skript, ein zurückgestellter Block), endet der Block dort; das {/html} danach tut nichts.
+    /// </summary>
+    static List<SourcedStep> GroupHtml(List<SourcedStep> steps)
+    {
+        if (!steps.Any(s => s.Step is HtmlMarkStep)) return steps;
+        var result = new List<SourcedStep>(steps.Count);
+        for (var i = 0; i < steps.Count; i++)
+        {
+            if (steps[i].Step is not HtmlMarkStep { Start: true })
+            {
+                if (steps[i].Step is not HtmlMarkStep)
+                    result.Add(steps[i]);
+                continue;
+            }
+            var html = new StringBuilder();
+            var source = steps[i].Source;
+            var j = i + 1;
+            for (; j < steps.Count && steps[j].Step is TextStep text; j++)
+            {
+                html.Append(text.Text);
+                source = SourceSpan.FromBounds(source.Start, Math.Max(source.End, steps[j].Source.End));
+            }
+            if (j < steps.Count && steps[j].Step is HtmlMarkStep { Start: false })
+                source = SourceSpan.FromBounds(source.Start, Math.Max(source.End, steps[j++].Source.End));
+            result.Add(new(new HtmlStep(html.ToString()), source));
+            i = j - 1;
+        }
+        return result;
     }
 
     /// <summary>Hinter Leerzeichen und einem Umbruch am Anfang von text[from..to], sonst <paramref name="from"/>.</summary>
@@ -766,6 +897,10 @@ public static partial class KeyTags
         StartStep s => StartTag(s),
         OpenUrlStep o => OpenUrlTag(o),
         DeferredStep d => d.Text.Trim(),
+        CursorStep => "{cursor}",
+        HtmlMarkStep h => h.Start ? "{html}" : "{" + HtmlEnd + "}",
+        HtmlStep h => "{html}" + h.Html + "{" + HtmlEnd + "}",
+        IncludeStep i => "{include," + i.Path + "}",
         _ => "",
     };
 

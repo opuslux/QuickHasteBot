@@ -4,7 +4,7 @@ Find and paste text snippets with a hotkey. The successor to QuickPasteBot (2012
 
 Press the hotkey (**Ctrl+Shift+Y** unless you change it) and a popup with all your snippets opens at the mouse pointer. Type to filter, press **Enter**, and the text is pasted into the window you were just working in.
 
-Beyond plain text, snippets can contain [JavaScript](#scripts) (dates, the clipboard, calculations) and [key tags](#forms-key-tags) that fill in forms in browsers and Windows programs. Every snippet can also get a [global hotkey of its own](#hotkeys-for-files-and-folders).
+Beyond plain text, snippets can contain [JavaScript](#scripts) (dates, the clipboard, calculations) and [key tags](#forms-key-tags) that fill in forms in browsers and Windows programs. Snippets can [ask for details](#asking-before-pasting) before pasting, [include other snippets](#snippets-in-snippets) and paste [formatted text](#formatted-text) such as an email signature. Every snippet can also get a [global hotkey of its own](#hotkeys-for-files-and-folders).
 
 The user interface is available in English and German.
 
@@ -14,6 +14,7 @@ The user interface is available in English and German.
 - [Snippets](#snippets)
 - [The popup](#the-popup)
 - [Pasting: two methods](#pasting-two-methods)
+- [Formatted text](#formatted-text)
 - [Hotkeys for files and folders](#hotkeys-for-files-and-folders)
 - [Editor](#editor)
 - [Scripts](#scripts)
@@ -76,9 +77,23 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 - **Hidden files** as well as `desktop.ini` and `thumbs.db` are ignored.
 - **Changes** show up right away, no restart needed. The folder can be rearranged in Explorer while QuickHasteBot is running, and every hotkey checks the folder again, so even replacing or renaming the whole `structure` folder is picked up.
 
-**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, and `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more). They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets.
+**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4-Examples` with snippets for the other features (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys and `run()`), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets.
 
 Snippets can be created, renamed, cloned and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
+
+### Snippets in snippets
+
+`{include,Folder/Name}` puts the text of another snippet at this point, e.g. a signature that is kept in one place and used in many emails:
+
+```
+Thank you for your order.
+{include,Sign-offs/Kind regards (EN)}
+```
+
+- **The name** is the folder and name as in the popup, with `/` or `\`. The number in front (`3-`) and the extension can be left out, and case doesn't matter. A name without a folder is looked for everywhere if it isn't at the top.
+- **Tags and scripts** in the included snippet work as if they were written here, and its script blocks share their variables with the others. A line break at its very end is left out.
+- Included snippets may include others, up to 10 levels deep. If a snippet would include itself, or the name doesn't exist, nothing is pasted and a message says why. The editor underlines an unknown name in red.
+- `{include}` is one of the [key tags](#forms-key-tags): with them turned off in the settings, it stays text. Inside `{{ … }}` and [`{html}` blocks](#formatted-text) it is text too.
 
 ## The popup
 
@@ -159,7 +174,26 @@ To paste several snippets one after another, e.g. while filling in a form, the l
 - **Clipboard** (default): the text is placed on the clipboard briefly, then Ctrl+V is sent. Afterwards the previous clipboard content is restored, and the clipboard history (Win+V) is not cluttered.
 - **Typing**: the text is sent character by character as Unicode input. This also works where pasting is blocked, but is slower for long texts.
 
-The default is set in the settings under "Paste with Enter"; Shift+Enter or Shift+click uses the other one. Snippets with [key tags](#forms-key-tags) are always typed, whatever the setting, so text and keys arrive in the right order.
+The default is set in the settings under "Paste with Enter"; Shift+Enter or Shift+click uses the other one. Snippets with [key tags](#forms-key-tags) are always typed, whatever the setting, so text and keys arrive in the right order. `{cursor}`, `{include}` and `{html}` alone don't count: such snippets are pasted with the method set.
+
+## Formatted text
+
+Text between `{html}` and `{/html}` is pasted as formatted text, with bold, links, lists, tables and images from the web, into Outlook, Word, Teams, web mail and other programs that take formatted text. The snippet itself stays a normal `.txt` file:
+
+```
+Hello {{ ask('Name') }},
+
+thank you for your message.
+
+{html}
+<p>Kind regards<br><b>Max Muster</b><br><a href="https://example.com">example.com</a></p>
+{/html}
+```
+
+- **Without writing HTML:** copy formatted text, e.g. your signature in Outlook or a table in Word, and press **Ctrl+Shift+V** in the [editor](#editor) (or **Insert tag ▾** → Flow → "formatted text from the clipboard"). It is inserted as an `{html}` block, without the extras Office adds for itself.
+- **Pasting:** a snippet with `{html}` blocks and no other key tags goes to the clipboard in one piece, formatted, with plain text alongside for programs that only take text. Text outside the blocks keeps its line breaks. With the other paste method (typing, Shift+Enter) the plain text is typed. In a form with key tags, each block is pasted via the clipboard at its place.
+- **Inside the block** everything is HTML: key tags are text, scripts run, and what they print goes in as HTML. Line breaks right after `{html}` and before `{/html}` don't count.
+- **Images** need a web address (`https://…`). Pictures from your own disk, as in a signature copied from Outlook, show up on your computer but not for the recipient.
 
 ## Hotkeys for files and folders
 
@@ -192,6 +226,7 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Name** at the top: changing it renames the file when saving. The extension stays (`.txt` for new snippets).
 - **Folder** next to the name ("in Snippets › 2-Email"): click it to choose another folder from the list of all folders, with collapsible subfolders. A new snippet is created there, an existing one moves there when saving.
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches, in the language of the interface or in English (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
+- **Formatted text:** Ctrl+Shift+V inserts formatted text from the clipboard as an [`{html}` block](#formatted-text); Ctrl+V stays plain text.
 - **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **JS-AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
@@ -227,6 +262,8 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `time(format)` | The current time, without a format `HH:mm` (`14:05`); `'HH:mm:ss'` with seconds. |
 | `isoweek(days)` | The ISO calendar week (`45`), optionally shifted by `days` like `date()`. |
 | `clipboard` | The text that was on the clipboard before pasting. |
+| `selection` | The text that was selected in the target window before pasting, `''` if none. QuickHasteBot copies it with Ctrl+C and puts the clipboard back afterwards. |
+| `ask(label, default)` | Asks before pasting and gives what was typed, see [Asking before pasting](#asking-before-pasting). |
 | `user` | The Windows user name. |
 | `guid()` | A new GUID, e.g. for reference numbers. |
 | `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
@@ -235,12 +272,29 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `window(app)` | Like [`{window,…}`](#other-programs-window-and-start): `window('crm')`. |
 | `run(file, args, options)` | Runs a script or program right where it stands and waits for it: `run('d:/scripts/number.bat')`, with options such as `{ wait: 30, dir: 'd:/data' }`. The result has `code`, `out` and `err`; as text it is its output. See [Running scripts](#running-scripts). |
 
+- **`selection`** works on what is selected where you paste. Pasting replaces the selection, so `«{{ selection.trim() }}»` puts quotes around it and `{{ selection.toUpperCase() }}` turns it into capitals. Ctrl+C is only pressed for snippets whose scripts mention `selection`.
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - **A line of blocks that prints nothing goes away**, line break included, like a comment line. So assignments and checks can stand on lines of their own, and a line can depend on a condition: `{{ vip ? 'Priority handling' : '' }}` on its own line appears only for VIPs. If the blocks print something, the line stays as written. Empty lines you type yourself stay.
 - There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist (for a message box, see [Message box and PowerShell](#message-box-and-powershell)), and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 - If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts`).
+
+### Asking before pasting
+
+`ask()` asks for a detail when the snippet is pasted, and puts in what was typed:
+
+```
+Dear {{ ask('Name') }},
+
+your order {{ ask('Order number') }} ships on {{ date('dd.MM.yyyy', Number(ask('Days', '3'))) }}.
+```
+
+- All `ask()` of a snippet come in one window before anything is pasted, one field per label in the order they appear. The same label is asked once and gives the same answer everywhere, also in [included snippets](#snippets-in-snippets).
+- The second argument is a default, e.g. `ask('Days', '3')`. Without one, the field offers what was typed last time for that label (until QuickHasteBot is closed). The suggestion is selected, so typing replaces it.
+- Enter pastes, Esc cancels, and nothing is pasted. Test (F5) and Step by step ask on every run.
+- The label has to be written in quotes: `ask(label)` with a variable can't be asked beforehand and stops with a message.
+- The [preview](#editor) in the editor shows the default or `[label]` instead of asking.
 
 ### Running scripts
 
@@ -254,6 +308,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 ```
 
 - **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. Slashes work in paths, so there are no `\` to double in JavaScript.
+- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `19-Number via batch file` in `4-Examples` works this way.
 - **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`. They can also go in the options as `args`: `run('tool.exe', { args: '-v', wait: 10 })`, but not both ways at once.
 - **Working folder** ("Start in"): `dir` sets it, e.g. `run('export.bat', { dir: 'd:/data' })`; environment variables like `%TEMP%` work. A script without a folder in its name is then looked for there too. Without `dir`, the script runs in its own folder. If the folder doesn't exist, the snippet stops with a message.
 - **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
@@ -334,6 +389,9 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 | `{wait,500}` | Pauses 500 ms, e.g. until a dropdown opens or a page has loaded (at most 10 s) |
 | `{delay,50}` | From here on, pauses 50 ms after every key and character, for slow forms and programs that lose or mix up characters, such as Notepad in Windows 11 (`{delay,30}`) (default: 30 ms after keys, none between characters) |
 | `{clear}` | `{ctrl+a}{del}`: empties a prefilled field before typing |
+| `{cursor}` | Where the cursor ends up after pasting: `Dear {cursor},` puts it before the comma. Only text may follow it, no keys. Works in plain snippets too, which are then still pasted with the method set |
+| `{include,Folder/Name}` | Another snippet at this point, see [Snippets in snippets](#snippets-in-snippets) |
+| `{html}`…`{/html}` | Formatted text, see [Formatted text](#formatted-text) |
 | `{guard,off}` `{guard,on}` | Turns the [window guard](#window-guard) off or on from here |
 
 Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and [`{start,notepad}`](#other-programs-window-and-start) starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them).
@@ -511,9 +569,11 @@ The settings open with a double-click on the tray icon, "Settings" in the tray m
 
 | Tab | Contains |
 |---|---|
-| **General** | The popup hotkey; "Start with Windows", tray icon, log file, language and theme; the `structure` folder, content search, the built-in editor, script and key tag options, the AI service |
+| **General** | The popup hotkey; "Start with Windows", tray icon, log file, the hint on new versions, language and theme; the `structure` folder, content search, the built-in editor, script and key tag options, the AI service |
 | **Popup** | Paste method, mouse behavior, and "When opening": pin, filter and where the popup opens |
 | **Hotkeys** | Every [file and folder hotkey](#hotkeys-for-files-and-folders), with conflicts |
+
+**New versions:** once a day QuickHasteBot asks GitHub for the newest release. If there is a newer one, the tray menu and the settings (next to the version) offer "Download version x.y.z", and Windows shows a notification once. Only the request itself is sent, nothing about you. To turn it off, untick "Tell me about new versions" under **General** (`CheckForUpdates`).
 
 **Language:** English and German. By default the interface follows the Windows display language (German on a German Windows, English everywhere else); picking a language in the settings applies immediately.
 
