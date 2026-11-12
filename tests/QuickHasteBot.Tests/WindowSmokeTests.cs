@@ -1107,8 +1107,14 @@ public class WindowSmokeTests
         // Mit gespeicherter Höhe springt nichts: kurze und lange Ordner gleich hoch, der lange scrollt. Fensterhöhen
         // vergleichen die Tests auf 1 px genau, Windows rundet sie auf ganze Bildschirmpixel (bei 96 DPI 417.58 -> 418)
         popup.MaxHeight = 3000;
+        popup.UpdateLayout();
+        Assert.True(popup.ActualHeight > shortHeight + 150, $"{popup.ActualHeight} nicht wieder gewachsen");
         controller.Settings.PopupHeight = shortHeight + 60;
         popup.ApplyHeight();
+        // Kleiner als der gewachsene Ordner rechts: der Scrollbalken kommt sofort, nicht erst mit der nächsten Liste
+        popup.UpdateLayout();
+        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1.0);
+        Assert.True(detailScroll.ScrollableHeight > 0, "Ordnerliste rechts scrollt nach dem Verkleinern nicht");
         Select("1-Kurz");
         Assert.Equal(shortHeight + 60, popup.ActualHeight, 1.0);
         Select("2-Lang");
