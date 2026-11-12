@@ -43,6 +43,11 @@ internal partial class SearchPopup : Window
     int _resizeStartX;
     double _resizeStartWidth;
     double _resizeStartLeft;
+    int _resizeStartY;
+    double _resizeStartHeight;
+    double _resizeStartTop;
+    double _resizeMinHeight;
+    bool _heightChanged;
     ForegroundWatcher? _foregroundWatcher;
     bool _running;
     bool _closed;
@@ -52,7 +57,7 @@ internal partial class SearchPopup : Window
         InitializeComponent();
         _app = app;
         DataContext = _viewModel = new SearchPopupViewModel(app);
-        ApplyColumnShare(app.Settings.ListColumnShare);
+        ApplyListWidth();
         KeepOpen = app.Settings.KeepPopupOpen;
         _hoverTimer = new DispatcherTimer(AimDelay, DispatcherPriority.Input, OnHoverTimer, Dispatcher) { IsEnabled = false };
         // Neuer Inhalt rechts beginnt oben links
@@ -86,7 +91,7 @@ internal partial class SearchPopup : Window
             _closed = true;
             _foregroundWatcher?.Dispose();
         };
-        // Die Höhe folgt der Liste, dabei soll das Fenster am Mauszeiger bleiben
+        // Die Höhe folgt der Liste (ohne gespeicherte Höhe), dabei soll das Fenster am Mauszeiger bleiben
         SizeChanged += (_, _) =>
         {
             if (_anchor is { } anchor)
@@ -119,6 +124,7 @@ internal partial class SearchPopup : Window
         _targetWindow = targetWindow;
         _viewModel.Reset(folder?.RelativePath);
         ApplyWidth();
+        ApplyHeight();
 
         if (!keptOpen)
         {
@@ -266,6 +272,111 @@ internal partial class SearchPopup : Window
 
         var width = double.IsFinite(_app.Settings.PopupWidth) ? _app.Settings.PopupWidth : AppSettings.DefaultPopupWidth;
         Width = Math.Clamp(width, MinWidth, Math.Max(MinWidth, SystemParameters.VirtualScreenWidth));
+
+        // Bis v2.15 war die Liste ein Anteil der Breite: einmal mit dieser Breite umrechnen, dann sieht es aus wie vorher
+        if (_app.Settings.ListColumnShare is { } share)
+        {
+            var columns = Width - BorderThickness.Left - BorderThickness.Right - Body.Margin.Left - Body.Margin.Right - ColumnSplitter.Width;
+            _app.Settings.ListColumnWidth = Math.Round(AppSettings.ClampColumnShare(share) * columns);
+            _app.Settings.ListColumnShare = null;
+            _app.SaveSettings();
+            ApplyListWidth();
+        }
+    }
+
+    /// <summary>
+    /// Gespeicherte Höhe, sonst so hoch wie die Liste. Nach oben begrenzt <see cref="PopupPlacement"/> auf den
+    /// Bildschirm, die gespeicherte Höhe bleibt dabei.
+    /// </summary>
+    internal void ApplyHeight()
+    {
+        if (_app.Settings.PopupHeight is { } height && double.IsFinite(height))
+        {
+            SizeToContent = SizeToContent.Manual;
+            // Von Hand zu klein eingetragen: noch Platz für Suchfeld, Fusszeile und die Mindesthöhe der Spalten
+            Height = Math.Max(height, MinFixedHeight);
+        }
+        else
+        {
+            ClearValue(HeightProperty);
+            SizeToContent = SizeToContent.Height;
+        }
+    }
+
+    // Was über und unter den Spalten liegt, plus deren Mindesthöhe. Vor dem ersten Anzeigen ist das noch nicht gemessen.
+    double MinFixedHeight => Columns.ActualHeight > 0 && ActualHeight > Columns.ActualHeight
+        ? ActualHeight - Columns.ActualHeight + Columns.MinHeight
+        : PopupPlacement.MinHeight;
+
+    // Höhe am oberen und unteren Rand ziehen. Erst eine echte Bewegung legt die Höhe fest, ein Klick (Doppelklick
+    // zum Zurücksetzen) nicht. Höchstens bis zum Rand des Arbeitsbereichs.
+    void OnHeightResizeStarted(object sender, DragStartedEventArgs e)
+    {
+        _resizeAnchor = _anchor;
+        _anchor = null;
+        NativeMethods.GetCursorPos(out var cursor);
+        _resizeStartY = cursor.Y;
+        _resizeStartHeight = ActualHeight;
+        _resizeStartTop = Top;
+        _resizeMinHeight = Math.Min(ActualHeight, MinFixedHeight);
+        _heightChanged = false;
+    }
+
+    void OnHeightResizeDelta(object sender, DragDeltaEventArgs e)
+    {
+        // Bildschirmkoordinaten wie bei der Breite: Der obere Rand wandert beim Ziehen mit dem Fenster mit
+        NativeMethods.GetCursorPos(out var cursor);
+        var scale = VisualTreeHelper.GetDpi(this).DpiScaleY;
+        var delta = (cursor.Y - _resizeStartY) / scale;
+        if (!_heightChanged && Math.Abs(delta) < 1) return;
+
+        var (workTop, workBottom) = _resizeAnchor is { } anchor
+            ? (anchor.Work.Top / scale, anchor.Work.Bottom / scale)
+            : (SystemParameters.WorkArea.Top, SystemParameters.WorkArea.Bottom);
+        var fromTop = sender == TopEdge;
+        var max = fromTop ? _resizeStartTop + _resizeStartHeight - workTop : workBottom - _resizeStartTop;
+        var height = Math.Clamp(fromTop ? _resizeStartHeight - delta : _resizeStartHeight + delta,
+                                _resizeMinHeight, Math.Max(_resizeMinHeight, max));
+
+        if (!_heightChanged)
+        {
+            _heightChanged = true;
+            SizeToContent = SizeToContent.Manual;
+            // Die Grenze vom Öffnen gilt nur in eine Richtung, nach dem Ziehen setzt PopupPlacement.Moved sie neu
+            MaxHeight = double.PositiveInfinity;
+        }
+        if (fromTop)
+            Top = _resizeStartTop + _resizeStartHeight - height;
+        Height = height;
+    }
+
+    void OnHeightResizeCompleted(object sender, DragCompletedEventArgs e)
+    {
+        if (_resizeAnchor is { } previous)
+            _anchor = PopupPlacement.Moved(this, previous);
+        _resizeAnchor = null;
+
+        if (_heightChanged)
+        {
+            _heightChanged = false;
+            UpdateLayout();
+            _app.Settings.PopupHeight = Math.Round(ActualHeight);
+            _app.SaveSettings();
+        }
+        Keyboard.Focus(SearchBox);
+    }
+
+    // Doppelklick auf den oberen oder unteren Rand: wieder so hoch wie die Liste, das Fenster bleibt am Anker
+    void OnHeightReset(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var anchor = _anchor ?? _resizeAnchor;
+        _app.Settings.PopupHeight = null;
+        _app.SaveSettings();
+        ApplyHeight();
+        UpdateLayout();
+        if (anchor is { } kept)
+            PopupPlacement.KeepAnchored(this, kept);
     }
 
     // Breite an den Rändern ziehen. Solange gezogen wird, hält das Fenster nicht am Mauszeiger fest,
@@ -303,22 +414,33 @@ internal partial class SearchPopup : Window
         Keyboard.Focus(SearchBox);
     }
 
-    void ApplyColumnShare(double share)
+    /// <summary>
+    /// Die Liste links so breit wie gespeichert, rechts bekommt den Rest. Ist das Popup zu schmal dafür, wird sie nur
+    /// in der Anzeige schmaler, damit rechts die Mindestbreite bleibt; breiter gezogen kommt die gespeicherte Breite zurück.
+    /// </summary>
+    internal void ApplyListWidth()
     {
-        share = AppSettings.ClampColumnShare(share);
-        ListColumn.Width = new GridLength(share, GridUnitType.Star);
-        DetailColumn.Width = new GridLength(1 - share, GridUnitType.Star);
+        var width = AppSettings.ClampListColumnWidth(_app.Settings.ListColumnWidth, ListColumn.MinWidth);
+        if (Columns.ActualWidth > 0)
+            width = Math.Min(width, Math.Max(ListColumn.MinWidth, Columns.ActualWidth - ColumnSplitter.Width - DetailColumn.MinWidth));
+        ListColumn.Width = new GridLength(width);
+        DetailColumn.Width = new GridLength(1, GridUnitType.Star);
     }
 
-    // Die neue Aufteilung gilt ab jetzt bei jedem Öffnen
+    void OnColumnsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.WidthChanged)
+            ApplyListWidth();
+    }
+
+    // Die neue Breite links gilt ab jetzt bei jedem Öffnen
     void OnSplitterDragCompleted(object sender, DragCompletedEventArgs e)
     {
-        var total = ListColumn.ActualWidth + DetailColumn.ActualWidth;
-        if (total > 0)
+        if (ListColumn.ActualWidth > 0)
         {
-            _app.Settings.ListColumnShare = Math.Round(AppSettings.ClampColumnShare(ListColumn.ActualWidth / total), 3);
+            _app.Settings.ListColumnWidth = Math.Round(ListColumn.ActualWidth);
             _app.SaveSettings();
-            ApplyColumnShare(_app.Settings.ListColumnShare);
+            ApplyListWidth();
         }
         Keyboard.Focus(SearchBox);
     }

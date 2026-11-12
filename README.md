@@ -146,7 +146,11 @@ Right-clicking the empty space next to the entries offers **New snippet…** and
 
 The right column shows what is inside the selected entry: the contents of a folder, the text of a snippet (scrollable, lines are not wrapped, tags and scripts in the same [colors](#editor) as in the editor), or the address a link opens. The ↵ button in the text preview switches line wrapping on and off, the pencil next to it opens the snippet in the editor (like Ctrl+O). Shift+mouse wheel scrolls long lines sideways.
 
-The divider between the columns can be dragged, and the left and right edges of the popup change its width (at least as wide as the shortcut row at the bottom). Wrapping, split and width are remembered (`WrapPreview`, `ListColumnShare`, `PopupWidth` in `settings.json`).
+The divider between the columns sets the width of the list on the left; a wider popup gives the extra space to the right column. The left and right edges of the popup change its width (at least as wide as the shortcut row at the bottom).
+
+By default the popup is as tall as the list. Drag its top or bottom edge to give it a fixed height instead: it then stays the same for every folder and search, and long lists scroll. A double-click on the top or bottom edge goes back to following the list. The height never goes past the edge of the screen.
+
+Wrapping, list width, popup width and height are remembered (`WrapPreview`, `ListColumnWidth`, `PopupWidth`, `PopupHeight` in `settings.json`; an empty `PopupHeight` means "as tall as the list").
 
 ### Where it opens
 

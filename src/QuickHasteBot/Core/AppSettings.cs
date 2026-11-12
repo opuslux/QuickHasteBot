@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace QuickHasteBot.Core;
 
 public enum PasteMode
@@ -98,8 +100,27 @@ public sealed class AppSettings
 
     public const double DefaultPopupWidth = 720;
 
-    /// <summary>Anteil der Liste links an der Breite des Popups, der Rest gehört dem Inhalt rechts. Wird mit dem Trenner verschoben.</summary>
-    public double ListColumnShare { get; set; } = DefaultListColumnShare;
+    /// <summary>
+    /// Höhe des Popups, am oberen und unteren Rand verstellbar, gilt dann für jeden Ordner und jede Suche.
+    /// Leer (Standard, Doppelklick auf den Rand): so hoch wie die Liste.
+    /// </summary>
+    public double? PopupHeight { get; set; }
+
+    /// <summary>
+    /// Breite der Liste links, wird mit dem Trenner verschoben. Ein breiteres Popup gibt den Platz dem Inhalt rechts.
+    /// Ist das Popup zu schmal dafür, wird die Liste nur in der Anzeige schmaler.
+    /// </summary>
+    public double ListColumnWidth { get; set; } = DefaultListColumnWidth;
+
+    /// <summary>Ein Drittel der Standardbreite, wie früher <see cref="ListColumnShare"/>.</summary>
+    public const double DefaultListColumnWidth = 226;
+
+    /// <summary>
+    /// Bis v2.15 gespeichert: Anteil der Liste an der Breite. Wird beim ersten Öffnen des Popups in
+    /// <see cref="ListColumnWidth"/> umgerechnet und verschwindet danach aus der Datei.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? ListColumnShare { get; set; }
 
     public const double DefaultListColumnShare = 1.0 / 3;
 
@@ -133,6 +154,10 @@ public sealed class AppSettings
     /// <summary>Auch von Hand eingetragene Werte lassen beide Spalten sichtbar, Unsinn ergibt den Standard.</summary>
     public static double ClampColumnShare(double share) =>
         double.IsFinite(share) ? Math.Clamp(share, 0.15, 0.85) : DefaultListColumnShare;
+
+    /// <summary>Von Hand eingetragen: nie schmaler als die Mindestbreite der Spalte, Unsinn ergibt den Standard.</summary>
+    public static double ClampListColumnWidth(double width, double minWidth) =>
+        double.IsFinite(width) ? Math.Max(width, minWidth) : DefaultListColumnWidth;
 
     /// <summary>
     /// Stelle der Maus als Anteil von Breite und Höhe des Popups: 0 links/oben, 0.5 Mitte, 1 rechts/unten.
