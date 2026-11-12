@@ -1,0 +1,9 @@
+{# Eine formatierte Tabelle mit Kalenderwoche und Montag dieser und der nächsten drei Wochen,
+zum Einfügen in Outlook, Word, Teams oder OneNote.
+Skripte laufen auch im html-Block: hier baut eines die Zeilen der Tabelle. Was ein Skript dort ausgibt, ist HTML.}
+{html}
+<table border="1" cellpadding="6" style="border-collapse:collapse">
+<tr style="background:#e8e8e8"><th>KW</th><th>Montag</th><th>Thema</th></tr>
+{{ [0, 7, 14, 21].map(days => { const monday = days - (new Date().getDay() + 6) % 7; return `<tr><td>${isoweek(monday)}</td><td>${date('dd.MM.yyyy', monday)}</td><td></td></tr>`; }).join('') }}
+</table>
+{/html}

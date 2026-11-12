@@ -1,0 +1,5 @@
+{# Startet Notepad, falls es nicht läuft, holt es nach vorne und beginnt eine Notiz mit Datum und Uhrzeit.
+So funktioniert der Baustein, egal aus welchem Programm du ihn wählst.
+start wartet, bis das Fenster bereit ist. ctrl+n öffnet einen neuen Tab.
+Das Notepad von Windows 11 verschluckt bei schnellem Tippen Zeichen, darum tippt delay,30 etwas langsamer.}
+{start,notepad}{delay,30}{ctrl+n}Notiz vom {{ date('dddd, d. MMMM yyyy') }}, {{ time() }} Uhr{enter}{enter}

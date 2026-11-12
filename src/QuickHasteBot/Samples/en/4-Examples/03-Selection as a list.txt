@@ -1,0 +1,4 @@
+{# Turns the selected lines into a bulleted list, empty lines are left out.
+Handy for lists from Excel, emails or notes: select the lines, pick the snippet, done.
+With nothing selected, a single bullet comes to write on.}
+{{ selection.split(/\r?\n/).map(line => line.trim()).filter(line => line).map(line => '• ' + line).join('\n') || '• ' }}

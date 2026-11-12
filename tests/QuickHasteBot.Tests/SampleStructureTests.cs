@@ -18,12 +18,14 @@ public class SampleStructureTests
             .Split("\r\n").Single(l => l.StartsWith(label + ":", StringComparison.Ordinal))[(label.Length + 1)..].TrimStart('\t');
 
     [Theory]
-    [InlineData("de", "Willkommen.txt", @"1-Grüsse\Freundliche Grüsse.txt", @"2-E-Mail\Abwesenheit.txt", @"3-SQL\Audit-Insert.txt")]
-    [InlineData("en", "Welcome.txt", @"1-Greetings\Kind regards.txt", @"2-Email\Out of office.txt", @"3-SQL\Audit insert.txt")]
+    [InlineData("de", "Willkommen.txt", @"1-Grüsse\Freundliche Grüsse.txt", @"2-E-Mail\Abwesenheit.txt", @"3-SQL\Audit-Insert.txt",
+        @"4-Beispiele\01-Antwort mit Rückfragen.txt", @"4-Beispiele\10-Computer-Infos.txt")]
+    [InlineData("en", "Welcome.txt", @"1-Greetings\Kind regards.txt", @"2-Email\Out of office.txt", @"3-SQL\Audit insert.txt",
+        @"4-Examples\01-Reply with questions.txt", @"4-Examples\10-Computer info.txt")]
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(8, paths.Count);
+        Assert.Equal(18, paths.Count);
         Assert.Contains("Script-Samples.txt", paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -63,6 +65,63 @@ public class SampleStructureTests
     [InlineData("en", "en-US", "Caesar cipher", "zkdw gdb lv lw wrgdb")]
     public void Samples_give_the_expected_text(string language, string culture, string label, string expected) =>
         Assert.Equal(string.Format(expected, Environment.UserName), Render(Sample(language, label), culture));
+
+    /// <summary>
+    /// Die Beispiele mit Tags: im Editor nichts Rotes ({include} findet sein Ziel unter den Beispielen), die Beschreibung
+    /// oben fällt samt Zeile weg, und Tags, Skripte und Blöcke ergeben Schritte, mit und ohne Markierung.
+    /// </summary>
+    [Theory]
+    [InlineData("de", "de-CH")]
+    [InlineData("en", "en-US")]
+    public void Examples_have_no_errors_and_their_description_is_not_pasted(string language, string culture)
+    {
+        var files = SampleStructure.Files(language);
+        var examples = files.Where(f => f.Path.StartsWith("4-", StringComparison.Ordinal)).ToList();
+        Assert.Equal(10, examples.Count);
+        foreach (var (path, text) in examples)
+        {
+            Assert.StartsWith("{#", text);
+            Assert.Empty(SnippetSyntax.Tokenize(text, includeExists: name => files.Any(f => SamePath(f.Path, name)))
+                .Where(s => s.Kind == SyntaxKind.Error).Select(s => $"{path}: {s.Error}"));
+            foreach (var selection in new[] { "", "Erste Zeile\r\n\r\n  Zweite Zeile " })
+            {
+                var form = new FormBuilder();
+                var marked = KeyTags.MarkTags(text, form);
+                var rendered = SnippetScript.Render(marked, new ScriptContext(Now, CultureInfo.GetCultureInfo(culture), "", Zone, form, Selection: selection));
+                var steps = KeyTags.Split(rendered, form);
+                var shown = string.Concat(steps.Select(s => s is TextStep t ? t.Text : KeyTags.Describe(s)));
+                Assert.False(string.IsNullOrWhiteSpace(shown), path);
+                Assert.DoesNotContain("{#", shown);
+                Assert.False(char.IsWhiteSpace(shown[0]), path);
+            }
+        }
+
+        // "Grüsse/Freundliche Grüsse" für "1-Grüsse\Freundliche Grüsse.txt": Nummer und Endung dürfen fehlen
+        static bool SamePath(string path, string name)
+        {
+            var have = path.Split('\\');
+            var want = name.Split('/', '\\');
+            return have.Length == want.Length && have.Zip(want).All(p =>
+                string.Equals(Path.GetFileNameWithoutExtension(p.First).TrimStart('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-'), p.Second, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    [Fact]
+    public void Examples_with_selection_change_the_selected_text()
+    {
+        string Example(string name) => SampleStructure.Files("de").Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        string Paste(string name, string selection)
+        {
+            var form = new FormBuilder();
+            var rendered = SnippetScript.Render(KeyTags.MarkTags(Example(name), form),
+                new ScriptContext(Now, CultureInfo.GetCultureInfo("de-CH"), "", Zone, form, Selection: selection));
+            return string.Concat(KeyTags.Split(rendered, form).Select(s => s is TextStep t ? t.Text : KeyTags.Describe(s)));
+        }
+
+        Assert.Equal("«Hallo Welt{cursor}»", Paste("02-Markierung in Anführungszeichen.txt", " Hallo Welt\r\n"));
+        Assert.Equal("• Äpfel\n• Birnen", Paste("03-Markierung als Aufzählung.txt", "Äpfel\r\n\r\n  Birnen "));
+        Assert.Equal("• ", Paste("03-Markierung als Aufzählung.txt", ""));
+    }
 
     [Theory]
     [InlineData("", "Die Zwischenablage ist leer")]

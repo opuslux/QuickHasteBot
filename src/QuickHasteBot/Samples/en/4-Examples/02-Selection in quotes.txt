@@ -1,0 +1,5 @@
+{# Puts the selected text in “quotes”.
+Select some text first, then open the popup and pick this snippet. QuickHasteBot copies the selection with Ctrl+C,
+pasting replaces it, and the clipboard is as before afterwards.
+With nothing selected, only the quotes come, with the cursor between them.}
+“{{ selection.trim() }}{cursor}”

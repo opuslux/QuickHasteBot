@@ -1,0 +1,7 @@
+{# Puts another snippet at this point, here the sign-off from the Greetings folder.
+That way a sign-off or signature is kept in one place and used in many snippets.
+Folder and name as in the popup; the number in front and the .txt extension can be left out.
+A name that doesn't exist is underlined in red in the editor.}
+Thank you for your message. I'll look into it and get back to you by {{ date('dddd', 2) }}.
+
+{include,Greetings/Kind regards}

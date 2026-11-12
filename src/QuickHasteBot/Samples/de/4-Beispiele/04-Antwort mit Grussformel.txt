@@ -1,0 +1,7 @@
+{# Holt einen anderen Baustein an diese Stelle, hier die Grussformel aus dem Ordner Grüsse.
+So pflegst du Grussformel oder Signatur an einem Ort und verwendest sie in vielen Bausteinen.
+Ordner und Name wie im Popup, die Nummer davor und die Endung .txt darf man weglassen.
+Ein Name, den es nicht gibt, ist im Editor rot unterstrichen.}
+Vielen Dank für Ihre Nachricht. Ich kümmere mich darum und melde mich bis {{ date('dddd', 2) }}.
+
+{include,Grüsse/Freundliche Grüsse}

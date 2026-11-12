@@ -1,0 +1,11 @@
+{# Pastes formatted text: bold, grey and with a link. This works in Outlook, Word, Teams and web mail,
+programs without formatting such as Notepad get the plain text.
+Everything between html and /html is HTML. Without writing HTML: copy formatted text, e.g. your own
+signature in Outlook, and press Ctrl+Shift+V in the editor, which inserts it as such a block.
+Images need a web address; pictures from your own disk don't show up for the recipient.}
+{html}
+<p>Kind regards</p>
+<p><b>First name Last name</b><br>
+<span style="color:#666666">Role | Company Ltd</span><br>
+<a href="https://example.com">example.com</a></p>
+{/html}

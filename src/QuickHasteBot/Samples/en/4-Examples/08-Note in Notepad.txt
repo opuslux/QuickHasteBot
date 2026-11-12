@@ -1,0 +1,5 @@
+{# Starts Notepad if it isn't running, brings it to the front and begins a note with date and time.
+So the snippet works whichever program you pick it from.
+start waits until the window is ready. ctrl+n opens a new tab.
+Notepad in Windows 11 loses characters when typing fast, so delay,30 types a bit slower.}
+{start,notepad}{delay,30}{ctrl+n}Note of {{ date('dddd, MMMM d, yyyy') }}, {{ time() }}{enter}{enter}

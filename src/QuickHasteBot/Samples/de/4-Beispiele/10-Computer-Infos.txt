@@ -1,0 +1,8 @@
+{# Startet Befehle von Windows unsichtbar und fügt ihre Ausgabe ein: Computername, Windows-Version und
+freier Platz auf Laufwerk C:, z.B. für eine Meldung an den Support.
+run wartet auf das Programm und liefert code (Rückgabewert), out (Ausgabe) und err (Fehlerausgabe).
+So lassen sich auch eigene Skripte anbinden: run('d:/scripts/nummer.bat'). Die Vorschau im Editor führt nichts aus.}
+Computer:   {{ run('hostname', { hidden: true }).out.trim() }}
+Benutzer:   {{ user }}
+Windows:    {{ run('cmd', '/c ver', { hidden: true }).out.trim() }}
+Frei auf C: {{ run('powershell', '-NoProfile -Command [math]::Round((Get-PSDrive C).Free / 1GB)', { hidden: true }).out.trim() }} GB
