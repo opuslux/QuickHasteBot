@@ -45,6 +45,18 @@
   <data name="StructureFilesFormat" xml:space="preserve"><value>{0}  ({1} Dateien)</value></data>
   <data name="StructureMissingFormat" xml:space="preserve"><value>{0}  (existiert nicht)</value></data>
   <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Bausteinen wählen</value></data>
+  <data name="SamplesExport" xml:space="preserve"><value>Beispiele exportieren…</value></data>
+  <data name="SamplesExportToolTip" xml:space="preserve"><value>Die Beispiel-Bausteine vom ersten Start noch einmal anlegen, im Bausteine-Ordner oder anderswo</value></data>
+  <data name="SamplesExportProposeFormat" xml:space="preserve"><value>Die Beispiele nach {0} exportieren?</value></data>
+  <data name="SamplesExportOccupiedFormat" xml:space="preserve"><value>{0} existiert bereits.
+
+Beim Überschreiben werden gleichnamige Beispieldateien ersetzt, alle anderen Dateien bleiben, wie sie sind.</value></data>
+  <data name="SamplesExportButton" xml:space="preserve"><value>Exportieren</value></data>
+  <data name="SamplesOverwrite" xml:space="preserve"><value>Überschreiben</value></data>
+  <data name="SamplesOtherFolder" xml:space="preserve"><value>Anderer Ordner…</value></data>
+  <data name="SamplesFolderDialogTitle" xml:space="preserve"><value>Ordner für die Beispiele wählen</value></data>
+  <data name="SamplesExportedFormat" xml:space="preserve"><value>{0} Beispieldateien nach {1} exportiert.</value></data>
+  <data name="SamplesExportErrorFormat" xml:space="preserve"><value>Die Beispiele konnten nicht exportiert werden: {0}</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Auch im Inhalt der Textbausteine suchen</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>{{ … }} in Textbausteinen als JavaScript ausführen</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>Beim Einfügen wird z.B. {{ date() }} zum heutigen Datum. Aus: {{ … }} wird unverändert eingefügt.</value></data>

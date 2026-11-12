@@ -190,4 +190,20 @@ public class SampleStructureTests
         Assert.Equal("Freundliche Grüsse\r\n\r\nVorname Nachname", File.ReadAllText(file));
         Assert.NotEqual(0xEF, File.ReadAllBytes(file)[0]);
     }
+
+    /// <summary>Erneuter Export aus den Einstellungen: geänderte Beispiele zurück, eigene Bausteine unberührt.</summary>
+    [Fact]
+    public void Extract_again_restores_the_samples_and_keeps_other_files()
+    {
+        using var dir = new TempDirectory();
+        SampleStructure.Extract(dir.Path, "de");
+        var sample = Path.Combine(dir.Path, "1-Grüsse", "Freundliche Grüsse.txt");
+        var own = Path.Combine(dir.Path, "1-Grüsse", "Eigener Gruss.txt");
+        File.WriteAllText(sample, "geändert");
+        File.WriteAllText(own, "Mein Text");
+
+        Assert.Equal(SampleStructure.Files("de").Count, SampleStructure.Extract(dir.Path, "de"));
+        Assert.Equal("Freundliche Grüsse\r\n\r\nVorname Nachname", File.ReadAllText(sample));
+        Assert.Equal("Mein Text", File.ReadAllText(own));
+    }
 }

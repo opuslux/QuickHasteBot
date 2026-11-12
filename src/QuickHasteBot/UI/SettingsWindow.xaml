@@ -8,6 +8,20 @@
         Width="904" SizeToContent="Height"
         ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen">
 
+    <Window.Resources>
+        <!-- Anklickbarer Text in Akzentfarbe, beim Darüberfahren unterstrichen -->
+        <Style x:Key="LinkText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="TextDecorations" Value="Underline" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
     <Grid Margin="24,20,24,20">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="360" />
@@ -27,19 +41,6 @@
                       MediaEnded="OnClipEnded" MediaFailed="OnClipFailed" SizeChanged="OnClipSizeChanged" />
 
         <StackPanel Grid.Column="2">
-            <StackPanel.Resources>
-                <!-- Anklickbarer Text in Akzentfarbe, beim Darüberfahren unterstrichen -->
-                <Style x:Key="LinkText" TargetType="TextBlock">
-                    <Setter Property="FontSize" Value="12" />
-                    <Setter Property="Cursor" Value="Hand" />
-                    <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="TextDecorations" Value="Underline" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </StackPanel.Resources>
             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                 <Image Source="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico" Width="32" Height="32" Margin="0,0,12,0" />
                 <StackPanel VerticalAlignment="Center">
@@ -128,8 +129,13 @@
                             <TextBox x:Name="StructureInput" LostKeyboardFocus="OnStructureInputCommitted" KeyDown="OnStructureInputKeyDown"
                                      ToolTip="{x:Static ui:Strings.StructureToolTip}" />
                         </DockPanel>
-                        <TextBlock x:Name="StructureResolved" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <DockPanel Margin="0,4,0,0">
+                            <TextBlock DockPanel.Dock="Right" Text="{x:Static ui:Strings.SamplesExport}" Style="{StaticResource LinkText}"
+                                       FontSize="12" Margin="12,0,0,0" ToolTip="{x:Static ui:Strings.SamplesExportToolTip}"
+                                       MouseLeftButtonUp="OnExportSamples" />
+                            <TextBlock x:Name="StructureResolved" FontSize="12" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </DockPanel>
                         <CheckBox x:Name="SearchContentInput" Content="{x:Static ui:Strings.SearchContent}" Margin="0,8,0,0"
                                   Click="OnSearchContentChanged" />
                         <CheckBox x:Name="BuiltInEditorInput" Content="{x:Static ui:Strings.UseBuiltInEditor}" Margin="0,4,0,0"

@@ -19,24 +19,28 @@ internal partial class MessageDialog : Window
     internal MessageBoxResult Result { get; private set; }
 
     internal MessageDialog(string text, MessageBoxButton buttons, MessageBoxImage icon, MessageBoxResult defaultResult)
+        : this(text, [.. Results(buttons).Select(r => (r, Label(r)))], CancelResult(buttons), icon, defaultResult)
+    {
+    }
+
+    internal MessageDialog(string text, IReadOnlyList<(MessageBoxResult Result, string Label)> buttons, MessageBoxResult cancel,
+        MessageBoxImage icon, MessageBoxResult defaultResult)
     {
         InitializeComponent();
         MessageText.Text = text;
         _icon = icon;
         ShowSymbol(icon);
 
-        var results = Results(buttons);
-        var cancel = CancelResult(buttons);
-        if (!results.Contains(defaultResult))
-            defaultResult = results[0];
+        if (!buttons.Any(b => b.Result == defaultResult))
+            defaultResult = buttons[0].Result;
         // Schliessen mit dem X zählt wie Esc
         Result = cancel;
 
-        foreach (var result in results)
+        foreach (var (result, label) in buttons)
         {
             var button = new Button
             {
-                Content = Label(result),
+                Content = label,
                 MinWidth = 100,
                 Margin = new Thickness(Buttons.Children.Count == 0 ? 0 : 8, 0, 0, 0),
                 IsDefault = result == defaultResult,
@@ -64,7 +68,19 @@ internal partial class MessageDialog : Window
     public static MessageBoxResult Show(Window? owner, string text, MessageBoxButton buttons = MessageBoxButton.OK,
         MessageBoxImage icon = MessageBoxImage.None, MessageBoxResult defaultResult = MessageBoxResult.None)
     {
-        var dialog = new MessageDialog(text, buttons, icon, defaultResult);
+        return Show(owner, new MessageDialog(text, buttons, icon, defaultResult));
+    }
+
+    /// <summary>
+    /// Mit eigener Beschriftung, z.B. "Überschreiben" / "Anderen Ordner…" / "Abbrechen". Der erste Knopf ist der
+    /// Standard, Esc und das X ergeben <paramref name="cancel"/>.
+    /// </summary>
+    public static MessageBoxResult Show(Window? owner, string text, MessageBoxImage icon, MessageBoxResult cancel,
+        params (MessageBoxResult Result, string Label)[] buttons) =>
+        Show(owner, new MessageDialog(text, buttons, cancel, icon, buttons[0].Result));
+
+    static MessageBoxResult Show(Window? owner, MessageDialog dialog)
+    {
         if (owner is { IsVisible: true })
         {
             dialog.Owner = owner;

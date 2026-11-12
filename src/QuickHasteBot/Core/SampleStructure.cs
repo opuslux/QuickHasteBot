@@ -22,15 +22,21 @@ public static class SampleStructure
         return files.Count > 0 ? files : Read(Fallback);
     }
 
-    /// <summary>Legt die Beispiele im (neuen) structure-Ordner an, UTF-8 ohne BOM wie die übrigen Textbausteine.</summary>
-    public static void Extract(string root, string language)
+    /// <summary>
+    /// Legt die Beispiele im Ordner an, UTF-8 ohne BOM wie die übrigen Textbausteine. Gleichnamige Dateien werden
+    /// überschrieben, alle anderen bleiben, wie sie sind.
+    /// </summary>
+    /// <returns>Anzahl geschriebener Dateien.</returns>
+    public static int Extract(string root, string language)
     {
-        foreach (var (path, text) in Files(language))
+        var files = Files(language);
+        foreach (var (path, text) in files)
         {
             var target = Path.Combine(root, path);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.WriteAllText(target, text, new UTF8Encoding(false));
         }
+        return files.Count;
     }
 
     static List<(string, string)> Read(string language)
