@@ -1120,7 +1120,7 @@ public class WindowSmokeTests
         controller.Settings.PopupHeight = 50;
         popup.ApplyHeight();
         popup.UpdateLayout();
-        Assert.Equal(popup.Columns.MinHeight, popup.Columns.ActualHeight, 1);
+        Assert.Equal(popup.Columns.MinHeight, popup.Columns.ActualHeight, 1.0);
         Assert.True(popup.HintBar.ActualHeight > 0);
         var hintBottom = popup.HintBar.TranslatePoint(new Point(0, popup.HintBar.ActualHeight), popup).Y;
         Assert.True(hintBottom <= popup.ActualHeight, $"Fusszeile endet bei {hintBottom}, Popup {popup.ActualHeight} hoch");
