@@ -813,13 +813,17 @@ public class WindowSmokeTests
         var viewModel = (SearchPopupViewModel)popup.DataContext;
         viewModel.Reset();
         Assert.Equal(["Intranet"], viewModel.DetailItems.Select(i => i.Snippet.Name));
-        // Die gespeicherte Aufteilung der Spalten gilt
-        Assert.Equal(popup.ListColumn.Width, popup.DetailColumn.Width);
 
         // Zu schmal gespeichert: so breit wie die Zeile mit den Tastenkürzeln, sonst die gespeicherte Breite
         popup.ApplyWidth();
         Assert.Equal(popup.MinWidth, popup.Width);
+        // Die Aufteilung von früher (Anteil) wird einmal in eine feste Breite umgerechnet und sieht gleich aus
+        Assert.Null(controller.Settings.ListColumnShare);
+        Assert.DoesNotContain("ListColumnShare", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
         Snapshot(popup, "popup-narrow.png");
+        Assert.Equal(popup.ListColumn.ActualWidth, popup.DetailColumn.ActualWidth, tolerance: 1.0);
+        var listWidth = popup.ListColumn.ActualWidth;
+        Assert.Equal(listWidth, controller.Settings.ListColumnWidth, 1);
         Assert.InRange(popup.MinWidth, 300, 600);
         // Die ganze Zeile hat Platz, auch "Ctrl , Settings" am Ende
         Assert.True(popup.HintBar.ActualWidth >= popup.HintBar.Children.OfType<FrameworkElement>().Sum(c => c.ActualWidth + c.Margin.Left + c.Margin.Right) - 0.5);
@@ -827,6 +831,18 @@ public class WindowSmokeTests
         popup.ApplyWidth();
         Assert.Equal(900, popup.Width);
         Snapshot(popup, "popup-en.png");
+        // Breiter: die Liste links bleibt, der Platz geht nach rechts
+        Assert.Equal(listWidth, popup.ListColumn.ActualWidth, 1);
+        Assert.True(popup.DetailColumn.ActualWidth > listWidth + 300);
+
+        // Zu schmal für die gespeicherte Liste: nur in der Anzeige schmaler, rechts bleibt die Mindestbreite
+        controller.Settings.ListColumnWidth = 860;
+        popup.ApplyListWidth();
+        popup.UpdateLayout();
+        Assert.Equal(popup.DetailColumn.MinWidth, popup.DetailColumn.ActualWidth, 1);
+        Assert.Equal(860, controller.Settings.ListColumnWidth);
+        controller.Settings.ListColumnWidth = listWidth;
+        popup.ApplyListWidth();
 
         viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "Empty");
         Assert.False(viewModel.ShowDetailItems);
@@ -1087,6 +1103,38 @@ public class WindowSmokeTests
         Select("2-Lang");
         Assert.Equal(shortHeight + 100, popup.ActualHeight, 1);
         Assert.True(detailScroll.ScrollableHeight > 0);
+
+        // Mit gespeicherter Höhe springt nichts: kurze und lange Ordner gleich hoch, der lange scrollt
+        popup.MaxHeight = 3000;
+        controller.Settings.PopupHeight = shortHeight + 60;
+        popup.ApplyHeight();
+        Select("1-Kurz");
+        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1);
+        Select("2-Lang");
+        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1);
+        Assert.True(detailScroll.ScrollableHeight > 0);
+        Snapshot(popup, "popup-fixed-height.png");
+
+        // Von Hand zu klein eingetragen: Suchfeld, Fusszeile und die Mindesthöhe der Spalten haben trotzdem Platz
+        controller.Settings.PopupHeight = 50;
+        popup.ApplyHeight();
+        popup.UpdateLayout();
+        Assert.Equal(popup.Columns.MinHeight, popup.Columns.ActualHeight, 1);
+        Assert.True(popup.HintBar.ActualHeight > 0);
+        var hintBottom = popup.HintBar.TranslatePoint(new Point(0, popup.HintBar.ActualHeight), popup).Y;
+        Assert.True(hintBottom <= popup.ActualHeight, $"Fusszeile endet bei {hintBottom}, Popup {popup.ActualHeight} hoch");
+
+        // Doppelklick auf den Rand: wieder so hoch wie die Liste, auch gespeichert
+        popup.BottomEdge.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
+        {
+            RoutedEvent = System.Windows.Controls.Control.MouseDoubleClickEvent,
+        });
+        Assert.Null(controller.Settings.PopupHeight);
+        Assert.Contains("\"PopupHeight\": null", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        viewModel.Query = "eins";
+        viewModel.Query = "";
+        popup.UpdateLayout();
+        Assert.Equal(shortHeight, popup.ActualHeight, 1);
         popup.Close();
 
         void Select(string name)
@@ -1837,7 +1885,8 @@ public class WindowSmokeTests
         var folder = Environment.GetEnvironmentVariable("QHB_SNAPSHOTS");
         if (string.IsNullOrEmpty(folder)) return;
 
-        var content = (FrameworkElement)window.Content;
+        // Ein leeres Fenster (Platzhalter für ein anderes Programm) hat keinen Inhalt, dann nur den Hintergrund
+        var content = window.Content as FrameworkElement;
         var width = (int)Math.Ceiling(window.ActualWidth);
         var height = (int)Math.Ceiling(window.ActualHeight);
         var bitmap = new RenderTargetBitmap(width * 2, height * 2, 192, 192, PixelFormats.Pbgra32);
@@ -1850,7 +1899,8 @@ public class WindowSmokeTests
             var background = window.Background is SolidColorBrush { Color.A: > 0 } own ? own
                 : window.TryFindResource("SolidBackgroundFillColorBaseBrush") as Brush ?? Brushes.White;
             context.DrawRectangle(background, null, new Rect(0, 0, width, height));
-            context.DrawRectangle(new VisualBrush(content), null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+            if (content is not null)
+                context.DrawRectangle(new VisualBrush(content), null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
         }
         bitmap.Render(visual);
 

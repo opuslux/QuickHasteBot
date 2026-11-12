@@ -74,6 +74,16 @@
             </Setter>
         </Style>
 
+        <!-- Oberer und unterer Rand für die Höhe. Die Ecken gehören zur Breite. -->
+        <Style x:Key="ResizeEdgeVertical" TargetType="Thumb" BasedOn="{StaticResource ResizeEdge}">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Margin" Value="6,0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Cursor" Value="SizeNS" />
+        </Style>
+
         <!-- Eine Zeile, links in der Liste und rechts im Inhalt eines Ordners -->
         <DataTemplate x:Key="SnippetTemplate" DataType="{x:Type ui:SnippetItem}">
             <Grid>
@@ -247,14 +257,14 @@
                 </ItemsControl>
             </DockPanel>
 
-            <!-- Links die Liste, rechts der Inhalt des markierten Eintrags. Die Höhe gibt die linke Liste vor,
-                 ein Ordnerinhalt rechts darf sie vergrössern (siehe FillDecorator.Grow). -->
-            <Grid Grid.Row="2" MinHeight="240">
-                <!-- Die Aufteilung kommt aus den Einstellungen, siehe ApplyColumnShare -->
+            <!-- Links die Liste, rechts der Inhalt des markierten Eintrags. Ohne gespeicherte Höhe gibt die linke Liste
+                 die Höhe vor, ein Ordnerinhalt rechts darf sie vergrössern (siehe FillDecorator.Grow). -->
+            <Grid x:Name="Columns" Grid.Row="2" MinHeight="240" SizeChanged="OnColumnsSizeChanged">
+                <!-- Die Breite links kommt aus den Einstellungen, rechts bekommt den Rest, siehe ApplyListWidth -->
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="ListColumn" Width="*" MinWidth="100" />
+                    <ColumnDefinition x:Name="ListColumn" Width="226" MinWidth="100" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition x:Name="DetailColumn" Width="2*" MinWidth="100" />
+                    <ColumnDefinition x:Name="DetailColumn" Width="*" MinWidth="100" />
                 </Grid.ColumnDefinitions>
 
                 <ListBox x:Name="Results"
@@ -280,7 +290,7 @@
                            Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}" />
 
                 <!-- Trenner zum Verschieben: sichtbar ist nur die Linie, greifen lässt er sich auf der ganzen Breite -->
-                <GridSplitter Grid.Column="1" Width="17" HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                <GridSplitter x:Name="ColumnSplitter" Grid.Column="1" Width="17" HorizontalAlignment="Center" VerticalAlignment="Stretch"
                               ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" Focusable="False"
                               Background="Transparent" DragCompleted="OnSplitterDragCompleted">
                     <GridSplitter.Template>
@@ -416,5 +426,12 @@
                DragStarted="OnResizeStarted" DragDelta="OnResizeDelta" DragCompleted="OnResizeCompleted" />
         <Thumb x:Name="RightEdge" Style="{StaticResource ResizeEdge}" HorizontalAlignment="Right"
                DragStarted="OnResizeStarted" DragDelta="OnResizeDelta" DragCompleted="OnResizeCompleted" />
+        <!-- Doppelklick: wieder so hoch wie die Liste -->
+        <Thumb x:Name="TopEdge" Style="{StaticResource ResizeEdgeVertical}"
+               DragStarted="OnHeightResizeStarted" DragDelta="OnHeightResizeDelta" DragCompleted="OnHeightResizeCompleted"
+               MouseDoubleClick="OnHeightReset" />
+        <Thumb x:Name="BottomEdge" Style="{StaticResource ResizeEdgeVertical}" VerticalAlignment="Bottom"
+               DragStarted="OnHeightResizeStarted" DragDelta="OnHeightResizeDelta" DragCompleted="OnHeightResizeCompleted"
+               MouseDoubleClick="OnHeightReset" />
     </Grid>
 </Window>

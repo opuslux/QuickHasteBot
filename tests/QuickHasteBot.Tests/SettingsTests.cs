@@ -10,13 +10,14 @@ public class SettingsTests
         using var dir = new TempDirectory();
         var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
 
-        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, WriteLog = true, SingleClick = false, EvaluateScripts = false, StructurePath = @"D:\Bausteine", ListColumnShare = 0.45, PopupWidth = 850, Theme = AppTheme.Dark,
+        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, WriteLog = true, SingleClick = false, EvaluateScripts = false, StructurePath = @"D:\Bausteine", ListColumnWidth = 300, PopupWidth = 850, PopupHeight = 500, Theme = AppTheme.Dark,
             CheckForUpdates = false, LastUpdateCheck = new DateTimeOffset(2026, 11, 12, 9, 30, 0, TimeSpan.FromHours(1)), LatestRelease = "v2.16.0" });
         var loaded = store.Load();
 
         Assert.Equal("Ctrl+Alt+Q", loaded.Hotkey);
-        Assert.Equal(0.45, loaded.ListColumnShare);
+        Assert.Equal(300, loaded.ListColumnWidth);
         Assert.Equal(850, loaded.PopupWidth);
+        Assert.Equal(500, loaded.PopupHeight);
         Assert.Equal(AppTheme.Dark, loaded.Theme);
         Assert.Equal(PasteMode.Typing, loaded.PasteMode);
         Assert.False(loaded.ShowTrayIcon);
@@ -48,7 +49,9 @@ public class SettingsTests
         Assert.True(loaded.SingleClick);
         Assert.True(loaded.EvaluateScripts);
         Assert.Equal(ScriptPrompt.DefaultUrl, loaded.AiPromptUrl);
-        Assert.Equal(1.0 / 3, loaded.ListColumnShare);
+        Assert.Equal(AppSettings.DefaultListColumnWidth, loaded.ListColumnWidth);
+        Assert.Null(loaded.ListColumnShare);
+        Assert.Null(loaded.PopupHeight);
         Assert.Equal(AppTheme.System, loaded.Theme);
         Assert.False(loaded.WriteLog);
         Assert.True(loaded.CheckForUpdates);
@@ -66,6 +69,29 @@ public class SettingsTests
         // Von Hand änderbar: & und {} nicht als \u-Escape
         Assert.Contains(@"""AiPromptUrl"": ""https://www.google.com/search?udm=50&hl={lang}&q={prompt}""", File.ReadAllText(store.FilePath));
     }
+
+    [Fact]
+    public void Old_column_share_is_read_but_no_longer_written()
+    {
+        using var dir = new TempDirectory();
+        var store = new SettingsStore(dir.File("settings.json", """{ "ListColumnShare": 0.45 }"""));
+
+        var loaded = store.Load();
+        Assert.Equal(0.45, loaded.ListColumnShare);
+        Assert.Null(loaded.PopupHeight);
+
+        // Umgerechnet (das macht das Popup mit seiner Breite) verschwindet der Anteil aus der Datei
+        loaded.ListColumnShare = null;
+        store.Save(loaded);
+        Assert.DoesNotContain("ListColumnShare", File.ReadAllText(store.FilePath));
+    }
+
+    [Theory]
+    [InlineData(300, 300)]
+    [InlineData(20, 100)]
+    [InlineData(double.NaN, AppSettings.DefaultListColumnWidth)]
+    public void List_column_width_keeps_the_minimum(double width, double expected) =>
+        Assert.Equal(expected, AppSettings.ClampListColumnWidth(width, 100));
 
     [Theory]
     [InlineData(0.5, 0.5)]

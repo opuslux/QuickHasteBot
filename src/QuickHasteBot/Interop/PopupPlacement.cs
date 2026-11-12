@@ -145,7 +145,7 @@ internal static class PopupPlacement
     // Höchstens bis zum Rand des Arbeitsbereichs, zu dem das Popup wächst, erst darüber hinaus scrollt die Liste.
     // Mit dem Anker in der Mitte darf es so hoch wie der Arbeitsbereich werden. Liegt der Anker von Hand nah am Rand,
     // bleibt trotzdem Platz für Suchfeld und ein paar Zeilen, dann rutscht es hinein.
-    const double MinHeight = 360;
+    internal const double MinHeight = 360;
 
     static void LimitHeight(Window window, nint hwnd, Anchor anchor)
     {
