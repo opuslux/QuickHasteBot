@@ -1101,17 +1101,18 @@ public class WindowSmokeTests
         // Höher als erlaubt wird es nie, dann scrollt die rechte Liste (und das Layout bleibt stabil)
         popup.MaxHeight = shortHeight + 100;
         Select("2-Lang");
-        Assert.Equal(shortHeight + 100, popup.ActualHeight, 1);
+        Assert.Equal(shortHeight + 100, popup.ActualHeight, 1.0);
         Assert.True(detailScroll.ScrollableHeight > 0);
 
-        // Mit gespeicherter Höhe springt nichts: kurze und lange Ordner gleich hoch, der lange scrollt
+        // Mit gespeicherter Höhe springt nichts: kurze und lange Ordner gleich hoch, der lange scrollt. Fensterhöhen
+        // vergleichen die Tests auf 1 px genau, Windows rundet sie auf ganze Bildschirmpixel (bei 96 DPI 417.58 -> 418)
         popup.MaxHeight = 3000;
         controller.Settings.PopupHeight = shortHeight + 60;
         popup.ApplyHeight();
         Select("1-Kurz");
-        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1);
+        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1.0);
         Select("2-Lang");
-        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1);
+        Assert.Equal(shortHeight + 60, popup.ActualHeight, 1.0);
         Assert.True(detailScroll.ScrollableHeight > 0);
         Snapshot(popup, "popup-fixed-height.png");
 
@@ -1134,7 +1135,7 @@ public class WindowSmokeTests
         viewModel.Query = "eins";
         viewModel.Query = "";
         popup.UpdateLayout();
-        Assert.Equal(shortHeight, popup.ActualHeight, 1);
+        Assert.Equal(shortHeight, popup.ActualHeight, 1.0);
         popup.Close();
 
         void Select(string name)
