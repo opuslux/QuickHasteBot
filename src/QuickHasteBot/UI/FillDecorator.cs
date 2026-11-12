@@ -41,7 +41,9 @@ internal sealed class FillDecorator : Decorator
             child.Measure(new Size(constraint.Width, height));
             _grown = Math.Max(_grown, child.DesiredSize.Height);
         }
-        return new Size(0, _grown);
+        // Nie mehr verlangen als da ist: Wird das Fenster kleiner (Höhe von Hand), ordnete WPF den Inhalt sonst in der
+        // gemerkten Höhe an und schnitte ihn bloss ab, der Scrollbalken käme erst mit der nächsten Liste
+        return new Size(0, Math.Min(_grown, constraint.Height));
     }
 
     protected override Size ArrangeOverride(Size arrangeSize)
