@@ -1,4 +1,4 @@
-{# Fills in the test form. First open 13-Test form in the popup, it shows up in the browser. Then pick this snippet, from whatever window.
+{# Fills in the test form. First open 14-Test form in the popup, it shows up in the browser. Then pick this snippet, from whatever window.
 window brings the browser window with this title to the front. The element tags find the fields via UI Automation, without counting tabs:
 #firstname by the id, name=Last name by the label, help= by the grey placeholder text, and * stands for any text.
 name=Delivery address > name=Street looks for the street only in the Delivery address box, as there are two streets.

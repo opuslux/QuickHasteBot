@@ -1,7 +1,7 @@
 @echo off
-rem Beispiel fuer run() in QuickHasteBot, gestartet vom Baustein "19-Nummer per Batch-Datei" daneben.
+rem Beispiel fuer run() in QuickHasteBot, gestartet vom Baustein "20-Nummer per Batch-Datei" daneben.
 rem Wartet 2 Sekunden und gibt dann eine Bestellnummer aus: Kunde-Zufallszahl.
-rem Aufruf: "19-Nummer per Batch-Datei.bat" Kunde
+rem Aufruf: "20-Nummer per Batch-Datei.bat" Kunde
 rem Ohne Kunde: Meldung auf der Fehlerausgabe und Rueckgabewert 2.
 if "%~1"=="" (
   echo Kein Kunde angegeben 1>&2
