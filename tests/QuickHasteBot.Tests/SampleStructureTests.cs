@@ -21,13 +21,13 @@ public class SampleStructureTests
 
     [Theory]
     [InlineData("de", "Willkommen.txt", @"1-Grüsse\Freundliche Grüsse.txt", @"2-E-Mail\Abwesenheit.txt", @"3-SQL\Audit-Insert.txt",
-        @"4-Beispiele\01-Antwort mit Rückfragen.txt", @"4-Beispiele\10-Computer-Infos.txt")]
+        @"4-Beispiele\01-Antwort mit Rückfragen.txt", @"4-Beispiele\11-Computer-Infos.txt")]
     [InlineData("en", "Welcome.txt", @"1-Greetings\Kind regards.txt", @"2-Email\Out of office.txt", @"3-SQL\Audit insert.txt",
-        @"4-Examples\01-Reply with questions.txt", @"4-Examples\10-Computer info.txt")]
+        @"4-Examples\01-Reply with questions.txt", @"4-Examples\11-Computer info.txt")]
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(28, paths.Count);
+        Assert.Equal(29, paths.Count);
         Assert.Contains("Script-Samples.txt", paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -86,7 +86,7 @@ public class SampleStructureTests
     {
         var files = SampleStructure.Files(language);
         var examples = files.Where(f => f.Path.StartsWith("4-", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(17, examples.Count);
+        Assert.Equal(18, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -128,12 +128,15 @@ public class SampleStructureTests
         }
 
         Assert.Equal("«Hallo Welt{cursor}»", Paste("02-Markierung in Anführungszeichen.txt", " Hallo Welt\r\n"));
-        Assert.Equal("• Äpfel\n• Birnen", Paste("03-Markierung als Aufzählung.txt", "Äpfel\r\n\r\n  Birnen "));
-        Assert.Equal("• ", Paste("03-Markierung als Aufzählung.txt", ""));
-        Assert.Equal("Max{tab}Muster{tab}Zürich", Paste("11-Excel-Zeile ins Formular.txt", "", "Max\tMuster\tZürich\r\nZweite\tZeile\r\n"));
+        Assert.Equal("• Äpfel\n• Birnen", Paste("03-Markierung als Punkte.txt", "Äpfel\r\n\r\n  Birnen "));
+        Assert.Equal("• ", Paste("03-Markierung als Punkte.txt", ""));
+        Assert.Equal("1. Äpfel\n2. Birnen\n3. 1.5 kg Mehl", Paste("04-Markierung als Aufzählung.txt", "Äpfel\r\n\r\n  Birnen \r\n1.5 kg Mehl"));
+        Assert.Equal("1. Äpfel\n2. Birnen\n3. Mehl", Paste("04-Markierung als Aufzählung.txt", "• Äpfel\n- Birnen\n7) Mehl"));
+        Assert.Equal("1. ", Paste("04-Markierung als Aufzählung.txt", ""));
+        Assert.Equal("Max{tab}Muster{tab}Zürich", Paste("12-Excel-Zeile ins Formular.txt", "", "Max\tMuster\tZürich\r\nZweite\tZeile\r\n"));
         Assert.Equal("Betrag netto:   CHF 1250.50\r\nMwSt. 8.1 %:     CHF 101.29\r\nTotal:          CHF 1351.79\r\nAuf Wunsch zahlbar in zwei Raten.",
-            Paste("12-Offerte mit MwSt.txt", "", answers: new() { ["Betrag netto"] = "1'250.50", ["MwSt. in %"] = "8,1" }));
-        Assert.DoesNotContain("Raten", Paste("12-Offerte mit MwSt.txt", ""));
+            Paste("13-Offerte mit MwSt.txt", "", answers: new() { ["Betrag netto"] = "1'250.50", ["MwSt. in %"] = "8,1" }));
+        Assert.DoesNotContain("Raten", Paste("13-Offerte mit MwSt.txt", ""));
     }
 
     [Theory]
@@ -157,8 +160,8 @@ public class SampleStructureTests
 
     /// <summary>Die Batch-Datei neben dem Beispiel: run() findet sie im Ordner des Bausteins, mit Kunde eine Nummer, ohne einen Fehler.</summary>
     [Theory]
-    [InlineData("de", @"4-Beispiele\19-Nummer per Batch-Datei", "Kein Kunde angegeben")]
-    [InlineData("en", @"4-Examples\19-Number via batch file", "No customer given")]
+    [InlineData("de", @"4-Beispiele\20-Nummer per Batch-Datei", "Kein Kunde angegeben")]
+    [InlineData("en", @"4-Examples\20-Number via batch file", "No customer given")]
     public void Batch_example_runs_next_to_its_snippet(string language, string example, string error)
     {
         using var dir = new TempDirectory();
