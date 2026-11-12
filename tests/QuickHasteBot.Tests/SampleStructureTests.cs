@@ -25,7 +25,7 @@ public class SampleStructureTests
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(18, paths.Count);
+        Assert.Equal(26, paths.Count);
         Assert.Contains("Script-Samples.txt", paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -44,7 +44,14 @@ public class SampleStructureTests
         foreach (var (path, text) in SampleStructure.Files(language))
         foreach (var clipboard in new[] { "", "Hallo Welt", "{\"a\": 1}", "Zeile 1\r\nZeile 2" })
         {
-            var result = Render(text, culture, clipboard);
+            // Die Excel-Zeile bricht mit leerer Zwischenablage absichtlich ab
+            var context = new ScriptContext(Now, CultureInfo.GetCultureInfo(culture), clipboard, Zone, new FormBuilder());
+            if (clipboard.Length == 0 && text.Contains("throw") && text.Contains("clipboard"))
+            {
+                Assert.Throws<SnippetScriptException>(() => SnippetScript.Render(text, context));
+                continue;
+            }
+            var result = SnippetScript.Render(text, context);
             Assert.DoesNotContain("{{", result);
             Assert.DoesNotContain("[native code]", result);
             Assert.False(string.IsNullOrWhiteSpace(result), path);
@@ -76,8 +83,8 @@ public class SampleStructureTests
     public void Examples_have_no_errors_and_their_description_is_not_pasted(string language, string culture)
     {
         var files = SampleStructure.Files(language);
-        var examples = files.Where(f => f.Path.StartsWith("4-", StringComparison.Ordinal)).ToList();
-        Assert.Equal(10, examples.Count);
+        var examples = files.Where(f => f.Path.StartsWith("4-", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
+        Assert.Equal(16, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -87,7 +94,7 @@ public class SampleStructureTests
             {
                 var form = new FormBuilder();
                 var marked = KeyTags.MarkTags(text, form);
-                var rendered = SnippetScript.Render(marked, new ScriptContext(Now, CultureInfo.GetCultureInfo(culture), "", Zone, form, Selection: selection));
+                var rendered = SnippetScript.Render(marked, new ScriptContext(Now, CultureInfo.GetCultureInfo(culture), "Max\tMuster", Zone, form, Selection: selection));
                 var steps = KeyTags.Split(rendered, form);
                 var shown = string.Concat(steps.Select(s => s is TextStep t ? t.Text : KeyTags.Describe(s)));
                 Assert.False(string.IsNullOrWhiteSpace(shown), path);
@@ -107,20 +114,24 @@ public class SampleStructureTests
     }
 
     [Fact]
-    public void Examples_with_selection_change_the_selected_text()
+    public void Examples_give_the_expected_text()
     {
         string Example(string name) => SampleStructure.Files("de").Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
-        string Paste(string name, string selection)
+        string Paste(string name, string selection, string clipboard = "", Dictionary<string, string>? answers = null)
         {
             var form = new FormBuilder();
             var rendered = SnippetScript.Render(KeyTags.MarkTags(Example(name), form),
-                new ScriptContext(Now, CultureInfo.GetCultureInfo("de-CH"), "", Zone, form, Selection: selection));
+                new ScriptContext(Now, CultureInfo.GetCultureInfo("de-CH"), clipboard, Zone, form, Selection: selection, Answers: answers));
             return string.Concat(KeyTags.Split(rendered, form).Select(s => s is TextStep t ? t.Text : KeyTags.Describe(s)));
         }
 
         Assert.Equal("«Hallo Welt{cursor}»", Paste("02-Markierung in Anführungszeichen.txt", " Hallo Welt\r\n"));
         Assert.Equal("• Äpfel\n• Birnen", Paste("03-Markierung als Aufzählung.txt", "Äpfel\r\n\r\n  Birnen "));
         Assert.Equal("• ", Paste("03-Markierung als Aufzählung.txt", ""));
+        Assert.Equal("Max{tab}Muster{tab}Zürich", Paste("11-Excel-Zeile ins Formular.txt", "", "Max\tMuster\tZürich\r\nZweite\tZeile\r\n"));
+        Assert.Equal("Betrag netto:   CHF 1250.50\r\nMwSt. 8.1 %:     CHF 101.29\r\nTotal:          CHF 1351.79\r\nAuf Wunsch zahlbar in zwei Raten.",
+            Paste("12-Offerte mit MwSt.txt", "", answers: new() { ["Betrag netto"] = "1'250.50", ["MwSt. in %"] = "8,1" }));
+        Assert.DoesNotContain("Raten", Paste("12-Offerte mit MwSt.txt", ""));
     }
 
     [Theory]

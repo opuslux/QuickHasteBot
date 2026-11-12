@@ -1,0 +1,5 @@
+{# Starts the Calculator via the Start menu, as by hand: press Win, type, Enter.
+That way anything the Start menu finds starts, also apps from the Store that the start tag doesn't find.
+The Win key brings another window to the front on purpose. guard,off says so explicitly, so the window guard doesn't stop.
+wait gives the Start menu time to open and search.}
+{guard,off}{win}{wait,800}Calculator{wait,800}{enter}

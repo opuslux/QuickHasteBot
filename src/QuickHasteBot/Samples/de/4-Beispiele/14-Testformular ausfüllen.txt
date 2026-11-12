@@ -1,0 +1,22 @@
+{# Füllt das Testformular aus. Erst 13-Testformular im Popup öffnen, es erscheint im Browser. Dann diesen Baustein wählen, egal aus welchem Fenster.
+window holt das Browserfenster mit diesem Titel nach vorne. Die Element-Tags finden die Felder über UI Automation, ohne Tabs zu zählen:
+#vorname über die id, name=Nachname über die Beschriftung, help= über den grauen Platzhaltertext, und * steht für beliebigen Text.
+name=Lieferadresse > name=Strasse sucht die Strasse nur im Kasten Lieferadresse, denn eine Strasse gibt es zweimal.
+set füllt ein Feld, wählt im Dropdown und hakt ein Kästchen an. click klickt, dblclick doppelklickt mit der Maus.
+Für eigene Formulare im Editor ein Element erfassen (Fadenkreuz) oder Aufnehmen wählen.
+Zum Schluss meldet ein Fenster von PowerShell, dass alles erledigt ist.}
+{window,title=QuickHasteBot-Testformular}
+{dblclick,name=Doppelklick hier;type=button}
+{focus,#vorname}{clear}Max
+{set,name=Nachname,"Muster"}
+{set,#email,"max.muster@example.com"}
+{set,name=Land;type=combobox,"Schweiz"}
+{set,name=Rechnungsadresse > name=Strasse,"Postfach 12"}
+{set,name=Rechnungsadresse > name=PLZ und Ort,"8000 Zürich"}
+{set,name=Lieferadresse > name=Strasse,"Bahnhofstrasse 1"}
+{set,name=Lieferadresse > name=PLZ und Ort,"8001 Zürich"}
+{click,name=Per E-Mail}
+{set,#newsletter,on}
+{focus,help=Ihre Nachricht*}{clear}Hallo, das hat QuickHasteBot getippt.
+{click,name=Absenden;type=button}
+{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'Das Testformular ist ausgefüllt.\')"', { wait: 0, hidden: true }) }}

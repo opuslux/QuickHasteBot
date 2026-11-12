@@ -1,0 +1,8 @@
+{# Rechnet beim Einfügen: fragt nach Betrag und MwSt.-Satz und setzt Netto, MwSt. und Total ein.
+var merkt sich einen Wert für die folgenden Blöcke. Eine Zeile, deren Blöcke nichts ausgeben, fällt samt Umbruch weg:
+So erscheint die erste Zeile nicht im Text, und der Hinweis auf Ratenzahlung nur ab 1000 Franken.}
+{{ var netto = Number(ask('Betrag netto', '100').replace(/[^\d.,-]/g, '').replace(',', '.')) || 0; var satz = Number(ask('MwSt. in %', '8.1').replace(',', '.')) || 0 }}
+Betrag netto:   CHF {{ netto.toFixed(2) }}
+MwSt. {{ satz }} %:     CHF {{ (netto * satz / 100).toFixed(2) }}
+Total:          CHF {{ (netto * (1 + satz / 100)).toFixed(2) }}
+{{ netto >= 1000 ? 'Auf Wunsch zahlbar in zwei Raten.' : '' }}

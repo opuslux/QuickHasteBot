@@ -1,0 +1,5 @@
+{# Drückt die Medientaste Wiedergabe/Pause: hält Musik oder Video an oder spielt weiter, im Browser, in Spotify und anderswo.
+Mit Rechtsklick › Hotkey festlegen… bekommt der Baustein ein eigenes Tastenkürzel, z.B. Strg+Alt+P, und läuft dann ohne Popup.
+Das Kürzel steht danach in eckigen Klammern im Dateinamen.
+Weitere Spezialtasten: volumemute, volumeup, nexttrack, prtsc, numplus im Ziffernblock, key,a für einen echten Tastendruck.}
+{playpause}

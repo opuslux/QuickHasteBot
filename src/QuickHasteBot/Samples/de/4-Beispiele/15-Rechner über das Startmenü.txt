@@ -1,0 +1,5 @@
+{# Startet den Rechner über das Startmenü, wie von Hand: Win drücken, tippen, Enter.
+So startet alles, was das Startmenü findet, auch Apps aus dem Store, die der Tag start nicht findet.
+Die Win-Taste bringt absichtlich ein anderes Fenster nach vorne. guard,off sagt das ausdrücklich, damit der Fensterwächter nicht abbricht.
+wait gibt dem Startmenü Zeit zum Öffnen und Suchen.}
+{guard,off}{win}{wait,800}Rechner{wait,800}{enter}
