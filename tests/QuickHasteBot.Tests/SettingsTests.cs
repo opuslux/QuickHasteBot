@@ -10,7 +10,8 @@ public class SettingsTests
         using var dir = new TempDirectory();
         var store = new SettingsStore(Path.Combine(dir.Path, "settings.json"));
 
-        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, WriteLog = true, SingleClick = false, EvaluateScripts = false, StructurePath = @"D:\Bausteine", ListColumnShare = 0.45, PopupWidth = 850, Theme = AppTheme.Dark });
+        store.Save(new AppSettings { Hotkey = "Ctrl+Alt+Q", PasteMode = PasteMode.Typing, ShowTrayIcon = false, WriteLog = true, SingleClick = false, EvaluateScripts = false, StructurePath = @"D:\Bausteine", ListColumnShare = 0.45, PopupWidth = 850, Theme = AppTheme.Dark,
+            CheckForUpdates = false, LastUpdateCheck = new DateTimeOffset(2026, 11, 12, 9, 30, 0, TimeSpan.FromHours(1)), LatestRelease = "v2.16.0" });
         var loaded = store.Load();
 
         Assert.Equal("Ctrl+Alt+Q", loaded.Hotkey);
@@ -23,6 +24,9 @@ public class SettingsTests
         Assert.False(loaded.SingleClick);
         Assert.False(loaded.EvaluateScripts);
         Assert.Equal(@"D:\Bausteine", loaded.StructurePath);
+        Assert.False(loaded.CheckForUpdates);
+        Assert.Equal(new DateTimeOffset(2026, 11, 12, 9, 30, 0, TimeSpan.FromHours(1)), loaded.LastUpdateCheck);
+        Assert.Equal("v2.16.0", loaded.LatestRelease);
         // Von Hand lesbar: Enum als Text, "+" und Backslash nicht als \u-Escape
         var json = File.ReadAllText(store.FilePath);
         Assert.Contains("\"Typing\"", json);
@@ -47,6 +51,8 @@ public class SettingsTests
         Assert.Equal(1.0 / 3, loaded.ListColumnShare);
         Assert.Equal(AppTheme.System, loaded.Theme);
         Assert.False(loaded.WriteLog);
+        Assert.True(loaded.CheckForUpdates);
+        Assert.Null(loaded.LastUpdateCheck);
     }
 
     [Fact]

@@ -111,6 +111,46 @@ public sealed class SnippetLibrary : IDisposable
     public Snippet? Find(string relativePath) =>
         relativePath.Length == 0 ? Root : All.FirstOrDefault(s => string.Equals(s.RelativePath, relativePath, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// Der Textbaustein zu einem Namen in {include,…}: "Ordner/Name" wie im Popup, mit / oder \, Gross/Klein egal.
+    /// Jeder Teil darf mit oder ohne Nummer davor ("3-Grüsse" oder "Grüsse") und die Datei mit oder ohne Endung stehen.
+    /// Ein Name ohne Ordner, den es oben nicht gibt, wird überall gesucht. Bei mehreren gilt der erste in der Liste.
+    /// </summary>
+    public Snippet? FindIncluded(string path)
+    {
+        var segments = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length == 0) return null;
+        var all = All;
+        return all.FirstOrDefault(s => s.Kind == SnippetKind.Text && PathMatches(s, segments))
+            ?? (segments.Length == 1 ? all.FirstOrDefault(s => s.Kind == SnippetKind.Text && NameMatches(s, segments[0])) : null);
+
+        static bool PathMatches(Snippet snippet, string[] segments)
+        {
+            var node = snippet;
+            for (var i = segments.Length - 1; i >= 0; i--)
+            {
+                if (node is null || node.RelativePath.Length == 0 || !NameMatches(node, segments[i])) return false;
+                node = node.Parent;
+            }
+            return node is { RelativePath.Length: 0 };
+        }
+
+        static bool NameMatches(Snippet node, string segment) =>
+            Same(node.Name, segment) || Same(WithoutNumber(node.Name), segment)
+            || !node.IsFolder && (Same(node.Name + Path.GetExtension(node.FullPath), segment)
+                                  || Same(WithoutNumber(node.Name) + Path.GetExtension(node.FullPath), segment));
+
+        static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+        // "3-Grüsse" → "Grüsse", "10 Notizen" → "Notizen"
+        static string WithoutNumber(string name)
+        {
+            var i = 0;
+            while (i < name.Length && char.IsAsciiDigit(name[i])) i++;
+            return i > 0 && i < name.Length - 1 && name[i] is '-' or '_' or ' ' or '.' ? name[(i + 1)..].TrimStart() : name;
+        }
+    }
+
     /// <summary>Liest den Text frisch von der Platte, wie die alte Version auch.</summary>
     public static string ReadText(Snippet snippet) => TextFileReader.Read(snippet.FullPath);
 

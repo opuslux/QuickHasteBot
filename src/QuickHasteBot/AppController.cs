@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Http;
 using System.Windows;
+using System.Windows.Threading;
 using QuickHasteBot.Core;
 using QuickHasteBot.Interop;
 using QuickHasteBot.UI;
@@ -86,6 +88,74 @@ internal sealed class AppController : IDisposable
 
         Log.Info($"Gestartet, Hotkey {ConfiguredHotkey} {(HotkeyActive ? "aktiv" : "belegt")}, {Library.All.Count} Einträge in {StructureRoot}, " +
                  $"{FileHotkeys.Count(e => e.Status == FileHotkeyStatus.Ok)} Datei-Hotkeys");
+
+        // Stündlich nachsehen, ob der Tag um ist: läuft das Programm wochenlang, kommt der Hinweis trotzdem
+        _updateTimer = new DispatcherTimer(TimeSpan.FromHours(1), DispatcherPriority.Background, (_, _) => _ = CheckForUpdatesAsync(),
+            Dispatcher.CurrentDispatcher);
+        _ = CheckForUpdatesAsync();
+    }
+
+    // --- Neue Version ---
+
+    static readonly HttpClient UpdateClient = new() { Timeout = TimeSpan.FromSeconds(10) };
+    DispatcherTimer? _updateTimer;
+    bool _checkingForUpdates;
+
+    /// <summary>Das neuere Release auf GitHub, z.B. "v2.16.0", null wenn diese Version aktuell ist oder nicht gefragt wird.</summary>
+    internal string? AvailableUpdate =>
+        Settings.CheckForUpdates && UpdateCheck.IsNewer(Settings.LatestRelease, AppVersion.Informational) ? Settings.LatestRelease : null;
+
+    internal void OpenUpdatePage()
+    {
+        if (AvailableUpdate is { } tag)
+            ShellOpen(UpdateCheck.ReleasePage(tag));
+        else
+            OpenProjectPage();
+    }
+
+    internal void SetCheckForUpdates(bool on)
+    {
+        Settings.CheckForUpdates = on;
+        SaveSettings();
+        _tray?.ShowUpdate(notify: false);
+        _settingsWindow?.ShowUpdate();
+        if (on)
+            _ = CheckForUpdatesAsync();
+    }
+
+    /// <summary>
+    /// Fragt GitHub, wenn es dran ist (einmal am Tag). Eine Version, die neu dazukommt, meldet der Tray einmal; der Eintrag
+    /// im Menü und der Link in den Einstellungen bleiben bis zum Update. Fehler (kein Netz) stehen nur im Log.
+    /// </summary>
+    internal async Task CheckForUpdatesAsync()
+    {
+        if (_checkingForUpdates || !Settings.CheckForUpdates || AppVersion.Numeric(AppVersion.Informational) is null
+            || !UpdateCheck.Due(Settings.LastUpdateCheck, DateTimeOffset.Now))
+            return;
+        _checkingForUpdates = true;
+        try
+        {
+            var release = await UpdateCheck.FetchAsync(UpdateClient);
+            Settings.LastUpdateCheck = DateTimeOffset.Now;
+            var known = Settings.LatestRelease;
+            if (release is not null)
+                Settings.LatestRelease = release.Tag;
+            SaveSettings();
+            if (AvailableUpdate is { } tag && !string.Equals(tag, known, StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Info($"Neue Version auf GitHub: {tag}");
+                _tray?.ShowUpdate(notify: true);
+                _settingsWindow?.ShowUpdate();
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException)
+        {
+            Log.Info($"Keine Antwort von GitHub zur neuesten Version: {ex.Message}");
+        }
+        finally
+        {
+            _checkingForUpdates = false;
+        }
     }
 
     public void ShowSearch()
@@ -322,18 +392,49 @@ internal sealed class AppController : IDisposable
         IStepGate? gate = null)
     {
         // Tasten-Tags werden zu Markern, bevor Skripte laufen: was ein Skript ausgibt oder aus der Zwischenablage kommt,
-        // wird so nie als Tag gelesen, nur key() im Skript erzeugt bewusst Tasten
+        // wird so nie als Tag gelesen, nur key() im Skript erzeugt bewusst Tasten. Eingebundene Bausteine davor, ihre Tags
+        // gelten so wie die eigenen.
         text = KeyTags.StripMarkers(text);
         var sourceLength = text.Length;
         var form = Settings.EvaluateKeyTags ? new FormBuilder() : null;
         if (form is not null)
+        {
+            try
+            {
+                text = SnippetIncludes.Expand(text, ResolveInclude, form, logPath);
+            }
+            catch (IncludeException ex)
+            {
+                return new(string.Format(Strings.IncludeErrorFormat, name, IncludeMessage(ex)), MessageBoxImage.Warning);
+            }
             text = KeyTags.MarkTags(text, form);
+        }
 
-        using var session = Settings.EvaluateScripts && SnippetScript.HasBlocks(text)
-            ? new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture,
-                // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
-                SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "",
-                Form: form, Run: request => ScriptRunner.Run(request, PasteService.EscapeDown)))
+        var scripts = Settings.EvaluateScripts && SnippetScript.HasBlocks(text);
+        // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
+        var clipboard = scripts && SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
+        var selection = "";
+        if (scripts && SnippetScript.UsesSelection(text))
+        {
+            if (await _paste.CopySelectionAsync(targetWindow) is not { } copied)
+                return new(string.Format(Strings.TargetElevatedFormat, name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
+                    MessageBoxImage.Information, gate is null ? null : 0);
+            selection = copied;
+        }
+        IReadOnlyDictionary<string, string>? answers = null;
+        if (scripts && SnippetScript.Questions(text) is { Count: > 0 } questions)
+        {
+            // Nach selection: das Fenster nimmt dem Zielfenster den Fokus, Einfügen holt es danach zurück
+            answers = AskDialog.Ask(name, questions, _lastAnswers);
+            if (answers is null)
+                return gate is null ? null : new("", MessageBoxImage.Information, 0, Stopped: true);
+            foreach (var (label, answer) in answers)
+                _lastAnswers[label] = answer;
+        }
+
+        using var session = scripts
+            ? new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard,
+                Form: form, Run: request => ScriptRunner.Run(request, PasteService.EscapeDown), Selection: selection, Answers: answers))
             : null;
         if (session is not null)
         {
@@ -360,9 +461,19 @@ internal sealed class AppController : IDisposable
             }
         }
 
-        if (form is not null && KeyTags.HasMarkers(text))
+        string? html = null;
+        var caretBack = 0;
+        var planned = form is not null && KeyTags.HasMarkers(text) ? KeyTags.SplitWithSources(text, form) : null;
+        if (planned is not null && PasteContent.Fits(planned.Select(s => s.Step)))
         {
-            var result = await _paste.RunFormAsync(KeyTags.SplitWithSources(text, form), targetWindow, Settings.KeyTagsWindowGuard, gate,
+            // Nur {cursor} und {html}: wie Text einfügen, mit der eingestellten Methode
+            var content = PasteContent.From(planned.Select(s => s.Step));
+            (text, html, caretBack, planned) = (content.Text, content.Html, content.CaretBack, null);
+        }
+
+        if (planned is not null)
+        {
+            var result = await _paste.RunFormAsync(planned, targetWindow, Settings.KeyTagsWindowGuard, gate,
                 session is null ? null : ExpandAsync);
             if (gate is not null && result.Outcome == FormOutcome.EscapePressed)
                 return new("", MessageBoxImage.Information, result.StepIndex, Stopped: true);
@@ -401,24 +512,66 @@ internal sealed class AppController : IDisposable
         }
 
         var mode = alternate ? AppSettings.Other(Settings.PasteMode) : Settings.PasteMode;
-        if (!await _paste.PasteAsync(text, mode, targetWindow))
+        if (!await _paste.PasteAsync(text, mode, targetWindow, html, caretBack))
             return new(string.Format(Strings.TargetElevatedFormat, name, ProcessAccess.ProcessName(NativeMethods.GetForegroundWindow())),
                 MessageBoxImage.Information, gate is null ? null : 0);
         return null;
     }
 
+    /// <summary>Was ask() bisher eingegeben bekam, als Vorschlag beim nächsten Mal. Nur solange das Programm läuft.</summary>
+    readonly Dictionary<string, string> _lastAnswers = [];
+
+    /// <summary>Der Baustein zu einem {include,…}, null wenn es keinen gibt.</summary>
+    /// <exception cref="IncludeException">Die Datei liess sich nicht lesen.</exception>
+    internal SnippetIncludes.Included? ResolveInclude(string path)
+    {
+        if (Library.FindIncluded(path) is not { } snippet) return null;
+        try
+        {
+            return new(snippet.FullPath, SnippetLibrary.ReadText(snippet));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error($"Eingebundener Baustein konnte nicht gelesen werden: {snippet.FullPath}", ex);
+            throw new IncludeException(IncludeProblem.Unreadable, $"{path}: {ex.Message}");
+        }
+    }
+
+    internal static string IncludeMessage(IncludeException ex) => ex.Problem switch
+    {
+        IncludeProblem.NotFound => string.Format(Strings.IncludeNotFoundFormat, ex.Detail),
+        IncludeProblem.Cycle => string.Format(Strings.IncludeCycleFormat, ex.Detail),
+        IncludeProblem.TooDeep => string.Format(Strings.IncludeTooDeepFormat, SnippetIncludes.MaxDepth, ex.Detail),
+        _ => ex.Detail,
+    };
+
     /// <summary>
     /// Beginnt der Text mit {window,…} oder {start,…}, holt er sein Fenster selbst: dann dieses Tag, sonst null. Der
     /// Editor wartet dann nicht auf den Klick ins Zielfeld.
     /// </summary>
-    internal string? StartWindowTag(string text) => StartWindowTag(text, Settings.EvaluateKeyTags, Settings.EvaluateScripts);
+    internal string? StartWindowTag(string text) => StartWindowTag(text, Settings.EvaluateKeyTags, Settings.EvaluateScripts, ResolveInclude);
 
-    /// <summary>Wie <see cref="StartWindowTag(string)"/>. Skripte sehen eine leere Zwischenablage, ein Skriptfehler gibt null.</summary>
-    internal static string? StartWindowTag(string text, bool keyTags, bool scripts)
+    /// <summary>
+    /// Wie <see cref="StartWindowTag(string)"/>. Skripte sehen eine leere Zwischenablage und keine Antworten auf ask(), ein
+    /// Skriptfehler gibt null.
+    /// </summary>
+    internal static string? StartWindowTag(string text, bool keyTags, bool scripts, Func<string, SnippetIncludes.Included?>? resolve = null)
     {
         if (!keyTags) return null;
         var form = new FormBuilder();
-        text = KeyTags.MarkTags(KeyTags.StripMarkers(text), form);
+        text = KeyTags.StripMarkers(text);
+        if (resolve is not null)
+        {
+            try
+            {
+                text = SnippetIncludes.Expand(text, resolve, form);
+            }
+            catch (IncludeException)
+            {
+                return null;
+            }
+        }
+        text = KeyTags.MarkTags(text, form);
         if (scripts && SnippetScript.HasBlocks(text))
         {
             try
@@ -456,7 +609,23 @@ internal sealed class AppController : IDisposable
         if (form is not null)
         {
             // Davor zählen nur die Variablen der Blöcke: Kommentare weg, die Tasten in einen eigenen Builder
-            before = KeyTags.MarkTags(before, new FormBuilder());
+            var beforeForm = new FormBuilder();
+            try
+            {
+                before = SnippetIncludes.Expand(before, ResolveInclude, beforeForm);
+            }
+            catch (IncludeException)
+            {
+            }
+            before = KeyTags.MarkTags(before, beforeForm);
+            try
+            {
+                text = SnippetIncludes.Expand(text, ResolveInclude, form);
+            }
+            catch (IncludeException ex)
+            {
+                return new("", false, IncludeMessage(ex));
+            }
             text = KeyTags.MarkTags(text, form);
         }
 
@@ -503,7 +672,15 @@ internal sealed class AppController : IDisposable
     internal async Task<string?> TestTagAsync(string tag, nint targetWindow)
     {
         var form = new FormBuilder();
-        var text = KeyTags.MarkTags(KeyTags.StripMarkers(tag), form);
+        string text;
+        try
+        {
+            text = KeyTags.MarkTags(SnippetIncludes.Expand(KeyTags.StripMarkers(tag), ResolveInclude, form), form);
+        }
+        catch (IncludeException ex)
+        {
+            return IncludeMessage(ex);
+        }
         try
         {
             if (Settings.EvaluateScripts && SnippetScript.HasBlocks(text))
@@ -921,6 +1098,7 @@ internal sealed class AppController : IDisposable
 
     public void Dispose()
     {
+        _updateTimer?.Stop();
         _hotkey?.Dispose();
         _tray?.Dispose();
         Library.Dispose();

@@ -490,4 +490,32 @@ The date of next Monday</value></data>
   <data name="RecordBarUnnamed" xml:space="preserve"><value>An element without id, label or class can't be found again and is left out of the recording.</value></data>
   <!-- Ordner unter Samples\ für die Beispiele beim ersten Start -->
   <data name="SampleLanguage" xml:space="preserve"><value>en</value></data>
+  <data name="IncludeErrorFormat" xml:space="preserve"><value>"{0}" was not pasted: {1}</value></data>
+  <data name="IncludeNotFoundFormat" xml:space="preserve"><value>{{include,{0}}} names no text snippet. Write the folder and name as in the popup, e.g. {{include,Sign-offs/Kind regards}}.</value></data>
+  <data name="IncludeCycleFormat" xml:space="preserve"><value>{{include}} would include itself without end: {0}</value></data>
+  <data name="IncludeTooDeepFormat" xml:space="preserve"><value>more than {0} snippets included inside each other (at {1})</value></data>
+  <data name="AskTitleFormat" xml:space="preserve"><value>{0} – QuickHasteBot</value></data>
+  <data name="AskPromptFormat" xml:space="preserve"><value>"{0}" needs a few details before it is pasted:</value></data>
+  <data name="AskConfirm" xml:space="preserve"><value>Paste</value></data>
+  <data name="EditorPreviewAskNote" xml:space="preserve"><value>ask() shows its default or [label] here; it asks when pasting and with Test (F5).</value></data>
+  <data name="EditorPreviewSelectionNote" xml:space="preserve"><value>selection is empty here; it is the selected text in the target when pasting.</value></data>
+  <data name="EditorNoFormattedText" xml:space="preserve"><value>No formatted text on the clipboard. Copy it first, e.g. a signature in Outlook or Word.</value></data>
+  <data name="TagCursor" xml:space="preserve"><value>cursor ends up here</value></data>
+  <data name="TagCursorHelp" xml:space="preserve"><value>After pasting, the cursor stands here instead of at the end, e.g. Dear {cursor},. Only text may follow it, no keys.</value></data>
+  <data name="TagInclude" xml:space="preserve"><value>insert another snippet</value></data>
+  <data name="TagIncludeHelp" xml:space="preserve"><value>Inserts the text of another snippet here, with its tags and scripts, e.g. a signature kept in one place. Folder and name as in the popup, the number in front can be left out.</value></data>
+  <data name="TagHtml" xml:space="preserve"><value>formatted text as HTML</value></data>
+  <data name="TagHtmlHelp" xml:space="preserve"><value>Everything between {html} and {/html} is pasted as formatted text: bold, links, lists, tables, in Outlook, Word, Teams and web mail. Tags in it are text; scripts run.</value></data>
+  <data name="TagHtmlText" xml:space="preserve"><value>bold</value></data>
+  <data name="TagHtmlPaste" xml:space="preserve"><value>formatted text from the clipboard</value></data>
+  <data name="TagHtmlPasteHelp" xml:space="preserve"><value>Copy formatted text, e.g. a signature in Outlook, and insert it here as an {html} block. Ctrl+Shift+V does the same.</value></data>
+  <data name="TagSelection" xml:space="preserve"><value>selected text in the target</value></data>
+  <data name="TagSelectionHelp" xml:space="preserve"><value>The text that was selected in the target window before pasting, '' if nothing was. QuickHasteBot copies it with Ctrl+C and puts the clipboard back afterwards.</value></data>
+  <data name="TagAsk" xml:space="preserve"><value>ask before pasting</value></data>
+  <data name="TagAskHelp" xml:space="preserve"><value>Asks before pasting and puts in what was typed, e.g. {{ ask('Customer', 'Muster') }} with a default. All ask() of a snippet come in one window; the same label is asked once.</value></data>
+  <data name="TagAskLabel" xml:space="preserve"><value>Customer</value></data>
+  <data name="UpdateAvailableFormat" xml:space="preserve"><value>Download version {0}</value></data>
+  <data name="UpdateNotificationText" xml:space="preserve"><value>A new version of QuickHasteBot is available.</value></data>
+  <data name="CheckForUpdates" xml:space="preserve"><value>Tell me about new versions</value></data>
+  <data name="CheckForUpdatesToolTip" xml:space="preserve"><value>Asks GitHub once a day for the newest version, without sending anything about you.</value></data>
 </root>
