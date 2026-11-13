@@ -1,10 +1,10 @@
 {# Three cases with if, elseif and else, on the test form from "3 - Forms". Feel free to pick the snippet several times in a row.
-If the form isn't open (if,not,title=…), a PowerShell window says to open it first.
+If the form isn't open (if,not,title=…), msg() says to open it first.
 If it was sent already, the green "Received" box shows (elseif with window= and name=). Then f5 reloads the page, and everything is empty again.
 Otherwise the snippet fills in the first name and sends the form.
 Before sending, the box is hidden and so doesn't count. if waits one second for an element or window, with wait=3000 three.}
 {if,not,title=QuickHasteBot test form}
-{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'Open the test form in the popup first.\')"', { wait: 0, hidden: true }) }}
+{{ msg('Open "Test form" in the popup first.', { icon: 'warning' }) }}
 {elseif,window=title=QuickHasteBot test form;name=Received}
 {f5}
 {else}

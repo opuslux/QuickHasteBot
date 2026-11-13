@@ -1,10 +1,10 @@
 {# Drei Fälle mit if, elseif und else, am Testformular aus «3 - Formulare». Den Baustein ruhig mehrmals hintereinander wählen.
-Ist das Formular nicht offen (if,not,title=…), meldet ein Fenster von PowerShell, dass es zuerst geöffnet werden muss.
+Ist das Formular nicht offen (if,not,title=…), meldet msg(), dass es zuerst geöffnet werden muss.
 Wurde es schon abgeschickt, ist der grüne Kasten «Empfangen» zu sehen (elseif mit window= und name=). Dann lädt f5 die Seite neu, alles ist wieder leer.
 Sonst füllt der Baustein den Vornamen aus und schickt das Formular ab.
 Vor dem Absenden ist der Kasten ausgeblendet und zählt darum nicht. Auf ein Element oder Fenster wartet if eine Sekunde, mit wait=3000 drei.}
 {if,not,title=QuickHasteBot-Testformular}
-{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'Zuerst das Testformular im Popup öffnen.\')"', { wait: 0, hidden: true }) }}
+{{ msg('Zuerst «Testformular» im Popup öffnen.', { icon: 'warning' }) }}
 {elseif,window=title=QuickHasteBot-Testformular;name=Empfangen}
 {f5}
 {else}

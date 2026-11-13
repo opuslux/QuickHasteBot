@@ -3,7 +3,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Threading;
 using QuickHasteBot.Core;
+using QuickHasteBot.Interop;
 
 namespace QuickHasteBot.UI;
 
@@ -14,6 +17,7 @@ namespace QuickHasteBot.UI;
 internal partial class MessageDialog : Window
 {
     readonly MessageBoxImage _icon;
+    Button? _defaultButton;
 
     /// <summary>Gedrückter Knopf, bis dahin (und nach Esc oder dem X) das vorsichtige Ergebnis.</summary>
     internal MessageBoxResult Result { get; private set; }
@@ -48,6 +52,7 @@ internal partial class MessageDialog : Window
             };
             if (button.IsDefault)
             {
+                _defaultButton = button;
                 button.SetResourceReference(StyleProperty, "AccentButtonStyle");
                 Loaded += (_, _) => button.Focus();
             }
@@ -96,7 +101,62 @@ internal partial class MessageDialog : Window
         return dialog.Result;
     }
 
+    /// <summary>
+    /// Eine Meldung aus msg() oder confirm() eines Skripts, mitten im Lauf: zuoberst und vorne, damit sie das Zielfenster
+    /// nicht übersieht. Esc und das X brechen den Baustein ab (null). Esc zählt erst beim Loslassen, sonst sähe der Lauf
+    /// danach die Taste noch gedrückt.
+    /// </summary>
+    /// <returns>true für OK, Ja oder abgelaufene <paramref name="closeSeconds"/>, false für Nein, null für Esc oder das X.</returns>
+    public static bool? ShowScript(string text, string? title, MessageBoxImage icon, int closeSeconds, bool confirm)
+    {
+        (MessageBoxResult, string)[] buttons = confirm
+            ? [(MessageBoxResult.Yes, Strings.DialogYes), (MessageBoxResult.No, Strings.DialogNo)]
+            : [(MessageBoxResult.OK, Strings.DialogOk)];
+        var dialog = new MessageDialog(text, buttons, MessageBoxResult.Cancel, icon, buttons[0].Item1)
+        {
+            Title = string.IsNullOrWhiteSpace(title) ? "QuickHasteBot" : title,
+        };
+        dialog.PreviewKeyUp += (_, e) =>
+        {
+            if (e.Key != Key.Escape) return;
+            e.Handled = true;
+            dialog.Close();
+        };
+        dialog.Loaded += (_, _) => WindowFocus.Activate(new WindowInteropHelper(dialog).Handle);
+        if (closeSeconds > 0)
+            dialog.CloseAfter(closeSeconds);
+        return Show(null, dialog) switch
+        {
+            MessageBoxResult.OK or MessageBoxResult.Yes => true,
+            MessageBoxResult.No => false,
+            _ => null,
+        };
+    }
+
+    /// <summary>Schliesst sich nach <paramref name="seconds"/> wie mit dem Standardknopf, der die Sekunden herunterzählt.</summary>
+    void CloseAfter(int seconds)
+    {
+        if (_defaultButton is not { } button) return;
+        var label = button.Content;
+        var left = seconds;
+        button.Content = $"{label} ({left})";
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timer.Tick += (_, _) =>
+        {
+            if (--left > 0)
+            {
+                button.Content = $"{label} ({left})";
+                return;
+            }
+            timer.Stop();
+            button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        };
+        Closed += (_, _) => timer.Stop();
+        timer.Start();
+    }
+
     public static MessageBoxResult Show(string text, MessageBoxButton buttons = MessageBoxButton.OK,
+
         MessageBoxImage icon = MessageBoxImage.None, MessageBoxResult defaultResult = MessageBoxResult.None) =>
         Show(null, text, buttons, icon, defaultResult);
 

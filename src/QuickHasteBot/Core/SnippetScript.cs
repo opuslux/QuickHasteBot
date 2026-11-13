@@ -24,9 +24,22 @@ namespace QuickHasteBot.Core;
 /// "[Beschriftung]".
 /// </param>
 /// <param name="Folder">Der Ordner des Bausteins: run() sucht relative Pfade zuerst dort.</param>
+/// <param name="Message">
+/// Zeigt msg() und confirm() an und wartet darauf: true für OK oder Ja, false für Nein, null für Esc oder das X bei
+/// confirm(). Ohne, z.B. in der Vorschau, zeigt msg() nichts und confirm() gibt true.
+/// </param>
 public sealed record ScriptContext(DateTimeOffset Now, CultureInfo Culture, string Clipboard, TimeZoneInfo? TimeZone = null,
     FormBuilder? Form = null, Func<RunRequest, RunResult>? Run = null, string Selection = "",
-    IReadOnlyDictionary<string, string>? Answers = null, string? Folder = null);
+    IReadOnlyDictionary<string, string>? Answers = null, string? Folder = null, Func<MessageRequest, bool?>? Message = null);
+
+/// <summary>Das Symbol einer Meldung aus msg() oder confirm().</summary>
+public enum MessageIcon { None, Info, Question, Warning, Error }
+
+/// <summary>Eine Meldung aus msg() oder confirm().</summary>
+/// <param name="Title">Ohne Angabe "QuickHasteBot".</param>
+/// <param name="CloseSeconds">Nur msg(): schliesst sich nach so vielen Sekunden von selbst, 0 nie.</param>
+/// <param name="Confirm">confirm(): Ja und Nein statt OK.</param>
+public sealed record MessageRequest(string Text, string? Title, MessageIcon Icon, int CloseSeconds, bool Confirm);
 
 /// <summary>Eine Frage aus ask(): die Beschriftung und die Vorgabe, wie sie im Baustein stehen.</summary>
 public sealed record Question(string Label, string Default);
@@ -86,7 +99,12 @@ public static partial class SnippetScript
         ("rclick(el)", "right-click an element; click('name=…') then picks from its context menu"),
         ("window(app)", "bring a program to the front"),
         ("run(file, args?, {wait, hidden, dir, args}?)", "runs a script or program right here and waits (wait in seconds, default 60; dir = working folder, default the script's); returns {code, out, err}, as text its output"),
+        ("msg(text, {title, icon, close}?)", "shows a message box and waits for OK; icon 'info', 'warning', 'error' or 'none'; close = closes itself after that many seconds"),
+        ("confirm(text, {title, icon}?)", "asks Yes or No in a message box, true for Yes; Esc stops the snippet"),
     ];
+
+    /// <summary>So lange schliesst sich eine Meldung aus msg() höchstens von selbst, in Sekunden.</summary>
+    public const int MaxMessageClose = 600;
 
     /// <summary>So lange wartet run() ohne Angabe, in Sekunden.</summary>
     public const int DefaultRunWait = 60;
@@ -94,11 +112,27 @@ public static partial class SnippetScript
     [GeneratedRegex(@"\{\{(.*?)\}\}", RegexOptions.Singleline)]
     internal static partial Regex Block();
 
-    [GeneratedRegex(@"\brun\s*\(")]
+    [GeneratedRegex(@"(?<![\w$.])(?:run|msg|confirm)\s*\(")]
+    private static partial Regex WaitingCall();
+
+    /// <summary>
+    /// Ob der Code eines Blocks run(), msg() oder confirm() aufruft, also auf etwas ausserhalb wartet: Solche Blöcke laufen
+    /// an ihrer Stelle. Ein falscher Treffer schadet nicht, der Block läuft dann nur später.
+    /// </summary>
+    public static bool Waits(string code) => WaitingCall().IsMatch(code);
+
+    [GeneratedRegex(@"(?<![\w$.])run\s*\(")]
     private static partial Regex RunCall();
 
-    /// <summary>Ob der Code eines Blocks run() aufruft. Ein falscher Treffer schadet nicht, der Block läuft dann nur später.</summary>
-    public static bool CallsRun(string code) => RunCall().IsMatch(code);
+    [GeneratedRegex(@"(?<![\w$.])(?:msg|confirm)\s*\(")]
+    private static partial Regex MessageCall();
+
+    /// <summary>Ob ein Block im Text run() aufruft: Die Vorschau startet es nicht.</summary>
+    public static bool UsesRun(string text) => Block().Matches(text).Any(m => RunCall().IsMatch(m.Groups[1].Value));
+
+    /// <summary>Ob ein Block im Text msg() oder confirm() aufruft: Die Vorschau zeigt sie nicht.</summary>
+    public static bool UsesMessages(string text) => Block().Matches(text).Any(m => MessageCall().IsMatch(m.Groups[1].Value));
+
 
     public static bool HasBlocks(string text) => text.Contains("{{");
 
@@ -235,6 +269,17 @@ public static partial class SnippetScript
         engine.SetValue("__run", new ClrFunction(engine, "__run", (_, args) => Run(engine, context, args), 3));
         engine.Execute("function run(file, args, options) { const r = __run(file, args, options); r.toString = function () { return this.out; }; return r; }");
 
+        // msg("Fertig", { title, icon, close }): Meldung, wartet auf OK. Gibt nichts aus, getippt wird also nichts.
+        engine.SetValue("msg", new ClrFunction(engine, "msg", (_, args) =>
+        {
+            Message(engine, context, args, confirm: false);
+            return JsValue.Undefined;
+        }, 2));
+
+        // confirm("Senden?", { title, icon }): Ja oder Nein, true bei Ja. Esc bricht den Baustein ab.
+        engine.SetValue("confirm", new ClrFunction(engine, "confirm", (_, args) =>
+            Message(engine, context, args, confirm: true) ? JsBoolean.True : JsBoolean.False, 2));
+
         void Function(string name, int length, Func<JsValue[], string> body) =>
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
     }
@@ -251,7 +296,53 @@ public static partial class SnippetScript
         return KeyTags.StripMarkers(answer);
     }
 
+    static bool Message(Engine engine, ScriptContext context, JsValue[] args, bool confirm)
+    {
+        var name = confirm ? "confirm" : "msg";
+        var text = Format(args, 0);
+        if (string.IsNullOrWhiteSpace(text))
+            throw new ArgumentException($"{name} needs a text, e.g. {name}('{(confirm ? "Send now?" : "Done")}')");
+        string? title = null;
+        var icon = confirm ? MessageIcon.Question : MessageIcon.Info;
+        var close = 0;
+        if (Arguments.At(args, 1) is ObjectInstance o)
+        {
+            title = Text(o.Get("title"));
+            if (Text(o.Get("icon")) is { } named)
+            {
+                icon = named.ToLowerInvariant() switch
+                {
+                    "info" or "information" => MessageIcon.Info,
+                    "question" => MessageIcon.Question,
+                    "warning" => MessageIcon.Warning,
+                    "error" => MessageIcon.Error,
+                    "none" => MessageIcon.None,
+                    _ => throw new ArgumentException($"{name} doesn't know the icon '{named}', use 'info', 'warning', 'error' or 'none'"),
+                };
+            }
+            if (o.Get("close") is { } c && !c.IsUndefined())
+            {
+                if (confirm)
+                    throw new ArgumentException("confirm waits for an answer, close only works with msg()");
+                close = Math.Clamp((int)Math.Round(TypeConverter.ToNumber(c)), 0, MaxMessageClose);
+            }
+        }
+        else if (!Arguments.At(args, 1).IsUndefined())
+        {
+            throw new ArgumentException($"the second argument of {name} holds the options, e.g. {name}('…', {{ title: 'Order' }})");
+        }
+
+        if (context.Message is null) return true;
+        var answer = context.Message(new MessageRequest(KeyTags.StripMarkers(text), title is null ? null : KeyTags.StripMarkers(title),
+            icon, close, confirm));
+        // Das Warten zählt nicht zur Zeitgrenze eines Blocks, wie bei run()
+        engine.Constraints.Reset();
+        // Esc oder das X bei confirm(): wie Esc sonst, der Baustein hört auf
+        return answer ?? throw new OperationCanceledException();
+    }
+
     static JsValue Run(Engine engine, ScriptContext context, JsValue[] args)
+
     {
         var file = Format(args, 0);
         if (string.IsNullOrWhiteSpace(file))

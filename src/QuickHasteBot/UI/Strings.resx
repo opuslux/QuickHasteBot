@@ -120,6 +120,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="EditorPreviewError" xml:space="preserve"><value>Script error</value></data>
   <data name="EditorPreviewScript" xml:space="preserve"><value>This block gives</value></data>
   <data name="EditorPreviewSelection" xml:space="preserve"><value>The selection gives</value></data>
+  <data name="EditorPreviewMessageNote" xml:space="preserve"><value>msg() and confirm() show nothing here, confirm() gives true. They only show with Test (F5).</value></data>
   <data name="EditorPreviewRunNote" xml:space="preserve"><value>run() starts nothing here and returns an empty result. It only runs with Test (F5).</value></data>
   <data name="EditorPreviewEmpty" xml:space="preserve"><value>(nothing)</value></data>
   <data name="EditorTest" xml:space="preserve"><value>Test</value></data>
@@ -203,6 +204,9 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagPowerShell" xml:space="preserve"><value>PowerShell command, types its output</value></data>
   <data name="TagMessage" xml:space="preserve"><value>message box (popup, alert)</value></data>
   <data name="TagMessageText" xml:space="preserve"><value>Done</value></data>
+  <data name="TagMessageOptions" xml:space="preserve"><value>message box with title, icon, closing by itself</value></data>
+  <data name="TagConfirm" xml:space="preserve"><value>ask Yes or No (confirm)</value></data>
+  <data name="TagConfirmText" xml:space="preserve"><value>Send now?</value></data>
   <data name="TagKey" xml:space="preserve"><value>key {0}</value></data>
   <data name="TagKeyHelper" xml:space="preserve"><value>a key from a script</value></data>
   <!-- Hilfetexte im Menü "Tag einfügen" und beim Hover im Editor: Name der Kurzbeschreibung + "Help" -->
@@ -258,7 +262,9 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="TagRunHelp" xml:space="preserve"><value>Runs a script or program at this point and waits until it is done (60 s by default). r.out is what it printed, r.code its exit code; {{ r.out.trim() }} types the output.</value></data>
   <data name="TagRunOptionsHelp" xml:space="preserve"><value>Like run(), with options: args is passed to the script, dir is its working folder ("Start in"; otherwise the script's folder), wait the seconds to wait, hidden: true starts it without a window.</value></data>
   <data name="TagPowerShellHelp" xml:space="preserve"><value>Runs a PowerShell command and types what it prints, here the computer name; .trim() removes the line break at the end. Single quotes inside the command are written as \' in JavaScript. A .ps1 file runs directly: run('d:/scripts/file.ps1').</value></data>
-  <data name="TagMessageHelp" xml:space="preserve"><value>Shows a message box, e.g. at the end of a form: "Done". alert() doesn't exist in scripts; msg is the message of Windows (not on Windows Home; Help has a PowerShell message box instead). wait: 0 doesn't wait for it, so nothing is typed; hidden: true keeps a console window from flashing.</value></data>
+  <data name="TagMessageHelp" xml:space="preserve"><value>Shows a message box and waits for OK, e.g. at the end of a form: "Done". Nothing is typed. Esc stops the snippet. Options: { title: 'Order', icon: 'warning', close: 5 }. alert() doesn't exist in scripts, msg() takes its place.</value></data>
+  <data name="TagMessageOptionsHelp" xml:space="preserve"><value>title sets the title bar (default QuickHasteBot). icon is 'info' (default), 'warning', 'error' or 'none', with the sound of Windows. close: 5 closes the message after 5 seconds by itself, so the snippet goes on without a click; the OK button counts down.</value></data>
+  <data name="TagConfirmHelp" xml:space="preserve"><value>Asks Yes or No when the snippet gets there: Yes runs what follows {if}, No what follows {else}. Esc stops the snippet. confirm() works in scripts too: {{ confirm('Urgent?') ? 'URGENT: ' : '' }}. With { title: '…', icon: 'warning' } like msg().</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Open with default program</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>New snippet…</value></data>
   <data name="UseBuiltInEditor" xml:space="preserve"><value>Edit snippets in the built-in editor</value></data>

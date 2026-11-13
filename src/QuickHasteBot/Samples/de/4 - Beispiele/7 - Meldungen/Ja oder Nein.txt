@@ -1,0 +1,9 @@
+{# confirm() fragt Ja oder Nein. In if,js="…" wählt die Antwort den Zweig: Ja führt aus, was nach if steht, Nein, was nach else steht.
+Im Skript ist confirm() true oder false wie jeder andere Wert, so wie in der ersten Zeile mit ? und :.
+Esc oder das X bricht den Baustein ab, dann wird nichts mehr getippt. Geht in jedem Textfeld.}
+{{ confirm('Ist es dringend?', { title: 'Betreff' }) ? 'DRINGEND: ' : '' }}Ihre Bestellung{enter}{enter}
+{if,js="confirm('Ist die Bestellung schon unterwegs?', { title: 'Antwort' })"}
+Ihre Bestellung ist unterwegs und kommt in den nächsten Tagen an.
+{else}
+Ihre Bestellung ist in Arbeit. Wir melden uns, sobald sie unterwegs ist.
+{/if}

@@ -1,0 +1,7 @@
+{# Zeigt Infos zum Computer in einer Meldung, statt sie zu tippen. Der Baustein tippt nichts und geht darum aus jedem Fenster.
+run() fragt hostname ohne Fenster nach dem Computernamen. \n im Text macht einen Zeilenumbruch in der Meldung.
+Klappt run() nicht, zeigt msg() den Fehler mit dem Symbol 'error'.}
+{{ const r = run('hostname', { hidden: true }) }}
+{{ r.code == 0
+  ? msg('Computer: ' + r.out.trim() + '\nBenutzer: ' + user + '\nHeute: ' + date('dddd, d. MMMM yyyy') + ', Woche ' + isoweek(), { title: 'Computer-Infos' })
+  : msg('hostname meldet: ' + r.err, { title: 'Computer-Infos', icon: 'error' }) }}

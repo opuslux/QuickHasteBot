@@ -1,0 +1,9 @@
+{# confirm() asks Yes or No. In if,js="…" the answer picks the branch: Yes runs what follows if, No what follows else.
+In a script, confirm() is true or false like any other value, as in the first line with ? and :.
+Esc or the close button stops the snippet, then nothing more is typed. Works in any text field.}
+{{ confirm('Is it urgent?', { title: 'Subject' }) ? 'URGENT: ' : '' }}Your order{enter}{enter}
+{if,js="confirm('Has the order shipped yet?', { title: 'Reply' })"}
+Your order is on its way and arrives in the next few days.
+{else}
+Your order is being prepared. We'll let you know as soon as it ships.
+{/if}

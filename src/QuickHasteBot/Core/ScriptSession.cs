@@ -10,7 +10,8 @@ namespace QuickHasteBot.Core;
 /// Normalerweise werden alle {{ … }} ausgewertet, bevor die erste Taste gedrückt wird (<see cref="Render"/>). Damit
 /// run() an seiner Stelle läuft, wertet <see cref="RenderStaged"/> ab dem ersten Block mit run() nichts mehr aus, sondern
 /// setzt <see cref="DeferredStep"/>s ein. Die wertet der Lauf dann mit <see cref="Evaluate"/> aus, wenn er dort ankommt.
-/// Ebenso ab dem ersten {if,…}: Ein Block in einem Zweig läuft nur, wenn der Zweig an der Reihe ist.
+/// Blöcke mit msg() oder confirm() gelten wie run(). Ebenso ab dem ersten {if,…}: Ein Block in einem Zweig läuft nur, wenn
+/// der Zweig an der Reihe ist.
 /// </summary>
 public sealed class ScriptSession : IDisposable
 {
@@ -48,7 +49,7 @@ public sealed class ScriptSession : IDisposable
         {
             if (form is not null && KeyTags.HasIfMarker(marked, match.Index, form))
                 return true;
-            if (!runSeen && SnippetScript.CallsRun(match.Groups[1].Value))
+            if (!runSeen && SnippetScript.Waits(match.Groups[1].Value))
             {
                 if (KeyTags.HasMarkers(marked[..match.Index]))
                     return true;
@@ -86,9 +87,9 @@ public sealed class ScriptSession : IDisposable
         }
     }
 
-    /// <summary>Ob der Text irgendwo run() aufruft.</summary>
-    public static bool UsesRun(string text) =>
-        SnippetScript.Block().Matches(text).Any(m => SnippetScript.CallsRun(m.Groups[1].Value));
+    /// <summary>Ob der Text irgendwo run(), msg() oder confirm() aufruft, also auf etwas ausserhalb wartet.</summary>
+    public static bool Waits(string text) =>
+        SnippetScript.Block().Matches(text).Any(m => SnippetScript.Waits(m.Groups[1].Value));
 
     string Render(string text, bool staged)
     {
@@ -129,7 +130,8 @@ public sealed class ScriptSession : IDisposable
             var unit = blocks.Skip(i).Take(last - i + 1).ToList();
             result.Append(text, pos, start - pos);
 
-            if (staged && (deferring |= unit.Any(m => SnippetScript.CallsRun(m.Groups[1].Value)) || KeyTags.HasIfMarker(text, start, form!)))
+            if (staged && (deferring |= unit.Any(m => SnippetScript.Waits(m.Groups[1].Value)) || KeyTags.HasIfMarker(text, start, form!)))
+
             {
                 // Herkunft: der ganze Block oder die ganze Zeile
                 form!.BeginScript(start, end - start);

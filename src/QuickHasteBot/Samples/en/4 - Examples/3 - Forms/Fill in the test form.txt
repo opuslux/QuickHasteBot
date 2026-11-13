@@ -19,4 +19,4 @@ At the end, a PowerShell window says that everything is done.}
 {set,#newsletter,on}
 {focus,help=Your message*}{clear}Hello, QuickHasteBot typed this.
 {click,name=Send;type=button}
-{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'The test form is filled in.\')"', { wait: 0, hidden: true }) }}
+{{ msg('The test form is filled in.') }}

@@ -1,0 +1,7 @@
+{# Shows info about the computer in a message instead of typing it. The snippet types nothing, so it works from any window.
+run() asks hostname for the computer name, without a window. \n in the text starts a new line in the message.
+If run() fails, msg() shows the error with the 'error' icon.}
+{{ const r = run('hostname', { hidden: true }) }}
+{{ r.code == 0
+  ? msg('Computer: ' + r.out.trim() + '\nUser: ' + user + '\nToday: ' + date('dddd, MMMM d, yyyy') + ', week ' + isoweek(), { title: 'Computer info' })
+  : msg('hostname says: ' + r.err, { title: 'Computer info', icon: 'error' }) }}

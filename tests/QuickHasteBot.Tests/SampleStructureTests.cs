@@ -22,14 +22,14 @@ public class SampleStructureTests
     [Theory]
     [InlineData("de", "Willkommen.txt", @"1 - Grüsse\Freundliche Grüsse.txt", @"2 - E-Mail\Abwesenheit.txt", @"3 - SQL\Audit-Insert.txt",
         @"4 - Beispiele\1 - Text und Markierung\Antwort mit Rückfragen.txt", @"4 - Beispiele\5 - Skripte\Computer-Infos.txt",
-        @"4 - Beispiele\6 - Bedingungen\Zusage oder Absage.txt")]
+        @"4 - Beispiele\6 - Bedingungen\Zusage oder Absage.txt", @"4 - Beispiele\7 - Meldungen\Ja oder Nein.txt")]
     [InlineData("en", "Welcome.txt", @"1 - Greetings\Kind regards.txt", @"2 - Email\Out of office.txt", @"3 - SQL\Audit insert.txt",
         @"4 - Examples\1 - Text and selection\Reply with questions.txt", @"4 - Examples\5 - Scripts\Computer info.txt",
-        @"4 - Examples\6 - Conditions\Accept or decline.txt")]
+        @"4 - Examples\6 - Conditions\Accept or decline.txt", @"4 - Examples\7 - Messages\Yes or no.txt")]
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(34, paths.Count);
+        Assert.Equal(38, paths.Count);
         Assert.Contains("Script-Samples.txt", paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -56,7 +56,7 @@ public class SampleStructureTests
         ];
         var de = Topics("de");
         var en = Topics("en");
-        Assert.Equal(6, de.Count);
+        Assert.Equal(7, de.Count);
         Assert.Equal(de.Select(t => (t.Folder[..1], t.Files)), en.Select(t => (t.Folder[..1], t.Files)));
     }
 
@@ -113,7 +113,7 @@ public class SampleStructureTests
     {
         var files = SampleStructure.Files(language);
         var examples = files.Where(f => f.Path.StartsWith("4 - ", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(23, examples.Count);
+        Assert.Equal(27, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -127,6 +127,8 @@ public class SampleStructureTests
                 var steps = KeyTags.Split(rendered, form);
                 Assert.Null(KeyTags.CheckBlocks(steps)); // {if}-Blöcke passen zusammen
                 var shown = string.Concat(steps.Select(s => s is TextStep t ? t.Text : KeyTags.Describe(s)));
+                // Ein Baustein, der nur eine Meldung zeigt, tippt nichts
+                if (shown.Length == 0 && SnippetScript.UsesMessages(text)) continue;
                 Assert.False(string.IsNullOrWhiteSpace(shown), path);
                 Assert.DoesNotContain("{#", shown);
                 Assert.False(char.IsWhiteSpace(shown[0]), path);
@@ -173,6 +175,13 @@ public class SampleStructureTests
         Assert.Equal("Hallo Max,\r\n\r\n{if,js=\"zusage == 'ja' || zusage == 'j'\"}Danke für die Einladung, ich bin gerne dabei."
             + "{if,js=\"termin != ''\"} Passt dir Montag?{/if}{else}Danke für die Einladung, leider kann ich nicht dabei sein.{/if}\r\n\r\nFreundliche Grüsse",
             Paste("Zusage oder Absage.txt", "", answers: new() { ["Zusage? (ja/nein)"] = "ja", ["Terminvorschlag (leer: keiner)"] = "Montag" }));
+        // Ohne Fenster sagt confirm() Ja, msg() zeigt nichts
+        Assert.Equal("DRINGEND: Ihre Bestellung{enter}{enter}{if,js=\"confirm('Ist die Bestellung schon unterwegs?', { title: 'Antwort' })\"}"
+            + "Ihre Bestellung ist unterwegs und kommt in den nächsten Tagen an.{else}Ihre Bestellung ist in Arbeit. Wir melden uns, sobald sie unterwegs ist.{/if}",
+            Paste("Ja oder Nein.txt", ""));
+        Assert.Equal("Diese Zeile kam vor der Meldung.{enter}Und diese nach dem OK.{enter}", Paste("Meldung am Ende.txt", ""));
+        Assert.Equal("", Paste("Computer-Infos als Meldung.txt", ""));
+
     }
 
     [Theory]
