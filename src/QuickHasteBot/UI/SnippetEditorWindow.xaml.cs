@@ -17,7 +17,7 @@ namespace QuickHasteBot.UI;
 /// Eingebauter Editor für Textbausteine: Name, Text, Tag-Palette, Element-Picker und KI, eine Vorschau dessen, was das
 /// Skript an der Schreibmarke ergibt, und ein Testlauf, der ihn ins nächste angeklickte Fenster schickt, mit dem ungespeicherten Text.
 /// Speichern behält die Zeichenkodierung der Datei (ANSI bleibt ANSI). Ein Fenster pro Datei.
-/// Strg+S speichert, F5 testet, Esc schliesst (fragt bei Änderungen).
+/// Strg+S speichert, F5 testet, Strg+F/Strg+H sucht bzw. ersetzt, Esc schliesst (fragt bei Änderungen).
 /// </summary>
 internal partial class SnippetEditorWindow : Window
 {
@@ -70,8 +70,12 @@ internal partial class SnippetEditorWindow : Window
         Highlighting = SnippetHighlighting.Attach(BodyInput, app.Settings.EvaluateKeyTags, app.Settings.EvaluateScripts,
             path => app.Library.FindIncluded(path) is not null);
         BodyInput.TextArea.LeftMargins.Insert(0, Breakpoints);
+        LineNumbersToggle.IsChecked = app.Settings.ShowLineNumbers;
+        ApplyLineNumbers(app.Settings.ShowLineNumbers);
         StepMarker = new StepMarker(BodyInput.TextArea.TextView);
         BodyInput.TextArea.TextView.BackgroundRenderers.Add(StepMarker);
+        FindBar.Attach(BodyInput);
+        FindBar.ReplacedAll += count => ShowStatus(string.Format(Strings.FindReplacedFormat, count), StatusKind.Success);
         NameInput.Text = name;
         BodyInput.Text = text;
         ExtensionText.Text = _extension;
@@ -110,6 +114,33 @@ internal partial class SnippetEditorWindow : Window
         ApplyWrap(wrap);
         _app.Settings.WrapEditor = wrap;
         _app.SaveSettings();
+    }
+
+    /// <summary>Der Zeilennummern-Schalter links vom Umbruch: gilt sofort und für alle Editoren, die danach aufgehen.</summary>
+    void OnLineNumbersClick(object sender, RoutedEventArgs e)
+    {
+        var show = LineNumbersToggle.IsChecked == true;
+        ApplyLineNumbers(show);
+        _app.Settings.ShowLineNumbers = show;
+        _app.SaveSettings();
+    }
+
+    /// <summary>
+    /// Zeilennummern ein oder aus. AvalonEdit setzt sie ganz links hin, mit einer gepunkteten Linie dahinter. Hier
+    /// bleiben die Haltepunkte ganz links wie in Visual Studio, die Linie fällt weg, die Nummern sind dezent grau.
+    /// </summary>
+    void ApplyLineNumbers(bool show)
+    {
+        BodyInput.ShowLineNumbers = show;
+        if (!show) return;
+        BodyInput.SetResourceReference(ICSharpCode.AvalonEdit.TextEditor.LineNumbersForegroundProperty, "TextFillColorTertiaryBrush");
+        var margins = BodyInput.TextArea.LeftMargins;
+        foreach (var dotted in margins.Where(ICSharpCode.AvalonEdit.Editing.DottedLineMargin.IsDottedLineMargin).ToList())
+            margins.Remove(dotted);
+        if (margins.OfType<ICSharpCode.AvalonEdit.Editing.LineNumberMargin>().FirstOrDefault() is { } numbers)
+            numbers.Margin = new Thickness(2, 0, 12, 0);
+        margins.Remove(Breakpoints);
+        margins.Insert(0, Breakpoints);
     }
 
     /// <summary>Lange Zeilen umbrechen, oder ungebrochen lassen und waagrecht scrollen.</summary>
@@ -1145,6 +1176,15 @@ internal partial class SnippetEditorWindow : Window
             case Key.V when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
                 PasteFormatted();
                 break;
+            case Key.F when ctrl:
+                FindBar.Open(replace: false);
+                break;
+            case Key.H when ctrl:
+                FindBar.Open(replace: true);
+                break;
+            case Key.F3 when Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Shift:
+                FindBar.FindNext(backwards: Keyboard.Modifiers == ModifierKeys.Shift);
+                break;
             case Key.F1:
                 _app.ShowHelp(HelpWindow.EditorAnchor);
                 break;
@@ -1162,6 +1202,9 @@ internal partial class SnippetEditorWindow : Window
                 break;
             case Key.Escape when _recordBar is not null:
                 _recordBar.End(keep: true);
+                break;
+            case Key.Escape when FindBar.IsOpen:
+                FindBar.Close();
                 break;
             case Key.Escape:
                 Close();

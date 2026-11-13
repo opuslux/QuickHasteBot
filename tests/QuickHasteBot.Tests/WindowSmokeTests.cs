@@ -54,6 +54,7 @@ public class WindowSmokeTests
             RecordBarAndEditor();
             EditorInsertsPickedTagsOnTheirOwnLine();
             EditorWrapToggle();
+            EditorFindAndReplace();
             EditorRemembersBounds();
             HelpShowsReadme();
             MarkdownBlocksAndClicks();
@@ -202,6 +203,90 @@ public class WindowSmokeTests
         lost.Close();
     }
 
+    /// <summary>Suchen und Ersetzen im Editor (Strg+F/Strg+H): Leiste, Zähler, Weitersuchen, Ersetzen, ein Undo, Esc.</summary>
+    static void EditorFindAndReplace()
+    {
+        using var dir = new TempDirectory();
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        editor.BodyInput.Text = "Hallo Welt{tab}\r\nhallo Bob{tab}\r\nHALLO";
+        Snapshot(editor, "editor-find-closed.png");
+        var bar = editor.FindBar;
+        Assert.False(bar.IsOpen);
+
+        void Escape() => editor.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(editor)!, 0, Key.Escape)
+            { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+
+        // Strg+F mit einzeiliger Auswahl: sie wird zum Suchtext und ist der erste Treffer, ohne Gross-/Kleinschreibung
+        editor.BodyInput.Select(0, 5);
+        bar.Open(replace: false);
+        Assert.True(bar.IsOpen);
+        Assert.False(bar.ShowsReplace);
+        Assert.Equal("Hallo", bar.Query);
+        Assert.Equal([0, 17, 33], bar.Matches);
+        Assert.Equal((0, 5), (editor.BodyInput.SelectionStart, editor.BodyInput.SelectionLength));
+        Assert.Equal(string.Format(Strings.FindCountFormat, 1, 3), bar.CountDisplay);
+
+        // Weiter mit Umlauf, zurück
+        bar.FindNext(backwards: false);
+        Assert.Equal(17, editor.BodyInput.SelectionStart);
+        bar.FindNext(backwards: false);
+        bar.FindNext(backwards: false);
+        Assert.Equal(0, editor.BodyInput.SelectionStart);
+        bar.FindNext(backwards: true);
+        Assert.Equal(33, editor.BodyInput.SelectionStart);
+        Assert.Equal(string.Format(Strings.FindCountFormat, 3, 3), bar.CountDisplay);
+
+        // Aa: nur noch genau so geschrieben. Kein Treffer sagt es.
+        bar.MatchCase = true;
+        Assert.Equal([0], bar.Matches);
+        bar.Query = "Hallöchen";
+        Assert.Equal(Strings.FindNoResults, bar.CountDisplay);
+        bar.MatchCase = false;
+
+        // Strg+H: Ersetzen-Zeile. Ohne ausgewählten Treffer wählt Ersetzen erst einen aus, dann ersetzt es ihn und geht weiter.
+        bar.Query = "{tab}";
+        editor.BodyInput.Select(0, 0);
+        bar.Open(replace: true);
+        Assert.True(bar.ShowsReplace);
+        Snapshot(editor, "editor-find.png");
+        bar.Replacement = "{enter}";
+        bar.ReplaceCurrent();
+        Assert.Equal((10, 5), (editor.BodyInput.SelectionStart, editor.BodyInput.SelectionLength));
+        Assert.Equal("Hallo Welt{tab}\r\nhallo Bob{tab}\r\nHALLO", editor.BodyInput.Text);
+        bar.ReplaceCurrent();
+        Assert.Equal("Hallo Welt{enter}\r\nhallo Bob{tab}\r\nHALLO", editor.BodyInput.Text);
+        Assert.Equal("{tab}", editor.BodyInput.SelectedText);
+
+        // Alle ersetzen: ein Schritt, ein Strg+Z macht alles rückgängig, die Meldung unten sagt wie viele
+        bar.Query = "hallo";
+        bar.Replacement = "Hi";
+        Assert.Equal(3, bar.ReplaceAll());
+        Assert.Equal("Hi Welt{enter}\r\nHi Bob{tab}\r\nHi", editor.BodyInput.Text);
+        Assert.Equal(string.Format(Strings.FindReplacedFormat, 3), editor.StatusText.Text);
+        Assert.Equal(Strings.FindNoResults, bar.CountDisplay);
+        editor.BodyInput.Undo();
+        Assert.Equal("Hallo Welt{enter}\r\nhallo Bob{tab}\r\nHALLO", editor.BodyInput.Text);
+
+        // Gesperrter Text (Schrittlauf): nichts zu ersetzen
+        editor.LockForStepRun(true);
+        Assert.False(bar.ReplaceAllButton.IsEnabled);
+        Assert.Equal(0, bar.ReplaceAll());
+        editor.LockForStepRun(false);
+        Assert.True(bar.ReplaceAllButton.IsEnabled);
+
+        // Esc schliesst zuerst die Leiste, nicht den Editor. F3 findet danach weiter mit dem letzten Suchtext.
+        Escape();
+        Assert.False(bar.IsOpen);
+        Assert.True(editor.IsVisible);
+        editor.BodyInput.Select(0, 0);
+        bar.FindNext(backwards: false);
+        Assert.Equal((0, 5), (editor.BodyInput.SelectionStart, editor.BodyInput.SelectionLength));
+
+        editor.BodyInput.Text = "";
+        editor.Close();
+    }
+
     /// <summary>Umbruch-Schalter unten rechts im Editor, wie in der Textvorschau des Popups, und Shift+Mausrad.</summary>
     static void EditorWrapToggle()
     {
@@ -234,6 +319,34 @@ public class WindowSmokeTests
         Assert.False(next.BodyInput.WordWrap);
         Assert.False(next.WrapToggle.IsChecked);
         next.Close();
+
+        // Zeilennummern: Standard aus, der Schalter links vom Umbruch zeigt sie, Haltepunkte bleiben ganz links,
+        // ohne die gepunktete Linie von AvalonEdit. Gespeichert und für den nächsten Editor.
+        Assert.False(editor.BodyInput.ShowLineNumbers);
+        Assert.False(editor.LineNumbersToggle.IsChecked);
+        Assert.Equal(Strings.LineNumbersTooltip, editor.LineNumbersToggle.ToolTip);
+        editor.LineNumbersToggle.IsChecked = true;
+        editor.LineNumbersToggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        var margins = editor.BodyInput.TextArea.LeftMargins;
+        Assert.True(editor.BodyInput.ShowLineNumbers);
+        Assert.Same(editor.Breakpoints, margins[0]);
+        Assert.IsType<ICSharpCode.AvalonEdit.Editing.LineNumberMargin>(margins[1]);
+        Assert.DoesNotContain(margins, ICSharpCode.AvalonEdit.Editing.DottedLineMargin.IsDottedLineMargin);
+        Assert.True(controller.Settings.ShowLineNumbers);
+        Assert.Contains(@"""ShowLineNumbers"": true", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+        editor.BodyInput.Text = string.Join("\r\n", Enumerable.Range(1, 12).Select(i => "Zeile " + i));
+        Snapshot(editor, "editor-line-numbers.png");
+        var numbered = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        Assert.True(numbered.BodyInput.ShowLineNumbers);
+        Assert.Same(numbered.Breakpoints, numbered.BodyInput.TextArea.LeftMargins[0]);
+        numbered.Close();
+
+        // Wieder aus: nur noch die Haltepunkte
+        editor.LineNumbersToggle.IsChecked = false;
+        editor.LineNumbersToggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.False(editor.BodyInput.ShowLineNumbers);
+        Assert.Equal([editor.Breakpoints], margins.ToArray());
+        Assert.False(controller.Settings.ShowLineNumbers);
 
         editor.BodyInput.Text = "";
         editor.Close();

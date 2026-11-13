@@ -569,4 +569,19 @@ Das Datum vom nächsten Montag</value></data>
   <data name="UpdateNotificationText" xml:space="preserve"><value>Eine neue Version von QuickHasteBot ist da.</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Auf neue Versionen hinweisen</value></data>
   <data name="CheckForUpdatesToolTip" xml:space="preserve"><value>Fragt einmal am Tag bei GitHub nach der neuesten Version, ohne etwas über dich zu senden.</value></data>
+  <data name="FindPlaceholder" xml:space="preserve"><value>Suchen</value></data>
+  <data name="ReplacePlaceholder" xml:space="preserve"><value>Ersetzen durch</value></data>
+  <data name="FindCountFormat" xml:space="preserve"><value>{0} von {1}</value></data>
+  <data name="FindNoResults" xml:space="preserve"><value>Keine Treffer</value></data>
+  <data name="FindPreviousToolTip" xml:space="preserve"><value>Vorheriger Treffer (Shift+Enter, Shift+F3)</value></data>
+  <data name="FindNextToolTip" xml:space="preserve"><value>Nächster Treffer (Enter, F3)</value></data>
+  <data name="FindMatchCaseToolTip" xml:space="preserve"><value>Gross-/Kleinschreibung beachten</value></data>
+  <data name="FindCloseToolTip" xml:space="preserve"><value>Schliessen (Esc)</value></data>
+  <data name="FindToggleReplaceToolTip" xml:space="preserve"><value>Ersetzen ein- oder ausblenden (Strg+H)</value></data>
+  <data name="FindReplace" xml:space="preserve"><value>Ersetzen</value></data>
+  <data name="FindReplaceToolTip" xml:space="preserve"><value>Ersetzt den ausgewählten Treffer und geht zum nächsten (Enter im Feld)</value></data>
+  <data name="FindReplaceAll" xml:space="preserve"><value>Alle ersetzen</value></data>
+  <data name="FindReplaceAllToolTip" xml:space="preserve"><value>Ersetzt alle Treffer auf einmal, Strg+Z macht alle rückgängig</value></data>
+  <data name="FindReplacedFormat" xml:space="preserve"><value>{0} ersetzt</value></data>
+  <data name="LineNumbersTooltip" xml:space="preserve"><value>Zeilennummern anzeigen</value></data>
 </root>

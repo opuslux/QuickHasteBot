@@ -569,4 +569,19 @@ The date of next Monday</value></data>
   <data name="UpdateNotificationText" xml:space="preserve"><value>A new version of QuickHasteBot is available.</value></data>
   <data name="CheckForUpdates" xml:space="preserve"><value>Tell me about new versions</value></data>
   <data name="CheckForUpdatesToolTip" xml:space="preserve"><value>Asks GitHub once a day for the newest version, without sending anything about you.</value></data>
+  <data name="FindPlaceholder" xml:space="preserve"><value>Find</value></data>
+  <data name="ReplacePlaceholder" xml:space="preserve"><value>Replace with</value></data>
+  <data name="FindCountFormat" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="FindNoResults" xml:space="preserve"><value>No results</value></data>
+  <data name="FindPreviousToolTip" xml:space="preserve"><value>Previous match (Shift+Enter, Shift+F3)</value></data>
+  <data name="FindNextToolTip" xml:space="preserve"><value>Next match (Enter, F3)</value></data>
+  <data name="FindMatchCaseToolTip" xml:space="preserve"><value>Match case</value></data>
+  <data name="FindCloseToolTip" xml:space="preserve"><value>Close (Esc)</value></data>
+  <data name="FindToggleReplaceToolTip" xml:space="preserve"><value>Show or hide replace (Ctrl+H)</value></data>
+  <data name="FindReplace" xml:space="preserve"><value>Replace</value></data>
+  <data name="FindReplaceToolTip" xml:space="preserve"><value>Replaces the selected match and goes to the next one (Enter in the field)</value></data>
+  <data name="FindReplaceAll" xml:space="preserve"><value>Replace all</value></data>
+  <data name="FindReplaceAllToolTip" xml:space="preserve"><value>Replaces every match at once, Ctrl+Z undoes all of them</value></data>
+  <data name="FindReplacedFormat" xml:space="preserve"><value>{0} replaced</value></data>
+  <data name="LineNumbersTooltip" xml:space="preserve"><value>Show line numbers</value></data>
 </root>
