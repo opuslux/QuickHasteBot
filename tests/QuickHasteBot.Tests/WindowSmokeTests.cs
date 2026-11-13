@@ -1001,10 +1001,31 @@ public class WindowSmokeTests
         using var controller = new AppController(new AppPaths(dir.Path));
         SettingsWindow Current() => Application.Current.Windows.OfType<SettingsWindow>().Single();
 
-        // Erster Start: structure mit den Beispielen in der Sprache der Oberfläche
-        Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Willkommen.txt")));
-        Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Script-Samples.txt")));
-        Assert.True(Directory.Exists(Path.Combine(dir.Path, "structure", "1 - Grüsse")));
+        // Erster Start: structure mit den Beispielen in der Sprache der Oberfläche, alle im Ordner Demo
+        var structure = Path.Combine(dir.Path, "structure");
+        var demo = Path.Combine(structure, "Demo");
+        Assert.Equal(demo, controller.DemoRoot);
+        Assert.Equal([demo], Directory.GetFileSystemEntries(structure));
+        Assert.True(File.Exists(Path.Combine(demo, "Willkommen.txt")));
+        Assert.True(File.Exists(Path.Combine(demo, "6 - Skripte", "JavaScript-Blöcke {{ }}.txt")));
+        // {include} im Beispiel findet seinen Baustein auch unter Demo
+        Assert.Equal(Path.Combine(demo, "1 - Einfacher Text", "Freundliche Grüsse.txt"),
+            controller.Library.FindIncluded("Einfacher Text/Freundliche Grüsse")?.FullPath);
+
+        // Neu aufbauen (Einstellungen): ohne Demo gibt es nichts für den Papierkorb, der Ordner entsteht und wird gleich eingelesen
+        Directory.Delete(demo, recursive: true);
+        File.WriteAllText(Path.Combine(structure, "Eigener.txt"), "eigen");
+        Assert.Equal(SampleStructure.Files("de").Count, controller.ExportSamples(demo, rebuild: true, 0));
+        Assert.NotNull(controller.Library.FindIncluded("Willkommen"));
+        Assert.True(File.Exists(Path.Combine(structure, "Eigener.txt")));
+
+        // Anderer Ordner: die Beispiele direkt hinein, eigene Dateien bleiben
+        var other = Path.Combine(dir.Path, "Anderswo");
+        Directory.CreateDirectory(other);
+        File.WriteAllText(Path.Combine(other, "Eigener.txt"), "eigen");
+        controller.ExportSamples(other, rebuild: false, 0);
+        Assert.True(File.Exists(Path.Combine(other, "Willkommen.txt")));
+        Assert.True(File.Exists(Path.Combine(other, "Eigener.txt")));
 
         controller.ShowSettings(new Point(-20000, -20000));
         Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);

@@ -1059,24 +1059,36 @@ internal sealed class AppController : IDisposable
         ReloadLibrary();
     }
 
+    /// <summary>Der Ordner mit den Beispielen im structure-Ordner, den die Einstellungen neu aufbauen.</summary>
+    public string DemoRoot => Path.Combine(StructureRoot, SampleStructure.DemoFolder);
+
     /// <summary>
-    /// Die Beispiele (wieder) in einen Ordner schreiben, aus den Einstellungen. Ist es der structure-Ordner, gleich neu
-    /// einlesen: Gab es ihn vorher nicht, läuft dort noch kein Watcher.
+    /// Die Beispiele (wieder) in einen Ordner schreiben, aus den Einstellungen. Mit <paramref name="rebuild"/> kommt der
+    /// Ordner vorher in den Papierkorb, so entsteht er ganz neu, eigene Änderungen bleiben wiederherstellbar. Sonst
+    /// werden nur gleichnamige Dateien ersetzt. Liegt der Ordner im structure-Ordner, gleich neu einlesen: Gab es den
+    /// structure-Ordner vorher nicht, läuft dort noch kein Watcher.
     /// </summary>
-    /// <returns>Anzahl geschriebener Dateien.</returns>
-    public int ExportSamples(string folder)
+    /// <returns>Anzahl geschriebener Dateien, null wenn bei der Nachfrage von Windows (z.B. Netzlaufwerk ohne
+    /// Papierkorb) abgebrochen wurde.</returns>
+    public int? ExportSamples(string folder, bool rebuild, nint owner)
     {
+        if (rebuild && Directory.Exists(folder) && !RecycleBin.Delete(folder, owner))
+            return null;
+
         Directory.CreateDirectory(folder);
         var count = SampleStructure.Extract(folder, Strings.SampleLanguage);
-        Log.Info($"{count} Beispiele nach {folder} exportiert");
-        if (SamePath(folder, StructureRoot))
+        Log.Info($"{count} Beispiele nach {folder} exportiert{(rebuild ? ", neu aufgebaut" : "")}");
+        if (IsInside(folder, StructureRoot))
             ReloadLibrary();
         return count;
     }
 
-    static bool SamePath(string a, string b) =>
-        string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(a)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(b)),
-            StringComparison.OrdinalIgnoreCase);
+    /// <summary>Ob <paramref name="path"/> der Ordner <paramref name="root"/> selbst ist oder darin liegt.</summary>
+    static bool IsInside(string path, string root)
+    {
+        var relative = Path.GetRelativePath(Path.GetFullPath(root), Path.GetFullPath(path));
+        return relative != ".." && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) && !Path.IsPathRooted(relative);
+    }
 
     void ReloadLibrary()
     {
@@ -1207,7 +1219,7 @@ internal sealed class AppController : IDisposable
 
     /// <summary>
     /// Nur der Standardordner wird angelegt, ein konfigurierter Pfad (z.B. Netzlaufwerk) nicht.
-    /// Neu angelegt kommen die Beispiele hinein, in der Sprache der Oberfläche.
+    /// Neu angelegt kommen die Beispiele in den Unterordner Demo, in der Sprache der Oberfläche.
     /// </summary>
     void EnsureStructureFolder(string root)
     {
@@ -1216,7 +1228,7 @@ internal sealed class AppController : IDisposable
         try
         {
             Directory.CreateDirectory(root);
-            SampleStructure.Extract(root, Strings.SampleLanguage);
+            SampleStructure.Extract(Path.Combine(root, SampleStructure.DemoFolder), Strings.SampleLanguage);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

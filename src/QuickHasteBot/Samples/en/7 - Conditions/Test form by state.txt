@@ -1,4 +1,4 @@
-{# Three cases with if, elseif and else, on the test form from "3 - Forms". Feel free to pick the snippet several times in a row.
+{# Three cases with if, elseif and else, on the test form from "Forms". Feel free to pick the snippet several times in a row.
 If the form isn't open (if,not,title=…), msg() says to open it first.
 If it was sent already, the green "Received" box shows (elseif with window= and name=). Then f5 reloads the page, and everything is empty again.
 Otherwise the snippet fills in the first name and sends the form.

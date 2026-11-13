@@ -1,3 +1,7 @@
+{# Sechzehn Skriptblöcke, je einer pro Zeile: Datum, Zwischenablage, Zufall und mehr.
+Was in doppelten geschweiften Klammern steht, ist JavaScript. Es läuft beim Einfügen, getippt wird nur das Ergebnis.
+Den ganzen Baustein einfügen, um alle zu sehen, oder eine Zeile in einen eigenen Baustein kopieren.
+Eigene Blöcke schreibt die KI, über das Funkel-Symbol im Popup.}
 Datum lang:						{{ date('dddd, d. MMMM yyyy') }}
 Datum Uhrzeit:					{{ date() + ' ' + time() }}
 Zufälliger Satz:				{{ (() => { const subjects = ["Der Hund", "Eine Katze", "Mein Freund", "Die Lehrerin", "Ein Vogel", "Die Kinder", "Mein Bruder", "Eine Frau", "Der Junge", "Die Nachbarin"]; const verbs = ["isst", "liest", "kauft", "findet", "sieht", "braucht", "sucht", "öffnet", "vergisst", "zeichnet"]; const objects = ["einen Apfel", "ein Buch", "eine Blume", "den Schlüssel", "einen Stift", "eine Karte", "den Regenschirm", "eine Tasse", "einen Ball", "die Zeitung"]; const places = ["im Garten", "in der Schule", "auf dem Tisch", "zu Hause", "im Park", "in der Küche", "auf der Strasse", "im Zimmer", "beim Bäcker", "in der Stadt"]; const times = ["heute", "morgen", "gestern", "jetzt", "am Abend", "am Morgen", "am Wochenende", "im Sommer", "im Winter", "nach der Arbeit"]; const pick = (a) => a[Math.floor(Math.random() * a.length)]; const parts = [pick(subjects), pick(verbs), pick(objects)]; if (Math.random() < 0.7) parts.push(pick(places)); if (Math.random() < 0.5) parts.push(pick(times)); return parts.join(" ") + "."; })() }}

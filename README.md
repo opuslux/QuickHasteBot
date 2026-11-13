@@ -31,7 +31,7 @@ Every release comes with two ZIPs containing the same app:
 - `QuickHasteBot-x.y.z-win-x64.zip` (about 4 MB) requires the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
 - `QuickHasteBot-x.y.z-win-x64-standalone.zip` (about 60 MB) includes the runtime and also works on machines that only have an older .NET installed.
 
-Unpack the ZIP into any folder and start `QuickHasteBot.exe`. No installation and no administrator rights are needed. QuickHasteBot runs in the tray; on first start it creates a `structure` folder with a few [example snippets](#snippets).
+Unpack the ZIP into any folder and start `QuickHasteBot.exe`. No installation and no administrator rights are needed. QuickHasteBot runs in the tray; on first start it creates a `structure` folder with [example snippets](#snippets) in its `Demo` folder.
 
 The exe is not code-signed, so Windows SmartScreen may warn the first time you start it. Click **More info → Run anyway**. The ZIPs are built from this repository by the [release workflow](.github/workflows/release.yml).
 
@@ -77,7 +77,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 - **Hidden files** as well as `desktop.ini` and `thumbs.db` are ignored.
 - **Changes** show up right away, no restart needed. The folder can be rearranged in Explorer while QuickHasteBot is running, and every hotkey checks the folder again, so even replacing or renaming the whole `structure` folder is picked up.
 
-**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4 - Examples` with snippets for the other features in folders by topic (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys, `run()`, [conditions](#conditions-if-elseif-else), [messages](#messages-msg-and-confirm) and one to try **Step by step** on), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
+**Examples:** on first start, QuickHasteBot puts examples in the language of the interface into `structure\Demo`, in eight folders by topic: simple texts (greetings, emails with a date that moves along, SQL), text and selection (asking before pasting, `{cursor}`, `{include}`), formatting, forms (key tags and the element tags with a test form to try them on), programs and windows (media keys, one to try **Step by step** on), scripts (calculating, `run()`, and `JavaScript blocks {{ }}` with 16 script blocks: dates, the clipboard, random values and more), [conditions](#conditions-if-elseif-else) and [messages](#messages-msg-and-confirm). Each example has a [comment](#forms-key-tags) at the top that explains it. They are only examples: keep your own snippets next to `Demo`, not in it, and delete `Demo` when you no longer need it. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export examples…** under the snippets folder in the settings: it proposes `structure\Demo` and, if that already exists, moves it to the Recycle Bin and builds it anew. **Other folder…** puts the examples straight into a folder of your choice instead, replacing only example files with the same name.
 
 Snippets can be created, renamed, cloned and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
 
@@ -90,7 +90,7 @@ Thank you for your order.
 {include,Sign-offs/Kind regards (EN)}
 ```
 
-- **The name** is the folder and name as in the popup, with `/` or `\`. The number in front (`3-`) and the extension can be left out, and case doesn't matter. A name without a folder is looked for everywhere if it isn't at the top.
+- **The name** is the folder and name as in the popup, with `/` or `\`. The number in front (`3-`) and the extension can be left out, and case doesn't matter. A name or path that isn't at the top is also looked for in subfolders, so `{include,Simple text/Kind regards}` finds `Demo\1 - Simple text\Kind regards.txt`; if several match, the first in the popup wins.
 - **Tags and scripts** in the included snippet work as if they were written here, and its script blocks share their variables with the others. A line break at its very end is left out.
 - Included snippets may include others, up to 10 levels deep. If a snippet would include itself, or the name doesn't exist, nothing is pasted and a message says why. The editor underlines an unknown name in red.
 - `{include}` is one of the [key tags](#forms-key-tags): with them turned off in the settings, it stays text. Inside `{{ … }}` and [`{html}` blocks](#formatted-text) it is text too.
@@ -317,7 +317,7 @@ your order {{ ask('Order number') }} ships on {{ date('dd.MM.yyyy', Number(ask('
 ```
 
 - **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. Slashes work in paths, so there are no `\` to double in JavaScript.
-- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `Number via batch file` in `4 - Examples/5 - Scripts` works this way.
+- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `Number via batch file` in `Demo/6 - Scripts` works this way.
 - **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`. They can also go in the options as `args`: `run('tool.exe', { args: '-v', wait: 10 })`, but not both ways at once.
 - **Working folder** ("Start in"): `dir` sets it, e.g. `run('export.bat', { dir: 'd:/data' })`; environment variables like `%TEMP%` work. A script without a folder in its name is then looked for there too. Without `dir`, the script runs in its own folder. If the folder doesn't exist, the snippet stops with a message.
 - **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
@@ -357,7 +357,7 @@ Scripts don't run in the browser, so there is no `alert()`. `msg()` shows a mess
   ```
 - The message is the same window as QuickHasteBot's own messages, in light or dark like the app, and comes up on top of the window in front.
 - The preview and the AI window show no message; there `confirm()` gives `true`.
-- The examples in `4 - Examples/7 - Messages` show all of this.
+- The examples in `Demo/8 - Messages` show all of this.
 
 #### PowerShell
 
@@ -618,7 +618,7 @@ With a web address, `{start,…}` opens it in the default browser, and the rest 
 - **Nesting:** blocks may sit inside each other, every `{if}` needs its `{/if}`. A `{else}` without `{if}` or a missing `{/if}` shows red in the editor, and the snippet doesn't start.
 - **Scripts in a branch** only run when their branch does. So `{{ … }}` blocks after an `{if}` are evaluated when the run gets there, like blocks with `run()`.
 - **Step by step** stops at `{if}` and frames the element it checks. The next step shown is the branch it takes.
-- **Insert tag ▾** → Flow has a block for each kind of condition. The examples in `4 - Examples/6 - Conditions` show all of them.
+- **Insert tag ▾** → Flow has a block for each kind of condition. The examples in `Demo/7 - Conditions` show all of them.
 
 ### Programs running as administrator
 

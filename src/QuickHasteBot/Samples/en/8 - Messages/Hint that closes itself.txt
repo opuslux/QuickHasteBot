@@ -1,5 +1,5 @@
 {# close: 3 closes the message after three seconds by itself, the OK button counts down. So a hint doesn't hold up a snippet.
-OK or Enter goes on right away, Esc stops. Then Notepad starts, as in "Note in Notepad" in the folder "4 - Programs and windows".
+OK or Enter goes on right away, Esc stops. Then Notepad starts, as in "Note in Notepad" in the folder "Programs and windows".
 The Notepad of Windows 11 drops characters when typing fast, so delay,30 types a bit slower.}
 {{ msg('Notepad starts in a moment. Please leave mouse and keyboard alone for a bit.', { title: 'Note', close: 3 }) }}
 {start,notepad}{delay,30}{ctrl+n}Note from {{ date('dddd, MMMM d, yyyy') }}{enter}

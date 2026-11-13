@@ -1,3 +1,7 @@
+{# Sixteen script blocks, one per line: dates, the clipboard, random values and more.
+What sits in double curly braces is JavaScript. It runs when pasting, only the result is typed.
+Paste the whole snippet to see them all, or copy a line into a snippet of your own.
+The AI writes your own blocks, via the sparkle icon in the popup.}
 Long date:						{{ date('dddd, MMMM d, yyyy') }}
 Date and time:					{{ date() + ' ' + time() }}
 Random sentence:				{{ (() => { const subjects = ["The dog", "A cat", "My friend", "The teacher", "A bird", "The children", "My brother", "A woman", "The boy", "The neighbour"]; const verbs = ["eats", "reads", "buys", "finds", "sees", "needs", "looks for", "opens", "forgets", "draws"]; const objects = ["an apple", "a book", "a flower", "the key", "a pen", "a map", "the umbrella", "a cup", "a ball", "the newspaper"]; const places = ["in the garden", "at school", "on the table", "at home", "in the park", "in the kitchen", "on the street", "in the room", "at the bakery", "in town"]; const times = ["today", "tomorrow", "yesterday", "right now", "in the evening", "in the morning", "at the weekend", "in summer", "in winter", "after work"]; const pick = (a) => a[Math.floor(Math.random() * a.length)]; const parts = [pick(subjects), pick(verbs), pick(objects)]; if (Math.random() < 0.7) parts.push(pick(places)); if (Math.random() < 0.5) parts.push(pick(times)); return parts.join(" ") + "."; })() }}
