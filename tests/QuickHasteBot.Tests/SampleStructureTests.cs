@@ -33,7 +33,7 @@ public class SampleStructureTests
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(38, paths.Count);
+        Assert.Equal(40, paths.Count);
         Assert.Contains(JavaScriptBlocks(language), paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -121,7 +121,7 @@ public class SampleStructureTests
         var files = SampleStructure.Files(language);
         // Ab Ordner 2 hat jeder Baustein oben eine Beschreibung, die einfachen Texte in 1 nicht
         var examples = files.Where(f => f.Path[0] is >= '2' and <= '8' && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(28, examples.Count);
+        Assert.Equal(30, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -189,7 +189,59 @@ public class SampleStructureTests
             Paste("Ja oder Nein.txt", ""));
         Assert.Equal("Diese Zeile kam vor der Meldung.{enter}Und diese nach dem OK.{enter}", Paste("Meldung am Ende.txt", ""));
         Assert.Equal("", Paste("Computer-Infos als Meldung.txt", ""));
+        Assert.Equal("", Paste("Würfel.txt", ""));
+        Assert.Equal("", Paste("Entscheider.txt", ""));
 
+    }
+
+    /// <summary>Würfel und Orakel zeigen nur eine Meldung: die Würfe passen zu Seiten und Anzahl, das Orakel nennt die Frage.</summary>
+    [Theory]
+    [InlineData("de", "Würfel.txt", "Wie viele Seiten?", "Wie viele Würfel?", "W", "Gewürfelt: ")]
+    [InlineData("en", "Dice.txt", "How many sides?", "How many dice?", "d", "You rolled: ")]
+    public void Dice_rolls_in_range_and_adds_up(string language, string name, string sidesLabel, string countLabel, string letter, string single)
+    {
+        var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        List<MessageRequest> Roll(string sides, string count)
+        {
+            var shown = new List<MessageRequest>();
+            var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+                Answers: new Dictionary<string, string> { [sidesLabel] = sides, [countLabel] = count },
+                Message: request => { shown.Add(request); return true; });
+            SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context);
+            return shown;
+        }
+
+        for (var i = 0; i < 50; i++)
+        {
+            var three = Assert.Single(Roll("20", "3"));
+            Assert.Equal("3" + letter + "20", three.Title);
+            var match = Regex.Match(three.Text, @"^(\d+) \+ (\d+) \+ (\d+) = (\d+)$");
+            Assert.True(match.Success, three.Text);
+            var rolls = Enumerable.Range(1, 3).Select(g => int.Parse(match.Groups[g].Value)).ToList();
+            Assert.All(rolls, r => Assert.InRange(r, 1, 20));
+            Assert.Equal(rolls.Sum(), int.Parse(match.Groups[4].Value));
+
+            var one = Assert.Single(Roll("", "x")); // Unsinn gibt einen normalen Würfel
+            Assert.Equal("1" + letter + "6", one.Title);
+            Assert.InRange(int.Parse(one.Text[single.Length..]), 1, 6);
+        }
+    }
+
+    [Theory]
+    [InlineData("de", "Entscheider.txt", "Deine Frage an das Orakel", "Orakel")]
+    [InlineData("en", "Decider.txt", "Your question for the oracle", "Oracle")]
+    public void Decider_answers_the_question_in_a_message(string language, string name, string label, string title)
+    {
+        var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        var shown = new List<MessageRequest>();
+        var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+            Answers: new Dictionary<string, string> { [label] = "Pizza?" }, Message: request => { shown.Add(request); return true; });
+        Assert.Equal("", SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context).Trim());
+        var message = Assert.Single(shown);
+        Assert.Equal(title, message.Title);
+        Assert.Equal(MessageIcon.None, message.Icon);
+        Assert.StartsWith("Pizza?\n\n", message.Text);
+        Assert.True(message.Text.Length > "Pizza?\n\n".Length);
     }
 
     [Theory]

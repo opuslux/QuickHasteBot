@@ -1,0 +1,5 @@
+{# Das Orakel beantwortet jede Ja-Nein-Frage, zufällig und nicht immer ernst gemeint. Die Antwort kommt als Meldung, getippt wird nichts.
+ask() fragt vorher nach der Frage, die Meldung zeigt sie mit der Antwort. Eigene Sprüche einfach in die Liste schreiben.
+Wichtige Entscheidungen bitte trotzdem selbst treffen.}
+{{ var frage = ask('Deine Frage an das Orakel', 'Soll ich heute früher Feierabend machen?'); var antworten = ['Ja, ganz klar.', 'Nein. Und frag nicht nochmal.', 'Die Sterne sagen Ja, der Kaffee sagt Nein.', 'Frag nach dem Mittagessen nochmal.', 'Absolut. Was soll schon schiefgehen?', 'Eher nicht. Das Orakel hat ein ungutes Gefühl.', 'Ja, aber erst nach dem nächsten Meeting.', 'Das Orakel ist gerade in der Pause.', 'Wenn du schon fragen musst: nein.', 'Ja! Das Universum ist auf deiner Seite.', 'Vielleicht. Das Orakel ist sich selbst nicht sicher.', 'Wirf eine Münze. Das Orakel hält sich da raus.'] }}
+{{ msg((frage ? frage + '\n\n' : '') + antworten[Math.floor(Math.random() * antworten.length)], { title: 'Orakel', icon: 'none' }) }}
