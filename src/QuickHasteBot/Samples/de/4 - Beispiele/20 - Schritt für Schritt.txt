@@ -1,0 +1,16 @@
+{# Zum Ausprobieren von «Schritt für Schritt»: Rechtsklick › Bearbeiten, dann im Editor auf Schritt für Schritt klicken.
+Der Baustein beginnt mit start, darum läuft er gleich in Notepad, ohne Klick ins Zielfenster. Vor jedem Schritt hält er an:
+F10 führt den nächsten aus. Die Leiste am Notepad-Fenster zeigt, was jetzt und danach kommt, im Editor ist der Schritt markiert.
+Ein Klick links neben eine Zeile setzt einen Haltepunkt (F9), F5 läuft bis dorthin durch. Esc gedrückt halten stoppt.
+So findest du in eigenen Bausteinen die Stelle, an der etwas nicht klappt.}
+{start,notepad}
+{delay,30}
+{ctrl+n}
+{wait,300}
+Checkliste für {{ date('dddd, d. MMMM') }}
+{enter}
+{{ var punkte = ['Mails beantworten', 'Ablage aufräumen', 'Wochenplan prüfen'] }}
+{{ punkte.map((p, i) => (i + 1) + '. ' + p).join('\n') }}
+{enter}
+{wait,500}
+Erledigt: 0 von {{ punkte.length }}

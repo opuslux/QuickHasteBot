@@ -1,5 +1,5 @@
 {# Macht aus den markierten Zeilen eine nummerierte Aufzählung (1. 2. 3. …), leere Zeilen fallen weg.
 Steht vor einer Zeile schon ein Punkt, ein Strich oder eine Nummer, wird sie ersetzt. So lässt sich eine Liste auch neu nummerieren.
 Ist nichts markiert, kommt eine einzelne 1. zum Weiterschreiben.
-Für eine Liste mit Punkten gibt es 03-Markierung als Punkte.}
+Für eine Liste mit Punkten gibt es «03 - Markierung als Punkte».}
 {{ selection.split(/\r?\n/).map(line => line.trim().replace(/^([•*-]|\d+[.)])\s+/, '')).filter(line => line).map((line, i) => (i + 1) + '. ' + line).join('\n') || '1. ' }}

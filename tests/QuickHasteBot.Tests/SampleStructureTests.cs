@@ -20,14 +20,14 @@ public class SampleStructureTests
             .Split("\r\n").Single(l => l.StartsWith(label + ":", StringComparison.Ordinal))[(label.Length + 1)..].TrimStart('\t');
 
     [Theory]
-    [InlineData("de", "Willkommen.txt", @"1-Grüsse\Freundliche Grüsse.txt", @"2-E-Mail\Abwesenheit.txt", @"3-SQL\Audit-Insert.txt",
-        @"4-Beispiele\01-Antwort mit Rückfragen.txt", @"4-Beispiele\11-Computer-Infos.txt")]
-    [InlineData("en", "Welcome.txt", @"1-Greetings\Kind regards.txt", @"2-Email\Out of office.txt", @"3-SQL\Audit insert.txt",
-        @"4-Examples\01-Reply with questions.txt", @"4-Examples\11-Computer info.txt")]
+    [InlineData("de", "Willkommen.txt", @"1 - Grüsse\Freundliche Grüsse.txt", @"2 - E-Mail\Abwesenheit.txt", @"3 - SQL\Audit-Insert.txt",
+        @"4 - Beispiele\01 - Antwort mit Rückfragen.txt", @"4 - Beispiele\11 - Computer-Infos.txt")]
+    [InlineData("en", "Welcome.txt", @"1 - Greetings\Kind regards.txt", @"2 - Email\Out of office.txt", @"3 - SQL\Audit insert.txt",
+        @"4 - Examples\01 - Reply with questions.txt", @"4 - Examples\11 - Computer info.txt")]
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(29, paths.Count);
+        Assert.Equal(30, paths.Count);
         Assert.Contains("Script-Samples.txt", paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -85,8 +85,8 @@ public class SampleStructureTests
     public void Examples_have_no_errors_and_their_description_is_not_pasted(string language, string culture)
     {
         var files = SampleStructure.Files(language);
-        var examples = files.Where(f => f.Path.StartsWith("4-", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(18, examples.Count);
+        var examples = files.Where(f => f.Path.StartsWith("4 - ", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
+        Assert.Equal(19, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -105,13 +105,13 @@ public class SampleStructureTests
             }
         }
 
-        // "Grüsse/Freundliche Grüsse" für "1-Grüsse\Freundliche Grüsse.txt": Nummer und Endung dürfen fehlen
+        // "Grüsse/Freundliche Grüsse" für "1 - Grüsse\Freundliche Grüsse.txt": Nummer und Endung dürfen fehlen
         static bool SamePath(string path, string name)
         {
             var have = path.Split('\\');
             var want = name.Split('/', '\\');
             return have.Length == want.Length && have.Zip(want).All(p =>
-                string.Equals(Path.GetFileNameWithoutExtension(p.First).TrimStart('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-'), p.Second, StringComparison.OrdinalIgnoreCase));
+                string.Equals(Path.GetFileNameWithoutExtension(p.First).TrimStart("0123456789 -".ToCharArray()), p.Second, StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -127,16 +127,20 @@ public class SampleStructureTests
             return string.Concat(KeyTags.Split(rendered, form).Select(s => s is TextStep t ? t.Text : KeyTags.Describe(s)));
         }
 
-        Assert.Equal("«Hallo Welt{cursor}»", Paste("02-Markierung in Anführungszeichen.txt", " Hallo Welt\r\n"));
-        Assert.Equal("• Äpfel\n• Birnen", Paste("03-Markierung als Punkte.txt", "Äpfel\r\n\r\n  Birnen "));
-        Assert.Equal("• ", Paste("03-Markierung als Punkte.txt", ""));
-        Assert.Equal("1. Äpfel\n2. Birnen\n3. 1.5 kg Mehl", Paste("04-Markierung als Aufzählung.txt", "Äpfel\r\n\r\n  Birnen \r\n1.5 kg Mehl"));
-        Assert.Equal("1. Äpfel\n2. Birnen\n3. Mehl", Paste("04-Markierung als Aufzählung.txt", "• Äpfel\n- Birnen\n7) Mehl"));
-        Assert.Equal("1. ", Paste("04-Markierung als Aufzählung.txt", ""));
-        Assert.Equal("Max{tab}Muster{tab}Zürich", Paste("12-Excel-Zeile ins Formular.txt", "", "Max\tMuster\tZürich\r\nZweite\tZeile\r\n"));
+        Assert.Equal("«Hallo Welt{cursor}»", Paste("02 - Markierung in Anführungszeichen.txt", " Hallo Welt\r\n"));
+        Assert.Equal("• Äpfel\n• Birnen", Paste("03 - Markierung als Punkte.txt", "Äpfel\r\n\r\n  Birnen "));
+        Assert.Equal("• ", Paste("03 - Markierung als Punkte.txt", ""));
+        Assert.Equal("1. Äpfel\n2. Birnen\n3. 1.5 kg Mehl", Paste("04 - Markierung als Aufzählung.txt", "Äpfel\r\n\r\n  Birnen \r\n1.5 kg Mehl"));
+        Assert.Equal("1. Äpfel\n2. Birnen\n3. Mehl", Paste("04 - Markierung als Aufzählung.txt", "• Äpfel\n- Birnen\n7) Mehl"));
+        Assert.Equal("1. ", Paste("04 - Markierung als Aufzählung.txt", ""));
+        Assert.Equal("Max{tab}Muster{tab}Zürich", Paste("12 - Excel-Zeile ins Formular.txt", "", "Max\tMuster\tZürich\r\nZweite\tZeile\r\n"));
         Assert.Equal("Betrag netto:   CHF 1250.50\r\nMwSt. 8.1 %:     CHF 101.29\r\nTotal:          CHF 1351.79\r\nAuf Wunsch zahlbar in zwei Raten.",
-            Paste("13-Offerte mit MwSt.txt", "", answers: new() { ["Betrag netto"] = "1'250.50", ["MwSt. in %"] = "8,1" }));
-        Assert.DoesNotContain("Raten", Paste("13-Offerte mit MwSt.txt", ""));
+            Paste("13 - Offerte mit MwSt.txt", "", answers: new() { ["Betrag netto"] = "1'250.50", ["MwSt. in %"] = "8,1" }));
+        Assert.DoesNotContain("Raten", Paste("13 - Offerte mit MwSt.txt", ""));
+        // Jeder Tag auf einer eigenen Zeile, ohne dass Umbrüche getippt werden; die Zeile mit var fällt weg
+        Assert.Equal("{start,notepad}{delay,30}{ctrl+n}{wait,300}Checkliste für Dienstag, 3. November{enter}"
+            + "1. Mails beantworten\n2. Ablage aufräumen\n3. Wochenplan prüfen{enter}{wait,500}Erledigt: 0 von 3",
+            Paste("20 - Schritt für Schritt.txt", ""));
     }
 
     [Theory]
@@ -160,8 +164,8 @@ public class SampleStructureTests
 
     /// <summary>Die Batch-Datei neben dem Beispiel: run() findet sie im Ordner des Bausteins, mit Kunde eine Nummer, ohne einen Fehler.</summary>
     [Theory]
-    [InlineData("de", @"4-Beispiele\20-Nummer per Batch-Datei", "Kein Kunde angegeben")]
-    [InlineData("en", @"4-Examples\20-Number via batch file", "No customer given")]
+    [InlineData("de", @"4 - Beispiele\19 - Nummer per Batch-Datei", "Kein Kunde angegeben")]
+    [InlineData("en", @"4 - Examples\19 - Number via batch file", "No customer given")]
     public void Batch_example_runs_next_to_its_snippet(string language, string example, string error)
     {
         using var dir = new TempDirectory();
@@ -186,7 +190,7 @@ public class SampleStructureTests
     {
         using var dir = new TempDirectory();
         SampleStructure.Extract(dir.Path, "de");
-        var file = Path.Combine(dir.Path, "1-Grüsse", "Freundliche Grüsse.txt");
+        var file = Path.Combine(dir.Path, "1 - Grüsse", "Freundliche Grüsse.txt");
         Assert.Equal("Freundliche Grüsse\r\n\r\nVorname Nachname", File.ReadAllText(file));
         Assert.NotEqual(0xEF, File.ReadAllBytes(file)[0]);
     }
@@ -197,8 +201,8 @@ public class SampleStructureTests
     {
         using var dir = new TempDirectory();
         SampleStructure.Extract(dir.Path, "de");
-        var sample = Path.Combine(dir.Path, "1-Grüsse", "Freundliche Grüsse.txt");
-        var own = Path.Combine(dir.Path, "1-Grüsse", "Eigener Gruss.txt");
+        var sample = Path.Combine(dir.Path, "1 - Grüsse", "Freundliche Grüsse.txt");
+        var own = Path.Combine(dir.Path, "1 - Grüsse", "Eigener Gruss.txt");
         File.WriteAllText(sample, "geändert");
         File.WriteAllText(own, "Mein Text");
 

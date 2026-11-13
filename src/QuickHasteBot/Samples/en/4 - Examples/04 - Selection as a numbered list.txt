@@ -1,5 +1,5 @@
 {# Turns the selected lines into a numbered list (1. 2. 3. …), empty lines are left out.
 A bullet, dash or number already in front of a line is replaced, so a list can also be numbered again.
 With nothing selected, a single 1. comes to write on.
-For a list with bullets, there is 03-Selection as bullets.}
+For a list with bullets, there is "03 - Selection as bullets".}
 {{ selection.split(/\r?\n/).map(line => line.trim().replace(/^([•*-]|\d+[.)])\s+/, '')).filter(line => line).map((line, i) => (i + 1) + '. ' + line).join('\n') || '1. ' }}

@@ -14,7 +14,7 @@
 <body>
 <h1>Test form</h1>
 <p>For trying out QuickHasteBot: the snippet "Fill in the test form" fills in everything. Nothing is sent, the page only runs on your computer.</p>
-<p><button type="button" ondblclick="this.textContent = 'Double-click detected ✓'">Double-click here</button></p>
+<p><button type="button" ondblclick="document.getElementById('doubleclick').textContent = 'Double-click detected ✓'">Double-click here</button> <span id="doubleclick"></span></p>
 
 <fieldset><legend>Person</legend>
   <p><label class="field" for="firstname">First name</label><input id="firstname"></p>

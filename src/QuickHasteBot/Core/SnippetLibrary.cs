@@ -142,12 +142,16 @@ public sealed class SnippetLibrary : IDisposable
 
         static bool Same(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
-        // "3-Grüsse" → "Grüsse", "10 Notizen" → "Notizen"
+        // "3-Grüsse", "3 - Grüsse" → "Grüsse", "10 Notizen" → "Notizen"
         static string WithoutNumber(string name)
         {
             var i = 0;
             while (i < name.Length && char.IsAsciiDigit(name[i])) i++;
-            return i > 0 && i < name.Length - 1 && name[i] is '-' or '_' or ' ' or '.' ? name[(i + 1)..].TrimStart() : name;
+            if (i == 0 || i >= name.Length - 1 || name[i] is not ('-' or '_' or ' ' or '.')) return name;
+            var rest = name[(i + 1)..].TrimStart();
+            // "3 - Grüsse": nach dem Leerschlag noch der Strich
+            if (name[i] == ' ' && rest.Length > 1 && rest[0] is '-' or '_' or '.') rest = rest[1..].TrimStart();
+            return rest.Length > 0 ? rest : name;
         }
     }
 

@@ -1,0 +1,16 @@
+{# To try out "Step by step": right-click › Edit, then click Step by step in the editor.
+The snippet begins with start, so it runs in Notepad right away, without a click into the target window. It stops before every step:
+F10 runs the next one. The bar at the Notepad window shows what comes now and next, and the editor marks the step.
+A click left of a line sets a breakpoint (F9), F5 runs on up to it. Holding Esc stops.
+That's how you find the spot where one of your own snippets goes wrong.}
+{start,notepad}
+{delay,30}
+{ctrl+n}
+{wait,300}
+Checklist for {{ date('dddd, MMMM d') }}
+{enter}
+{{ var items = ['Answer emails', 'Tidy up the files', 'Check the weekly plan'] }}
+{{ items.map((item, i) => (i + 1) + '. ' + item).join('\n') }}
+{enter}
+{wait,500}
+Done: 0 of {{ items.length }}

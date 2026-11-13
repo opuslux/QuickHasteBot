@@ -48,6 +48,7 @@ public class WindowSmokeTests
             SetPicksFromAListElsewhere();
             ContextMenuComesFirst();
             ContainersWildcardsAndTooltips();
+            FieldsBeforeTheirLabels();
             RecorderFollowsFieldsInAForm();
             RecordBarAndEditor();
             EditorInsertsPickedTagsOnTheirOwnLine();
@@ -882,7 +883,7 @@ public class WindowSmokeTests
         // Erster Start: structure mit den Beispielen in der Sprache der Oberfläche
         Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Willkommen.txt")));
         Assert.True(File.Exists(Path.Combine(dir.Path, "structure", "Script-Samples.txt")));
-        Assert.True(Directory.Exists(Path.Combine(dir.Path, "structure", "1-Grüsse")));
+        Assert.True(Directory.Exists(Path.Combine(dir.Path, "structure", "1 - Grüsse")));
 
         controller.ShowSettings(new Point(-20000, -20000));
         Assert.Equal("QuickHasteBot – Einstellungen", Current().Title);
@@ -1586,6 +1587,78 @@ public class WindowSmokeTests
         var (selectors, printInfo) = find.Result;
         Assert.Equal("name=Lieferadresse;type=group > name=Strasse;type=button", selectors[0].ToString());
         Assert.Equal("Drucken (Strg+P)", printInfo.HelpText);
+        window.Close();
+    }
+
+    /// <summary>
+    /// Wie &lt;label&gt; in Chrome: Vor dem Feld steht ein Text, der gleich heisst wie das Feld. name= ohne type= meint das
+    /// Feld, auch im Container und bei index=. Passt nur ein Text, bleibt er der Treffer.
+    /// </summary>
+    static void FieldsBeforeTheirLabels()
+    {
+        System.Windows.Controls.TextBox Field(string name)
+        {
+            var box = new System.Windows.Controls.TextBox();
+            System.Windows.Automation.AutomationProperties.SetName(box, name);
+            return box;
+        }
+        System.Windows.Controls.GroupBox Group(string header, params UIElement[] children)
+        {
+            var panel = new System.Windows.Controls.StackPanel();
+            foreach (var child in children) panel.Children.Add(child);
+            return new System.Windows.Controls.GroupBox { Header = header, Content = panel };
+        }
+
+        var nachname = Field("Nachname");
+        var rechnung = Field("Strasse");
+        var liefer = Field("Strasse");
+        var window = new Window
+        {
+            Width = 300, Height = 400, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.StackPanel
+            {
+                Children =
+                {
+                    new System.Windows.Controls.TextBlock { Text = "Nachname" },
+                    nachname,
+                    Group("Rechnungsadresse", new System.Windows.Controls.TextBlock { Text = "Strasse" }, rechnung),
+                    Group("Lieferadresse", new System.Windows.Controls.TextBlock { Text = "Strasse" }, liefer),
+                    new System.Windows.Controls.TextBlock { Text = "Nur Text" },
+                },
+            },
+        };
+        Snapshot(window, "labels.png");
+        var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        ElementResult Run(string tag)
+        {
+            Assert.True(KeyTags.TryParse(tag.Trim('{', '}'), null, out var steps, out var error), error);
+            var run = Task.Run(() => ElementAutomation.Run((ElementStep)steps[0], hwnd, () => false));
+            Assert.True(PumpUntil(() => run.IsCompleted, TimeSpan.FromSeconds(20), pause: 1));
+            return run.Result;
+        }
+        void Sets(string tag, System.Windows.Controls.TextBox expected, string value)
+        {
+            var result = Run(tag);
+            Assert.True(result.Outcome == ElementOutcome.Done, $"{tag}: {result.Outcome} {result.Error}");
+            Assert.Equal(value, expected.Text);
+        }
+
+        Sets("{set,name=Nachname,\"Muster\"}", nachname, "Muster");
+        Sets("{set,name=Lieferadresse > name=Strasse,\"Bahnhofstrasse 1\"}", liefer, "Bahnhofstrasse 1");
+        Sets("{set,name=Strasse;index=2,\"Postfach 12\"}", liefer, "Postfach 12");
+        Sets("{set,name=Str*,\"Hauptstrasse 3\"}", rechnung, "Hauptstrasse 3");
+        // Wer den Text meint, sagt type=, und ein Text allein wird weiterhin gefunden
+        var find = Task.Run(() =>
+        {
+            var root = System.Windows.Automation.AutomationElement.FromHandle(hwnd);
+            Assert.True(ElementSelector.TryParse("name=Nachname;type=text", out var label, out _));
+            return (ElementAutomation.Find(root, label)?.Current.ControlType,
+                ElementAutomation.Find(root, new ElementSelector(null, "Nur Text", null, [], null, 1))?.Current.ControlType);
+        });
+        Assert.True(PumpUntil(() => find.IsCompleted, TimeSpan.FromSeconds(20), pause: 1));
+        Assert.Equal(System.Windows.Automation.ControlType.Text, find.Result.Item1);
+        Assert.Equal(System.Windows.Automation.ControlType.Text, find.Result.Item2);
         window.Close();
     }
 

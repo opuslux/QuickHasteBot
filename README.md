@@ -45,39 +45,39 @@ Snippets are plain files in the `structure` folder next to the exe. Subfolders b
 
 ```
 structure\
-  1-Addresses\
-    1-Office address.txt
-    2-Shipping address.txt
-    3-Bank details.txt
-  2-Email\
-    1-Thanks for your message.txt
-    2-Meeting confirmation.txt
-    3-Out of office.txt
-  3-Sign-offs\
-    1-Kind regards (EN).txt
-    2-Freundliche Grüsse (DE).txt
-    3-Meilleures salutations (FR).txt
-  4-Support\
+  1 - Addresses\
+    1 - Office address.txt
+    2 - Shipping address.txt
+    3 - Bank details.txt
+  2 - Email\
+    1 - Thanks for your message.txt
+    2 - Meeting confirmation.txt
+    3 - Out of office.txt
+  3 - Sign-offs\
+    1 - Kind regards (EN).txt
+    2 - Freundliche Grüsse (DE).txt
+    3 - Meilleures salutations (FR).txt
+  4 - Support\
     Replies\
       Password reset.txt
       Ticket received.txt
     Onboarding checklist.xlsx
-  5-Links\
+  5 - Links\
     Intranet.url
     Ticket system.url
   Phone numbers.txt
 ```
 
-In the popup this shows up as five folders followed by `Phone numbers`. Opening `4-Support` shows the `Replies` folder and the checklist; typing `ticket` finds `Ticket received` and `Ticket system` regardless of which folder they are in.
+In the popup this shows up as five folders followed by `Phone numbers`. Opening `4 - Support` shows the `Replies` folder and the checklist; typing `ticket` finds `Ticket received` and `Ticket system` regardless of which folder they are in.
 
 - **`.txt` files** are pasted. The encoding (ANSI, UTF-8 or UTF-16) is detected automatically. More extensions can be added under `TextExtensions` in `settings.json`.
 - **All other files** (e.g. `.url`, `.xlsx`, `.pdf`) open with their associated application, which makes the popup a quick launcher as well.
 - **The file name** without its extension is the name shown in the popup, so name files after what they contain.
-- **Sorting** is by name, folders first, so number prefixes like `1-`, `2-` set the order.
+- **Sorting** is by name, folders first, so number prefixes like `1 - `, `2 - ` set the order.
 - **Hidden files** as well as `desktop.ini` and `thumbs.db` are ignored.
 - **Changes** show up right away, no restart needed. The folder can be rearranged in Explorer while QuickHasteBot is running, and every hotkey checks the folder again, so even replacing or renaming the whole `structure` folder is picked up.
 
-**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4-Examples` with snippets for the other features (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys and `run()`), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
+**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4 - Examples` with snippets for the other features (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys, `run()` and one to try **Step by step** on), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
 
 Snippets can be created, renamed, cloned and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
 
@@ -205,7 +205,7 @@ Besides the popup hotkey, every snippet, file or folder can have a global hotkey
 
 ```
 structure\
-  3-SQL [Ctrl+Alt+S]\
+  3 - SQL [Ctrl+Alt+S]\
     Audit insert [Ctrl+Alt+A].txt
   Kind regards [Ctrl+Alt+G].txt
   Intranet [Ctrl+Alt+I].url
@@ -228,7 +228,7 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 "Edit" and Ctrl+O open text snippets in a built-in editor. "New snippet…", Ctrl+N and the document icon in the popup open an empty one in the folder that is open, e.g. to try something out with Test (F5) and keep it as a file only if it is worth it. One window per file; several can be open.
 
 - **Name** at the top: changing it renames the file when saving. The extension stays (`.txt` for new snippets).
-- **Folder** next to the name ("in Snippets › 2-Email"): click it to choose another folder from the list of all folders, with collapsible subfolders. A new snippet is created there, an existing one moves there when saving.
+- **Folder** next to the name ("in Snippets › 2 - Email"): click it to choose another folder from the list of all folders, with collapsible subfolders. A new snippet is created there, an existing one moves there when saving.
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches, in the language of the interface or in English (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
 - **Formatted text:** Ctrl+Shift+V inserts formatted text from the clipboard as an [`{html}` block](#formatted-text); Ctrl+V stays plain text.
 - **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
@@ -312,7 +312,7 @@ your order {{ ask('Order number') }} ships on {{ date('dd.MM.yyyy', Number(ask('
 ```
 
 - **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. Slashes work in paths, so there are no `\` to double in JavaScript.
-- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `20-Number via batch file` in `4-Examples` works this way.
+- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `19 - Number via batch file` in `4 - Examples` works this way.
 - **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`. They can also go in the options as `args`: `run('tool.exe', { args: '-v', wait: 10 })`, but not both ways at once.
 - **Working folder** ("Start in"): `dir` sets it, e.g. `run('export.bat', { dir: 'd:/data' })`; environment variables like `%TEMP%` work. A script without a folder in its name is then looked for there too. Without `dir`, the script runs in its own folder. If the folder doesn't exist, the snippet stops with a message.
 - **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
@@ -452,7 +452,7 @@ The element is described like this, parts combined with `;`:
 | Selector | Finds | In a browser |
 |---|---|---|
 | `#email` or `id=email` | the id | `id="email"` |
-| `name=E-Mail` or just `E-Mail` | the label or text, not case sensitive; `*` stands for any text, see below | `<label>`, `aria-label`, a button's text |
+| `name=E-Mail` or just `E-Mail` | the label or text, not case sensitive; `*` stands for any text, see below. Without `type=`, a field comes before a plain text with the same name, so `name=E-Mail` finds the field, not its label | `<label>`, `aria-label`, a button's text |
 | `.btn.primary` | all these classes | `class="btn primary large"` |
 | `class=btn primary` | exactly this class attribute (in Windows programs: the window class) | |
 | `help=Print` | the tooltip, not case sensitive; `*` works as in names | `title`, a field's placeholder |

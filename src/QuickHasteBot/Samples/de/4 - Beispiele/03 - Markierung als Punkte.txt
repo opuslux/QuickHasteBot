@@ -1,5 +1,5 @@
 {# Macht aus den markierten Zeilen eine Liste mit Punkten, leere Zeilen fallen weg.
 Praktisch für Listen aus Excel, E-Mails oder Notizen: Zeilen markieren, Baustein wählen, fertig.
 Ist nichts markiert, kommt ein einzelner Punkt zum Weiterschreiben.
-Für eine nummerierte Liste gibt es 04-Markierung als Aufzählung.}
+Für eine nummerierte Liste gibt es «04 - Markierung als Aufzählung».}
 {{ selection.split(/\r?\n/).map(line => line.trim()).filter(line => line).map(line => '• ' + line).join('\n') || '• ' }}
