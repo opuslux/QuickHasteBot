@@ -1,5 +1,5 @@
 {# Würfelt und zeigt das Ergebnis als Meldung, getippt wird nichts. Der Baustein geht darum aus jedem Fenster.
-ask() fragt vorher nach Seiten und Anzahl, vorgegeben ist ein normaler Würfel. Mit 20 Seiten gibt es einen W20 fürs Rollenspiel, mit 2 eine Münze.
+ask() fragt vorher nach Seiten und Anzahl, mit dem Knopf Würfeln, vorgegeben ist ein normaler Würfel. Mit 20 Seiten gibt es einen W20 fürs Rollenspiel, mit 2 eine Münze.
 Math.random() liefert den Zufall, var merkt sich die Würfe für die Meldung.}
-{{ var seiten = Math.max(2, parseInt(ask('Wie viele Seiten?', '6')) || 6); var anzahl = Math.min(100, Math.max(1, parseInt(ask('Wie viele Würfel?', '1')) || 1)); var wuerfe = Array.from({ length: anzahl }, () => 1 + Math.floor(Math.random() * seiten)) }}
+{{ var seiten = Math.max(2, parseInt(ask('Wie viele Seiten?', '6', { button: 'Würfeln', title: 'Würfel' })) || 6); var anzahl = Math.min(100, Math.max(1, parseInt(ask('Wie viele Würfel?', '1')) || 1)); var wuerfe = Array.from({ length: anzahl }, () => 1 + Math.floor(Math.random() * seiten)) }}
 {{ msg(anzahl == 1 ? 'Gewürfelt: ' + wuerfe[0] : wuerfe.join(' + ') + ' = ' + wuerfe.reduce((a, b) => a + b, 0), { title: anzahl + 'W' + seiten }) }}

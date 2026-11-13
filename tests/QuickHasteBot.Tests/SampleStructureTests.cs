@@ -194,6 +194,17 @@ public class SampleStructureTests
         Assert.Equal("", Paste("Tee-Timer.txt", ""));
     }
 
+    /// <summary>Beispiele, die nichts einfügen, haben im Fenster von ask() einen eigenen Knopf statt "Einfügen".</summary>
+    [Theory]
+    [InlineData("de", @"8 - Meldungen\Orakel-Entscheider.txt", "Orakel befragen", "Das Orakel")]
+    [InlineData("de", @"8 - Meldungen\Tee-Timer.txt", "Timer starten", "Tee-Timer")]
+    [InlineData("de", @"8 - Meldungen\Würfel.txt", "Würfeln", "Würfel")]
+    [InlineData("en", @"8 - Messages\Oracle decider.txt", "Ask the oracle", "The oracle")]
+    [InlineData("en", @"8 - Messages\Tea timer.txt", "Start timer", "Tea timer")]
+    [InlineData("en", @"8 - Messages\Dice.txt", "Roll", "Dice")]
+    public void Examples_without_paste_name_their_ask_button(string language, string path, string button, string title) =>
+        Assert.Equal(new AskWindowOptions(button, title), SnippetScript.AskWindow(SampleStructure.Files(language).Single(f => f.Path == path).Text));
+
     /// <summary>
     /// Der Tee-Timer: Minuten:Sekunden oder nur Minuten, Unsinn gibt 5:00. Erst ein kurzer Hinweis, dann die Meldung mit
     /// after, auf die der Baustein nicht wartet.

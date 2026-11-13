@@ -1,5 +1,5 @@
 {# Rolls dice and shows the result in a message, nothing is typed. So the snippet works from any window.
-ask() first asks for the sides and the number of dice, a normal die is the default. 20 sides give a d20 for role-playing, 2 a coin.
+ask() first asks for the sides and the number of dice, with a Roll button, a normal die is the default. 20 sides give a d20 for role-playing, 2 a coin.
 Math.random() provides the chance, var keeps the rolls for the message.}
-{{ var sides = Math.max(2, parseInt(ask('How many sides?', '6')) || 6); var count = Math.min(100, Math.max(1, parseInt(ask('How many dice?', '1')) || 1)); var rolls = Array.from({ length: count }, () => 1 + Math.floor(Math.random() * sides)) }}
+{{ var sides = Math.max(2, parseInt(ask('How many sides?', '6', { button: 'Roll', title: 'Dice' })) || 6); var count = Math.min(100, Math.max(1, parseInt(ask('How many dice?', '1')) || 1)); var rolls = Array.from({ length: count }, () => 1 + Math.floor(Math.random() * sides)) }}
 {{ msg(count == 1 ? 'You rolled: ' + rolls[0] : rolls.join(' + ') + ' = ' + rolls.reduce((a, b) => a + b, 0), { title: count + 'd' + sides }) }}
