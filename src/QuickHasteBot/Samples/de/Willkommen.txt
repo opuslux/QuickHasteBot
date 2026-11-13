@@ -1,7 +1,7 @@
 Hallo von QuickHasteBot!
 
-Lege .txt-Dateien und Unterordner im Ordner structure neben der exe an, sie erscheinen sofort im Popup. Die Ordner hier sind Beispiele und dürfen gelöscht werden.
+Lege .txt-Dateien und Unterordner im Ordner structure neben der exe an, sie erscheinen sofort im Popup. Der Ordner Demo ist nur zum Ausprobieren: Er darf gelöscht werden, und Einstellungen › «Beispiele exportieren…» baut ihn jederzeit neu auf. Eigene Bausteine darum nicht in Demo ablegen.
 
-Script-Samples zeigt, was Skriptblöcke können: Datum, Zwischenablage, Zufall und mehr. Eigene Skriptblöcke schreibt die KI, über das Funkel-Symbol im Popup.
+Die Ordner zeigen nach Thema, was QuickHasteBot kann, je in einem Baustein mit Beschreibung oben: einfache Texte, Rückfragen vor dem Einfügen und markierten Text umwandeln, formatierten Text, Formulare (mit einem Testformular zum Ausprobieren), andere Programme und Spezialtasten, Skripte und Rechnen, Bedingungen, die erst unterwegs entscheiden, was getippt wird, und Meldungen mit Ja oder Nein. Öffne sie mit Rechtsklick › Bearbeiten.
 
-«4 - Beispiele» zeigt die übrigen Möglichkeiten, nach Thema in Ordnern, je in einem Baustein mit Beschreibung oben: Rückfragen vor dem Einfügen und markierten Text umwandeln, formatierten Text, Formulare (mit einem Testformular zum Ausprobieren), andere Programme und Spezialtasten, Skripte und Rechnen, Bedingungen, die erst unterwegs entscheiden, was getippt wird, und Meldungen mit Ja oder Nein. Öffne sie mit Rechtsklick › Bearbeiten.
+«JavaScript-Blöcke» in «Skripte» zeigt, was Skriptblöcke können: Datum, Zwischenablage, Zufall und mehr. Eigene Skriptblöcke schreibt die KI, über das Funkel-Symbol im Popup.

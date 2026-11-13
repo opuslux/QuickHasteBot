@@ -46,8 +46,12 @@
   <data name="StructureMissingFormat" xml:space="preserve"><value>{0}  (existiert nicht)</value></data>
   <data name="StructureDialogTitle" xml:space="preserve"><value>Ordner mit den Bausteinen wählen</value></data>
   <data name="SamplesExport" xml:space="preserve"><value>Beispiele exportieren…</value></data>
-  <data name="SamplesExportToolTip" xml:space="preserve"><value>Die Beispiel-Bausteine vom ersten Start noch einmal anlegen, im Bausteine-Ordner oder anderswo</value></data>
+  <data name="SamplesExportToolTip" xml:space="preserve"><value>Den Ordner Demo im Bausteine-Ordner mit den Beispielen neu aufbauen oder die Beispiele in einen anderen Ordner legen</value></data>
   <data name="SamplesExportProposeFormat" xml:space="preserve"><value>Die Beispiele nach {0} exportieren?</value></data>
+  <data name="SamplesRebuildFormat" xml:space="preserve"><value>{0} existiert bereits.
+
+Der Ordner kommt in den Papierkorb und wird mit den Beispielen neu aufgebaut. Eigene Änderungen darin findest du danach im Papierkorb.</value></data>
+  <data name="SamplesRebuild" xml:space="preserve"><value>Neu aufbauen</value></data>
   <data name="SamplesExportOccupiedFormat" xml:space="preserve"><value>{0} existiert bereits.
 
 Beim Überschreiben werden gleichnamige Beispieldateien ersetzt, alle anderen Dateien bleiben, wie sie sind.</value></data>

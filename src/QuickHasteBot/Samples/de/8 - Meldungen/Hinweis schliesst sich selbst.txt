@@ -1,5 +1,5 @@
 {# close: 3 schliesst die Meldung nach drei Sekunden von selbst, der OK-Knopf zählt herunter. So hält ein Hinweis einen Ablauf nicht auf.
-Mit OK oder Enter geht es sofort weiter, Esc bricht ab. Danach startet Notepad, wie in «Notiz in Notepad» im Ordner «4 - Programme und Fenster».
+Mit OK oder Enter geht es sofort weiter, Esc bricht ab. Danach startet Notepad, wie in «Notiz in Notepad» im Ordner «Programme und Fenster».
 Das Notepad von Windows 11 verschluckt bei schnellem Tippen Zeichen, darum tippt delay,30 etwas langsamer.}
 {{ msg('Gleich startet Notepad. Bitte Maus und Tastatur kurz nicht anfassen.', { title: 'Notiz', close: 3 }) }}
 {start,notepad}{delay,30}{ctrl+n}Notiz vom {{ date('dddd, d. MMMM yyyy') }}{enter}

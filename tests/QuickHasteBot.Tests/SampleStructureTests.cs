@@ -15,48 +15,55 @@ public class SampleStructureTests
     static string Render(string text, string culture, string clipboard = "") =>
         SnippetScript.Render(text, new ScriptContext(Now, CultureInfo.GetCultureInfo(culture), clipboard, Zone));
 
+    /// <summary>Die Sammlung der Skriptblöcke, eine Zeile pro Block, oben die Beschreibung.</summary>
+    static string JavaScriptBlocks(string language) =>
+        language == "de" ? @"6 - Skripte\JavaScript-Blöcke {{ }}.txt" : @"6 - Scripts\JavaScript blocks {{ }}.txt";
+
     static string Sample(string language, string label) =>
-        SampleStructure.Files(language).Single(f => f.Path == "Script-Samples.txt").Text
+        SampleStructure.Files(language).Single(f => f.Path == JavaScriptBlocks(language)).Text
             .Split("\r\n").Single(l => l.StartsWith(label + ":", StringComparison.Ordinal))[(label.Length + 1)..].TrimStart('\t');
 
     [Theory]
-    [InlineData("de", "Willkommen.txt", @"1 - Grüsse\Freundliche Grüsse.txt", @"2 - E-Mail\Abwesenheit.txt", @"3 - SQL\Audit-Insert.txt",
-        @"4 - Beispiele\1 - Text und Markierung\Antwort mit Rückfragen.txt", @"4 - Beispiele\5 - Skripte\Computer-Infos.txt",
-        @"4 - Beispiele\6 - Bedingungen\Zusage oder Absage.txt", @"4 - Beispiele\7 - Meldungen\Ja oder Nein.txt")]
-    [InlineData("en", "Welcome.txt", @"1 - Greetings\Kind regards.txt", @"2 - Email\Out of office.txt", @"3 - SQL\Audit insert.txt",
-        @"4 - Examples\1 - Text and selection\Reply with questions.txt", @"4 - Examples\5 - Scripts\Computer info.txt",
-        @"4 - Examples\6 - Conditions\Accept or decline.txt", @"4 - Examples\7 - Messages\Yes or no.txt")]
+    [InlineData("de", "Willkommen.txt", @"1 - Einfacher Text\Freundliche Grüsse.txt", @"1 - Einfacher Text\Abwesenheit.txt",
+        @"1 - Einfacher Text\Audit-Insert.txt", @"2 - Text und Markierung\Antwort mit Rückfragen.txt", @"6 - Skripte\Computer-Infos.txt",
+        @"7 - Bedingungen\Zusage oder Absage.txt", @"8 - Meldungen\Ja oder Nein.txt")]
+    [InlineData("en", "Welcome.txt", @"1 - Simple text\Kind regards.txt", @"1 - Simple text\Out of office.txt",
+        @"1 - Simple text\Audit insert.txt", @"2 - Text and selection\Reply with questions.txt", @"6 - Scripts\Computer info.txt",
+        @"7 - Conditions\Accept or decline.txt", @"8 - Messages\Yes or no.txt")]
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
         Assert.Equal(38, paths.Count);
-        Assert.Contains("Script-Samples.txt", paths);
+        Assert.Contains(JavaScriptBlocks(language), paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
     }
 
     /// <summary>
-    /// Die Beispiele liegen in nummerierten Themenordnern, die Bausteine darin ohne Nummer (alphabetisch). In beiden
-    /// Sprachen gleich viele Ordner, und in jedem gleich viele Dateien.
+    /// Die Beispiele liegen flach in nummerierten Themenordnern (im structure-Ordner unter Demo), die Bausteine darin
+    /// ohne Nummer (alphabetisch). Lose liegt nur der Willkommenstext. In beiden Sprachen gleich viele Ordner, und in
+    /// jedem gleich viele Dateien.
     /// </summary>
     [Fact]
     public void Examples_are_in_numbered_topic_folders_with_unnumbered_files()
     {
         static List<(string Folder, int Files)> Topics(string language) =>
         [
-            .. SampleStructure.Files(language).Select(f => f.Path.Split('\\')).Where(p => p[0].StartsWith("4 - ", StringComparison.Ordinal))
+            .. SampleStructure.Files(language).Select(f => f.Path.Split('\\')).Where(p => p.Length > 1)
                 .Select(p =>
                 {
-                    Assert.Equal(3, p.Length); // Beispiele\Thema\Datei
-                    Assert.Matches(@"^\d - ", p[1]);
-                    Assert.DoesNotMatch(@"^\d", p[2]);
-                    return p[1];
+                    Assert.Equal(2, p.Length); // Thema\Datei
+                    Assert.Matches(@"^\d - ", p[0]);
+                    Assert.DoesNotMatch(@"^\d", p[1]);
+                    return p[0];
                 })
                 .GroupBy(folder => folder).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => (g.Key, g.Count())),
         ];
+        Assert.Equal(["Willkommen.txt"], SampleStructure.Files("de").Select(f => f.Path).Where(p => !p.Contains('\\')));
+        Assert.Equal(["Welcome.txt"], SampleStructure.Files("en").Select(f => f.Path).Where(p => !p.Contains('\\')));
         var de = Topics("de");
         var en = Topics("en");
-        Assert.Equal(7, de.Count);
+        Assert.Equal(8, de.Count);
         Assert.Equal(de.Select(t => (t.Folder[..1], t.Files)), en.Select(t => (t.Folder[..1], t.Files)));
     }
 
@@ -69,7 +76,7 @@ public class SampleStructureTests
     [InlineData("en", "en-US")]
     public void Every_sample_runs_without_errors(string language, string culture)
     {
-        Assert.Equal(16, SampleStructure.Files(language).Single(f => f.Path == "Script-Samples.txt").Text.Trim().Split("\r\n").Length);
+        Assert.Equal(16, SampleStructure.Files(language).Single(f => f.Path == JavaScriptBlocks(language)).Text.Split("\r\n").Count(l => l.Contains(":\t")));
         foreach (var (path, text) in SampleStructure.Files(language))
         foreach (var clipboard in new[] { "", "Hallo Welt", "{\"a\": 1}", "Zeile 1\r\nZeile 2" })
         {
@@ -112,8 +119,9 @@ public class SampleStructureTests
     public void Examples_have_no_errors_and_their_description_is_not_pasted(string language, string culture)
     {
         var files = SampleStructure.Files(language);
-        var examples = files.Where(f => f.Path.StartsWith("4 - ", StringComparison.Ordinal) && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(27, examples.Count);
+        // Ab Ordner 2 hat jeder Baustein oben eine Beschreibung, die einfachen Texte in 1 nicht
+        var examples = files.Where(f => f.Path[0] is >= '2' and <= '8' && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
+        Assert.Equal(28, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -135,7 +143,7 @@ public class SampleStructureTests
             }
         }
 
-        // "Grüsse/Freundliche Grüsse" für "1 - Grüsse\Freundliche Grüsse.txt": Nummer und Endung dürfen fehlen
+        // "Einfacher Text/Freundliche Grüsse" für "1 - Einfacher Text\Freundliche Grüsse.txt": Nummer und Endung dürfen fehlen
         static bool SamePath(string path, string name)
         {
             var have = path.Split('\\');
@@ -205,8 +213,8 @@ public class SampleStructureTests
 
     /// <summary>Die Batch-Datei neben dem Beispiel: run() findet sie im Ordner des Bausteins, mit Kunde eine Nummer, ohne einen Fehler.</summary>
     [Theory]
-    [InlineData("de", @"4 - Beispiele\5 - Skripte\Nummer per Batch-Datei", "Kein Kunde angegeben")]
-    [InlineData("en", @"4 - Examples\5 - Scripts\Number via batch file", "No customer given")]
+    [InlineData("de", @"6 - Skripte\Nummer per Batch-Datei", "Kein Kunde angegeben")]
+    [InlineData("en", @"6 - Scripts\Number via batch file", "No customer given")]
 
     public void Batch_example_runs_next_to_its_snippet(string language, string example, string error)
     {
@@ -232,19 +240,19 @@ public class SampleStructureTests
     {
         using var dir = new TempDirectory();
         SampleStructure.Extract(dir.Path, "de");
-        var file = Path.Combine(dir.Path, "1 - Grüsse", "Freundliche Grüsse.txt");
+        var file = Path.Combine(dir.Path, "1 - Einfacher Text", "Freundliche Grüsse.txt");
         Assert.Equal("Freundliche Grüsse\r\n\r\nVorname Nachname", File.ReadAllText(file));
         Assert.NotEqual(0xEF, File.ReadAllBytes(file)[0]);
     }
 
-    /// <summary>Erneuter Export aus den Einstellungen: geänderte Beispiele zurück, eigene Bausteine unberührt.</summary>
+    /// <summary>Export in einen anderen Ordner (Einstellungen): geänderte Beispiele zurück, eigene Bausteine unberührt.</summary>
     [Fact]
     public void Extract_again_restores_the_samples_and_keeps_other_files()
     {
         using var dir = new TempDirectory();
         SampleStructure.Extract(dir.Path, "de");
-        var sample = Path.Combine(dir.Path, "1 - Grüsse", "Freundliche Grüsse.txt");
-        var own = Path.Combine(dir.Path, "1 - Grüsse", "Eigener Gruss.txt");
+        var sample = Path.Combine(dir.Path, "1 - Einfacher Text", "Freundliche Grüsse.txt");
+        var own = Path.Combine(dir.Path, "1 - Einfacher Text", "Eigener Gruss.txt");
         File.WriteAllText(sample, "geändert");
         File.WriteAllText(own, "Mein Text");
 

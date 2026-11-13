@@ -6,10 +6,14 @@ namespace QuickHasteBot.Core;
 /// <summary>
 /// Beispielordner für den ersten Start: Samples\de und Samples\en im Projekt, als Ressource in der exe.
 /// So bleibt es bei einer einzigen exe, die Sprache passt zur Oberfläche, und ein über eine bestehende
-/// Installation entpacktes Update überschreibt keine Textbausteine.
+/// Installation entpacktes Update überschreibt keine Textbausteine. Im structure-Ordner landen sie in
+/// <see cref="DemoFolder"/>, den die Einstellungen jederzeit neu aufbauen.
 /// </summary>
 public static class SampleStructure
 {
+    /// <summary>Unterordner im structure-Ordner für die Beispiele, in beiden Sprachen gleich.</summary>
+    public const string DemoFolder = "Demo";
+
     const string Prefix = "Samples/";
     const string Fallback = "en";
 

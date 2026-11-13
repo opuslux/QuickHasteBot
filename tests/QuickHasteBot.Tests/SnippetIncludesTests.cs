@@ -107,12 +107,29 @@ public class SnippetIncludesTests
         Assert.Equal("1-Freundliche Grüsse", library.FindIncluded("3-Grüsse/1-Freundliche Grüsse")?.Name);
         Assert.Equal("1-Freundliche Grüsse", library.FindIncluded(@"grüsse\freundliche grüsse.txt")?.Name);
         Assert.Equal("Alt", library.FindIncluded("Grüsse/Archiv/Alt")?.Name);
-        // Ohne Ordner: erst oben, dann überall
+        // Ohne Ordner oder mit einem Pfad, den es oben nicht gibt: erst oben, dann in Unterordnern
         Assert.Equal("Notiz", library.FindIncluded("Notiz")?.Name);
         Assert.Equal("Alt", library.FindIncluded("Alt")?.Name);
-        Assert.Null(library.FindIncluded("Archiv/Alt"));
+        Assert.Equal("Alt", library.FindIncluded("Archiv/Alt")?.Name);
         Assert.Null(library.FindIncluded("Bild"));
         Assert.Null(library.FindIncluded("3-Grüsse"));
+        Assert.Null(library.FindIncluded("Archiv/Notiz"));
+    }
+
+    /// <summary>Die Beispiele liegen in Demo, ihr {include} nennt den Pfad ab dem Beispielordner. Ein Treffer oben geht vor.</summary>
+    [Fact]
+    public void Path_is_also_found_in_a_subfolder_but_the_top_level_wins()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"Demo\1 - Einfacher Text\Freundliche Grüsse.txt", "Demo");
+        using (var library = new SnippetLibrary(dir.Path, [".txt"]))
+            Assert.Equal(Path.Combine(dir.Path, @"Demo\1 - Einfacher Text\Freundliche Grüsse.txt"),
+                library.FindIncluded("Einfacher Text/Freundliche Grüsse")?.FullPath);
+
+        dir.File(@"Einfacher Text\Freundliche Grüsse.txt", "Eigene");
+        using (var library = new SnippetLibrary(dir.Path, [".txt"]))
+            Assert.Equal(Path.Combine(dir.Path, @"Einfacher Text\Freundliche Grüsse.txt"),
+                library.FindIncluded("Einfacher Text/Freundliche Grüsse")?.FullPath);
     }
 
     [Fact]

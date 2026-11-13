@@ -1,4 +1,4 @@
-{# Drei Fälle mit if, elseif und else, am Testformular aus «3 - Formulare». Den Baustein ruhig mehrmals hintereinander wählen.
+{# Drei Fälle mit if, elseif und else, am Testformular aus «Formulare». Den Baustein ruhig mehrmals hintereinander wählen.
 Ist das Formular nicht offen (if,not,title=…), meldet msg(), dass es zuerst geöffnet werden muss.
 Wurde es schon abgeschickt, ist der grüne Kasten «Empfangen» zu sehen (elseif mit window= und name=). Dann lädt f5 die Seite neu, alles ist wieder leer.
 Sonst füllt der Baustein den Vornamen aus und schickt das Formular ab.

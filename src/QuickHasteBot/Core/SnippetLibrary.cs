@@ -114,17 +114,18 @@ public sealed class SnippetLibrary : IDisposable
     /// <summary>
     /// Der Textbaustein zu einem Namen in {include,…}: "Ordner/Name" wie im Popup, mit / oder \, Gross/Klein egal.
     /// Jeder Teil darf mit oder ohne Nummer davor ("3-Grüsse" oder "Grüsse") und die Datei mit oder ohne Endung stehen.
-    /// Ein Name ohne Ordner, den es oben nicht gibt, wird überall gesucht. Bei mehreren gilt der erste in der Liste.
+    /// Ein Name oder Pfad, den es oben nicht gibt, wird auch in Unterordnern gesucht ("Grüsse/Freundliche Grüsse" findet
+    /// "Demo\1 - Grüsse\Freundliche Grüsse.txt"). Bei mehreren gilt der erste in der Liste.
     /// </summary>
     public Snippet? FindIncluded(string path)
     {
         var segments = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (segments.Length == 0) return null;
         var all = All;
-        return all.FirstOrDefault(s => s.Kind == SnippetKind.Text && PathMatches(s, segments))
-            ?? (segments.Length == 1 ? all.FirstOrDefault(s => s.Kind == SnippetKind.Text && NameMatches(s, segments[0])) : null);
+        return all.FirstOrDefault(s => s.Kind == SnippetKind.Text && PathMatches(s, segments, fromRoot: true))
+            ?? all.FirstOrDefault(s => s.Kind == SnippetKind.Text && PathMatches(s, segments, fromRoot: false));
 
-        static bool PathMatches(Snippet snippet, string[] segments)
+        static bool PathMatches(Snippet snippet, string[] segments, bool fromRoot)
         {
             var node = snippet;
             for (var i = segments.Length - 1; i >= 0; i--)
@@ -132,7 +133,7 @@ public sealed class SnippetLibrary : IDisposable
                 if (node is null || node.RelativePath.Length == 0 || !NameMatches(node, segments[i])) return false;
                 node = node.Parent;
             }
-            return node is { RelativePath.Length: 0 };
+            return !fromRoot || node is { RelativePath.Length: 0 };
         }
 
         static bool NameMatches(Snippet node, string segment) =>
