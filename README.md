@@ -234,7 +234,9 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches, in the language of the interface or in English (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
 - **Formatted text:** Ctrl+Shift+V inserts formatted text from the clipboard as an [`{html}` block](#formatted-text); Ctrl+V stays plain text.
 - **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
-- **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **JS-AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
+- **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **JavaScript AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
+- **HasteScript AI** puts a complete prompt for any AI on the clipboard, with the whole snippet and this manual, to [fix, improve or extend the snippet](#improving-a-script-with-hastescript-ai).
+- **Narrow window:** buttons that don't fit move to a second row.
 - **Colors** show what will happen: key tags like `{tab}` in blue, element, window and start tags in purple with the selector in teal, `{{ … }}` scripts with keywords, strings, numbers and helpers colored. Plain text and anything in braces that isn't a tag, like `{name}` or JSON, stays uncolored. A known tag with wrong arguments, like `{tab,x}` or `{wait}`, is underlined in red and would be pasted as text; hovering it tells why. The colors follow the light or dark theme.
 - **Hovering** a tag, a comment or a script helper like `date` or `run` explains what it does, with the same text as in **Insert tag ▾**; on a red tag, the reason comes first.
 - **Line wrapping:** the ↵ button at the bottom right of the text switches it off and on, e.g. for snippets with aligned columns (`WrapEditor` in `settings.json`, on by default). Shift+mouse wheel scrolls long lines sideways.
@@ -385,7 +387,7 @@ Computer: {{ run('powershell', '-NoProfile -Command "$env:COMPUTERNAME"', { hidd
 
 ### Writing a block with AI
 
-The **JS-AI** button in the editor or "Write a script block with AI…" in the tray menu opens a small prompt window:
+The **JavaScript AI** button in the editor or "Write a script block with AI…" in the tray menu opens a small prompt window:
 
 1. **Describe** what the block should insert, in any language, e.g. "the date in 14 days with the weekday". As long as there is no text of your own, the field starts with one of ten ready-made examples, selected so typing replaces it; the light bulb goes on to the next one.
 2. **Send** with "Open in ChatGPT" or Ctrl+Enter. QuickHasteBot adds the rules of the script engine, the helpers listed above and two examples, and opens the AI with the full prompt (it can be expanded in the window).
@@ -399,6 +401,20 @@ The window stays open after sending, so the prompt can be adjusted and sent agai
 **Service:** chosen at the bottom left of the prompt window or in the settings under "AI for scripts", and remembered: ChatGPT (default, free without an account), Google AI Mode or Perplexity. Google AI Mode tends to show search results instead of code. Any other service can be entered by hand as `AiPromptUrl` in `settings.json`, with `{prompt}` for the prompt and `{lang}` for the interface language, e.g. `https://claude.ai/new?q={prompt}`; the settings then show it as "Custom address".
 
 **Template:** "Edit template" creates `ai-prompt.txt` next to the exe with the built-in prompt and opens it. `{task}` stands for what you typed; changes apply the next time you send. "Reset template" (shown once the file exists) moves it to the Recycle Bin, and the built-in prompt applies again.
+
+### Improving a script with HasteScript AI
+
+HasteScript is what a snippet is written in: plain text with [key tags](#forms-key-tags), [element tags](#elements-focus-click-set), [conditions](#conditions-if-elseif-else), comments and [`{{ … }}` scripts](#scripts). **JavaScript AI** writes a single `{{ … }}` block; **HasteScript AI** in the editor helps with the whole snippet: it fixes errors, improves it or adds what you ask for.
+
+1. **Describe** what the AI should do, in any language, e.g. "the Save button is sometimes not clicked" or "also fill in the phone number". Left empty, the AI checks the snippet for errors and improves it.
+2. **Copy prompt** (or Ctrl+Enter) puts the prompt on the clipboard. Besides your request, it contains instructions for the AI, the script parts of this manual as reference, and the snippet as it is in the editor right now: its name, the selection (if any, the AI should change only that part), the tags underlined in red with their reason and the error a script block fails with. The line below the field says what goes along, and "Full prompt" shows all of it.
+3. **Paste** it into the AI of your choice (Ctrl+V), e.g. ChatGPT, Claude, Gemini or Copilot. The prompt is too long for a web address, so unlike JavaScript AI no browser opens.
+4. **The answer** explains what was wrong, gives the complete new snippet in one code block, and lists any steps you have to do yourself. The AI can't see your screen, so it doesn't guess buttons or fields it doesn't know: it tells you where they belong, and you add them with "Pick element" and "Insert into editor". If your request is unclear, it may ask back first.
+5. **Use it:** copy the code block with its copy button, replace the text in the editor, and try it with Test or Step by step.
+
+The prompt contains your snippet, so check it for passwords and personal data (e.g. values in `{set,…}`) before giving it to an AI. The window belongs to its editor: it reads the snippet again whenever it is activated, and keeps your request until the editor is closed. Esc or "Close" closes it.
+
+**Template:** "Edit template" creates `hastescript-prompt.txt` next to the exe with the built-in prompt and opens it. `{task}` stands for your request, `{snippet}` for the snippet and `{docs}` for the reference; if one of them is missing, its part is added at the end. "Reset template" moves the file to the Recycle Bin.
 
 ## Forms: key tags
 
@@ -659,6 +675,7 @@ Everything lives next to `QuickHasteBot.exe`:
 - `structure\` with your snippets. The path can be changed in the settings (relative, absolute, or with `%USERPROFILE%`).
 - `settings.json` with the settings. It can also be edited by hand, e.g. `"Hotkey": "Ctrl+Alt+Space"`, `"Language": "en"`, `"de"` or empty for the Windows language, `"Theme": "System"`, `"Light"` or `"Dark"`.
 - `ai-prompt.txt` (optional) with your own [prompt template for the AI](#writing-a-block-with-ai).
+- `hastescript-prompt.txt` (optional) with your own [prompt template for HasteScript AI](#improving-a-script-with-hastescript-ai).
 - `QuickHasteBot.log` with errors, startup information and every program and script a snippet starts. Only written when "Write log file" is on in the settings (`"WriteLog": true`), off by default. Over 1 MB it is renamed to `QuickHasteBot.log.old`.
 
 The only thing written elsewhere is the short animation in the settings window, which is extracted to `%TEMP%\QuickHasteBot` the first time the settings open.

@@ -823,59 +823,73 @@ internal sealed class AppController : IDisposable
         ShellOpen(ScriptPrompt.Url(Settings.AiPromptUrl, prompt, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName));
     }
 
-    /// <summary>Inhalt von ai-prompt.txt, null ohne Datei (dann gilt der eingebaute Prompt).</summary>
-    public string? ReadAiPromptTemplate()
+    /// <summary>Die eigene Vorlage für "Skriptblock mit KI", ai-prompt.txt mit {task}.</summary>
+    internal PromptTemplate AiTemplate => new(_paths.AiPromptFile, ScriptPrompt.DefaultTemplate);
+
+    /// <summary>Die eigene Vorlage für "HasteScript AI", hastescript-prompt.txt.</summary>
+    internal PromptTemplate HasteScriptTemplate => new(_paths.HasteScriptPromptFile, HasteScriptPrompt.DefaultTemplate);
+
+    public string? ReadAiPromptTemplate() => ReadTemplate(AiTemplate);
+
+    public void EditAiPromptTemplate() => EditTemplate(AiTemplate);
+
+    public bool HasAiPromptTemplate => AiTemplate.Exists;
+
+    public void ResetAiPromptTemplate(nint owner) => ResetTemplate(AiTemplate, owner);
+
+    internal string CreateAiPromptTemplate() => CreateTemplate(AiTemplate);
+
+    /// <summary>Inhalt der Vorlage, null ohne Datei (dann gilt der eingebaute Prompt).</summary>
+    internal static string? ReadTemplate(PromptTemplate template)
     {
-        if (!File.Exists(_paths.AiPromptFile)) return null;
+        if (!template.Exists) return null;
         try
         {
-            return TextFileReader.Read(_paths.AiPromptFile);
+            return TextFileReader.Read(template.Path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Log.Error($"KI-Vorlage konnte nicht gelesen werden: {_paths.AiPromptFile}", ex);
+            Log.Error($"KI-Vorlage konnte nicht gelesen werden: {template.Path}", ex);
             return null;
         }
     }
 
-    /// <summary>Legt ai-prompt.txt beim ersten Mal mit dem eingebauten Prompt an und öffnet sie im Editor.</summary>
-    public void EditAiPromptTemplate()
+    /// <summary>Legt die Vorlage beim ersten Mal mit dem eingebauten Prompt an und öffnet sie im Editor.</summary>
+    internal void EditTemplate(PromptTemplate template)
     {
         try
         {
-            CreateAiPromptTemplate();
-            ShellOpen(_paths.AiPromptFile);
+            CreateTemplate(template);
+            ShellOpen(template.Path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            Log.Error($"KI-Vorlage konnte nicht angelegt werden: {_paths.AiPromptFile}", ex);
-            MessageDialog.Show(string.Format(Strings.AiPromptTemplateErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
+            Log.Error($"KI-Vorlage konnte nicht angelegt werden: {template.Path}", ex);
+            MessageDialog.Show(string.Format(Strings.AiPromptTemplateErrorFormat, template.FileName, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
-    public bool HasAiPromptTemplate => File.Exists(_paths.AiPromptFile);
-
-    /// <summary>Zurück zum eingebauten Prompt: ai-prompt.txt kommt in den Papierkorb, eigene Änderungen bleiben so wiederherstellbar.</summary>
-    public void ResetAiPromptTemplate(nint owner)
+    /// <summary>Zurück zum eingebauten Prompt: Die Vorlage kommt in den Papierkorb, eigene Änderungen bleiben so wiederherstellbar.</summary>
+    internal static void ResetTemplate(PromptTemplate template, nint owner)
     {
-        if (!HasAiPromptTemplate) return;
+        if (!template.Exists) return;
         try
         {
-            RecycleBin.Delete(_paths.AiPromptFile, owner);
+            RecycleBin.Delete(template.Path, owner);
         }
         catch (IOException ex)
         {
-            Log.Error($"KI-Vorlage konnte nicht gelöscht werden: {_paths.AiPromptFile}", ex);
-            MessageDialog.Show(string.Format(Strings.AiPromptResetErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
+            Log.Error($"KI-Vorlage konnte nicht gelöscht werden: {template.Path}", ex);
+            MessageDialog.Show(string.Format(Strings.AiPromptResetErrorFormat, template.FileName, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
     /// <returns>Pfad der Vorlage. Eine vorhandene bleibt, wie sie ist.</returns>
-    internal string CreateAiPromptTemplate()
+    internal static string CreateTemplate(PromptTemplate template)
     {
-        if (!File.Exists(_paths.AiPromptFile))
-            File.WriteAllText(_paths.AiPromptFile, ScriptPrompt.DefaultTemplate);
-        return _paths.AiPromptFile;
+        if (!template.Exists)
+            File.WriteAllText(template.Path, template.Default);
+        return template.Path;
     }
 
     public void RevealInExplorer(Snippet snippet)

@@ -120,7 +120,7 @@ Start {1} without administrator rights (in its shortcut: Properties › Advanced
   <data name="EditorPicker" xml:space="preserve"><value>Pick element</value></data>
   <data name="EditorPickerToolTip" xml:space="preserve"><value>Opens the crosshair picker; "Insert into editor" puts the tag at the cursor here</value></data>
   <data name="EditorPickerMenu" xml:space="preserve"><value>Pick with the crosshair…</value></data>
-  <data name="EditorAi" xml:space="preserve"><value>JS-AI</value></data>
+  <data name="EditorAi" xml:space="preserve"><value>JavaScript AI</value></data>
   <data name="EditorPreviewError" xml:space="preserve"><value>Script error</value></data>
   <data name="EditorPreviewScript" xml:space="preserve"><value>This block gives</value></data>
   <data name="EditorPreviewSelection" xml:space="preserve"><value>The selection gives</value></data>
@@ -373,14 +373,14 @@ The date of next Monday</value></data>
   <data name="AiServiceToolTip" xml:space="preserve"><value>Where the sparkle icon in the popup sends the prompt for a script block</value></data>
   <data name="AiServiceCustom" xml:space="preserve"><value>Custom address</value></data>
   <data name="AiPromptEditTemplate" xml:space="preserve"><value>Edit template</value></data>
-  <data name="AiPromptTemplateErrorFormat" xml:space="preserve"><value>The template ai-prompt.txt could not be created:
-{0}</value></data>
+  <data name="AiPromptTemplateErrorFormat" xml:space="preserve"><value>The template {0} could not be created:
+{1}</value></data>
   <data name="AiPromptTestHeading" xml:space="preserve"><value>Test the answer</value></data>
   <data name="AiPromptTestPlaceholder" xml:space="preserve"><value>Paste the {{ … }} block from the answer here, it runs right away</value></data>
   <data name="AiPromptResetTemplate" xml:space="preserve"><value>Reset template</value></data>
-  <data name="AiPromptResetConfirm" xml:space="preserve"><value>Go back to the built-in prompt? Your ai-prompt.txt is moved to the Recycle Bin.</value></data>
-  <data name="AiPromptResetErrorFormat" xml:space="preserve"><value>The template ai-prompt.txt could not be deleted:
-{0}</value></data>
+  <data name="AiPromptResetConfirm" xml:space="preserve"><value>Go back to the built-in prompt? Your {0} is moved to the Recycle Bin.</value></data>
+  <data name="AiPromptResetErrorFormat" xml:space="preserve"><value>The template {0} could not be deleted:
+{1}</value></data>
   <data name="AiPromptCopyBlock" xml:space="preserve"><value>Copy block</value></data>
   <data name="AiPromptWrapped" xml:space="preserve"><value>The answer had no {{ … }}, "Copy block" adds it.</value></data>
   <data name="AiPromptTestEmpty" xml:space="preserve"><value>The result is empty.</value></data>
@@ -389,6 +389,23 @@ The date of next Monday</value></data>
   <data name="AiPromptTestExample" xml:space="preserve"><value>{{ ['Yes', 'No', 'Maybe', 'Tomorrow'][Math.random() * 4 | 0] }}</value></data>
   <data name="AiPromptTestUseExample" xml:space="preserve"><value>Take over the example (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
+  <data name="EditorHasteScriptAi" xml:space="preserve"><value>HasteScript AI</value></data>
+  <data name="HasteScriptAiToolTip" xml:space="preserve"><value>Copy a prompt for any AI to fix, improve or extend this script</value></data>
+  <data name="HasteScriptAiTitleFormat" xml:space="preserve"><value>{0} – HasteScript AI</value></data>
+  <data name="HasteScriptAiLabel" xml:space="preserve"><value>What should the AI do with the script?</value></data>
+  <data name="HasteScriptAiPlaceholder" xml:space="preserve"><value>e.g. "the Save button is sometimes not clicked" or "also fill in the phone number". Left empty, the AI checks the script for errors and improves it.</value></data>
+  <data name="HasteScriptAiIncludesFormat" xml:space="preserve"><value>Goes along: {0}, the HasteScript reference and your request.</value></data>
+  <data name="HasteScriptAiScriptFormat" xml:space="preserve"><value>the script ({0} lines)</value></data>
+  <data name="HasteScriptAiScriptEmpty" xml:space="preserve"><value>an empty script, so the AI writes a new one</value></data>
+  <data name="HasteScriptAiProblemsFormat" xml:space="preserve"><value>problems found by the editor ({0})</value></data>
+  <data name="HasteScriptAiSelectionLineFormat" xml:space="preserve"><value>the selection (line {0})</value></data>
+  <data name="HasteScriptAiSelectionLinesFormat" xml:space="preserve"><value>the selection (lines {0}–{1})</value></data>
+  <data name="HasteScriptAiSizeFormat" xml:space="preserve"><value>about {0} characters</value></data>
+  <data name="HasteScriptAiHint" xml:space="preserve"><value>Paste it into the AI of your choice (Ctrl+V). It answers with the complete script and tells you where to insert elements with "Pick element".</value></data>
+  <data name="HasteScriptAiPrivacy" xml:space="preserve"><value>The prompt contains your script. Check it for passwords and personal data before you give it to an AI.</value></data>
+  <data name="HasteScriptAiCopy" xml:space="preserve"><value>Copy prompt</value></data>
+  <data name="HasteScriptAiCopied" xml:space="preserve"><value>Copied, now paste it into your AI (Ctrl+V).</value></data>
+  <data name="HasteScriptAiCopyFailed" xml:space="preserve"><value>The clipboard is in use by another program. Please try again.</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Edit</value></data>
   <data name="MenuShowInExplorer" xml:space="preserve"><value>Show in Explorer</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Rename…</value></data>

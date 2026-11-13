@@ -120,7 +120,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="EditorPicker" xml:space="preserve"><value>Element erfassen</value></data>
   <data name="EditorPickerToolTip" xml:space="preserve"><value>Öffnet den Fadenkreuz-Picker; «In Editor einfügen» setzt den Tag hier an die Schreibmarke</value></data>
   <data name="EditorPickerMenu" xml:space="preserve"><value>Mit dem Fadenkreuz erfassen…</value></data>
-  <data name="EditorAi" xml:space="preserve"><value>JS-KI</value></data>
+  <data name="EditorAi" xml:space="preserve"><value>JavaScript-KI</value></data>
   <data name="EditorPreviewError" xml:space="preserve"><value>Skriptfehler</value></data>
   <data name="EditorPreviewScript" xml:space="preserve"><value>Dieser Block ergibt</value></data>
   <data name="EditorPreviewSelection" xml:space="preserve"><value>Die Auswahl ergibt</value></data>
@@ -373,14 +373,14 @@ Das Datum vom nächsten Montag</value></data>
   <data name="AiServiceToolTip" xml:space="preserve"><value>Wohin die Funkelsterne im Popup den Prompt für einen Skriptblock schicken</value></data>
   <data name="AiServiceCustom" xml:space="preserve"><value>Eigene Adresse</value></data>
   <data name="AiPromptEditTemplate" xml:space="preserve"><value>Vorlage bearbeiten</value></data>
-  <data name="AiPromptTemplateErrorFormat" xml:space="preserve"><value>Die Vorlage ai-prompt.txt konnte nicht angelegt werden:
-{0}</value></data>
+  <data name="AiPromptTemplateErrorFormat" xml:space="preserve"><value>Die Vorlage {0} konnte nicht angelegt werden:
+{1}</value></data>
   <data name="AiPromptTestHeading" xml:space="preserve"><value>Antwort testen</value></data>
   <data name="AiPromptTestPlaceholder" xml:space="preserve"><value>Den {{ … }}-Block aus der Antwort hier einfügen, er läuft sofort</value></data>
   <data name="AiPromptResetTemplate" xml:space="preserve"><value>Vorlage zurücksetzen</value></data>
-  <data name="AiPromptResetConfirm" xml:space="preserve"><value>Zurück zum eingebauten Prompt? Deine ai-prompt.txt kommt in den Papierkorb.</value></data>
-  <data name="AiPromptResetErrorFormat" xml:space="preserve"><value>Die Vorlage ai-prompt.txt konnte nicht gelöscht werden:
-{0}</value></data>
+  <data name="AiPromptResetConfirm" xml:space="preserve"><value>Zurück zum eingebauten Prompt? Deine {0} kommt in den Papierkorb.</value></data>
+  <data name="AiPromptResetErrorFormat" xml:space="preserve"><value>Die Vorlage {0} konnte nicht gelöscht werden:
+{1}</value></data>
   <data name="AiPromptCopyBlock" xml:space="preserve"><value>Block kopieren</value></data>
   <data name="AiPromptWrapped" xml:space="preserve"><value>Die Antwort hatte kein {{ … }}, «Block kopieren» ergänzt es.</value></data>
   <data name="AiPromptTestEmpty" xml:space="preserve"><value>Das Ergebnis ist leer.</value></data>
@@ -389,6 +389,23 @@ Das Datum vom nächsten Montag</value></data>
   <data name="AiPromptTestExample" xml:space="preserve"><value>{{ ['Ja', 'Nein', 'Vielleicht', 'Morgen'][Math.random() * 4 | 0] }}</value></data>
   <data name="AiPromptTestUseExample" xml:space="preserve"><value>Beispiel übernehmen (F5)</value></data>
   <data name="AiPromptTestErrorFormat" xml:space="preserve"><value>Block {0}: {1}</value></data>
+  <data name="EditorHasteScriptAi" xml:space="preserve"><value>HasteScript-KI</value></data>
+  <data name="HasteScriptAiToolTip" xml:space="preserve"><value>Prompt für eine beliebige KI kopieren, um dieses Skript zu reparieren, zu verbessern oder zu erweitern</value></data>
+  <data name="HasteScriptAiTitleFormat" xml:space="preserve"><value>{0} – HasteScript-KI</value></data>
+  <data name="HasteScriptAiLabel" xml:space="preserve"><value>Was soll die KI mit dem Skript tun?</value></data>
+  <data name="HasteScriptAiPlaceholder" xml:space="preserve"><value>z.B. «Der Speichern-Knopf wird manchmal nicht geklickt» oder «Auch die Telefonnummer ausfüllen». Leer prüft die KI das Skript auf Fehler und verbessert es.</value></data>
+  <data name="HasteScriptAiIncludesFormat" xml:space="preserve"><value>Kommt mit: {0}, die HasteScript-Referenz und deine Aufgabe.</value></data>
+  <data name="HasteScriptAiScriptFormat" xml:space="preserve"><value>das Skript ({0} Zeilen)</value></data>
+  <data name="HasteScriptAiScriptEmpty" xml:space="preserve"><value>ein leeres Skript, die KI schreibt also ein neues</value></data>
+  <data name="HasteScriptAiProblemsFormat" xml:space="preserve"><value>Probleme laut Editor ({0})</value></data>
+  <data name="HasteScriptAiSelectionLineFormat" xml:space="preserve"><value>die Markierung (Zeile {0})</value></data>
+  <data name="HasteScriptAiSelectionLinesFormat" xml:space="preserve"><value>die Markierung (Zeilen {0}–{1})</value></data>
+  <data name="HasteScriptAiSizeFormat" xml:space="preserve"><value>etwa {0} Zeichen</value></data>
+  <data name="HasteScriptAiHint" xml:space="preserve"><value>In eine KI deiner Wahl einfügen (Strg+V). Sie antwortet mit dem ganzen Skript und sagt, wo du Elemente mit «Element erfassen» einfügst.</value></data>
+  <data name="HasteScriptAiPrivacy" xml:space="preserve"><value>Der Prompt enthält dein Skript. Prüfe es auf Passwörter und persönliche Daten, bevor du es einer KI gibst.</value></data>
+  <data name="HasteScriptAiCopy" xml:space="preserve"><value>Prompt kopieren</value></data>
+  <data name="HasteScriptAiCopied" xml:space="preserve"><value>Kopiert, jetzt in deine KI einfügen (Strg+V).</value></data>
+  <data name="HasteScriptAiCopyFailed" xml:space="preserve"><value>Die Zwischenablage ist gerade von einem anderen Programm belegt. Bitte nochmal versuchen.</value></data>
   <data name="MenuEdit" xml:space="preserve"><value>Bearbeiten</value></data>
   <data name="MenuShowInExplorer" xml:space="preserve"><value>Im Explorer anzeigen</value></data>
   <data name="MenuRename" xml:space="preserve"><value>Umbenennen…</value></data>
