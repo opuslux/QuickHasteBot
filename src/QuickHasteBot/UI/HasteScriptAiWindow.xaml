@@ -1,0 +1,73 @@
+<Window x:Class="QuickHasteBot.UI.HasteScriptAiWindow"
+        x:ClassModifier="internal"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:QuickHasteBot.UI"
+        Icon="pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico"
+        Width="560" SizeToContent="Height"
+        ResizeMode="CanMinimize" WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        PreviewKeyDown="OnPreviewKeyDown">
+
+    <Window.Resources>
+        <Style x:Key="Link" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="TextDecorations" Value="Underline" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Note" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="20,16,20,20">
+        <TextBlock Text="{x:Static ui:Strings.HasteScriptAiLabel}" Margin="0,0,0,8" />
+        <Grid>
+            <TextBox x:Name="TaskInput" AcceptsReturn="True" TextWrapping="Wrap" MinLines="3" MaxLines="8"
+                     VerticalScrollBarVisibility="Auto" TextChanged="OnTaskChanged" />
+            <TextBlock x:Name="Placeholder" Text="{x:Static ui:Strings.HasteScriptAiPlaceholder}" Margin="12,6,12,0"
+                       TextWrapping="Wrap" IsHitTestVisible="False"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Grid>
+
+        <!-- Was mitkommt: Skript, Probleme, Markierung. Rechts die Grösse des ganzen Prompts. -->
+        <DockPanel Margin="0,8,0,0">
+            <TextBlock x:Name="SizeText" DockPanel.Dock="Right" Style="{StaticResource Note}" Margin="12,0,0,0" />
+            <TextBlock x:Name="IncludesText" Style="{StaticResource Note}" />
+        </DockPanel>
+
+        <Expander Header="{x:Static ui:Strings.AiPromptPreview}" Margin="0,12,0,0">
+            <TextBox x:Name="PromptPreview" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="260" Margin="0,6,0,0"
+                     VerticalScrollBarVisibility="Auto" FontFamily="Cascadia Mono, Consolas" FontSize="11" />
+        </Expander>
+
+        <!-- Rechts: eigene Vorlage hastescript-prompt.txt, Zurücksetzen nur, wenn es eine gibt -->
+        <DockPanel Margin="0,12,0,0">
+            <StackPanel DockPanel.Dock="Right" Margin="12,0,0,0">
+                <TextBlock Text="{x:Static ui:Strings.AiPromptEditTemplate}" Style="{StaticResource Link}" HorizontalAlignment="Right"
+                           MouseLeftButtonUp="OnEditTemplate" />
+                <TextBlock x:Name="ResetTemplateLink" Text="{x:Static ui:Strings.AiPromptResetTemplate}" Style="{StaticResource Link}"
+                           HorizontalAlignment="Right" Margin="0,4,0,0" MouseLeftButtonUp="OnResetTemplate" />
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="{x:Static ui:Strings.HasteScriptAiHint}" Style="{StaticResource Note}" />
+                <TextBlock Text="{x:Static ui:Strings.HasteScriptAiPrivacy}" Style="{StaticResource Note}" Margin="0,6,0,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <DockPanel Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="CopyButton" Content="{x:Static ui:Strings.HasteScriptAiCopy}" MinWidth="100"
+                        Style="{DynamicResource AccentButtonStyle}" Click="OnCopy" />
+                <Button Content="{x:Static ui:Strings.Close}" MinWidth="100" Margin="8,0,0,0" Click="OnClose" />
+            </StackPanel>
+            <TextBlock x:Name="StatusText" Style="{StaticResource Note}" VerticalAlignment="Center" Margin="0,0,12,0" />
+        </DockPanel>
+    </StackPanel>
+</Window>

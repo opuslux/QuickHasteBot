@@ -101,7 +101,8 @@ internal sealed class SnippetHighlighting : DocumentColorizingTransformer, IDisp
 
     void UpdatePalette() => _palette = IsDark(_editor.Foreground) ? Dark : Light;
 
-    IReadOnlyList<SyntaxSpan> Spans()
+    /// <summary>Die Abschnitte des aktuellen Texts, zwischengespeichert bis zur nächsten Änderung. Auch für "HasteScript AI".</summary>
+    internal IReadOnlyList<SyntaxSpan> Spans()
     {
         var document = _editor.Document;
         if (_version is null || !_version.Equals(document.Version))

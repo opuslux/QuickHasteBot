@@ -44,6 +44,7 @@ public class WindowSmokeTests
             AskDialogAndUpdateLink();
             StepBarShowsStepsAndResult();
             EditorStepByStep();
+            EditorHasteScriptAi();
             EditorStartsWithWindow();
             SetPicksFromAListElsewhere();
             ContextMenuComesFirst();
@@ -1388,6 +1389,98 @@ public class WindowSmokeTests
 
         static System.Windows.Controls.Button FindButton(Window window, string text) =>
             Descendants<System.Windows.Controls.Button>(window).Single(b => b.IsVisible && (string)b.Content == text);
+    }
+
+    /// <summary>
+    /// HasteScript AI: Knopf in der Leiste (passt auch bei Mindestbreite), Fenster pro Editor, der Prompt mit Skript,
+    /// Problemen, Markierung und den deutschen Knopfnamen, die eigene Vorlage, die Aufgabe bleibt bis der Editor zugeht.
+    /// </summary>
+    static void EditorHasteScriptAi()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var editor = SnippetEditorWindow.New(controller, Path.Combine(dir.Path, "structure"));
+        editor.NameInput.Text = "Anmeldung";
+        const string text = "Hallo{tab,x}\r\nZeile 2\r\n{{ 1 + }}";
+        editor.BodyInput.Text = text;
+        Snapshot(editor, "editor-hastescript-ai-button.png");
+
+        // Kein Knopf der Leiste wird abgeschnitten, auch nicht beim schmalsten Editor mit den längeren deutschen Namen:
+        // Was nicht passt, bricht in eine zweite Zeile um, links von der Hilfe
+        Assert.Equal("JavaScript-KI", Strings.EditorAi);
+        // Ein neuer Editor ist breit genug für eine Zeile
+        Assert.Equal(editor.TagsButton.TranslatePoint(default, editor).Y, editor.RecordButton.TranslatePoint(default, editor).Y);
+        foreach (var width in new[] { editor.Width, editor.MinWidth })
+        {
+            editor.Width = width;
+            editor.UpdateLayout();
+            var buttons = editor.ToolbarButtons;
+            foreach (var button in buttons.Children.Cast<FrameworkElement>())
+            {
+                button.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                var corner = button.TranslatePoint(new Point(button.DesiredSize.Width - button.Margin.Right, button.ActualHeight), buttons);
+                Assert.True(corner.X <= buttons.ActualWidth + 0.5 && corner.Y <= buttons.ActualHeight + 0.5,
+                    $"Bei Breite {width} abgeschnitten: {button.ToolTip} endet bei {corner}, Platz {buttons.ActualWidth}×{buttons.ActualHeight}");
+            }
+            Assert.True(editor.HelpButton.TranslatePoint(new Point(0, 0), editor).X >= buttons.TranslatePoint(new Point(buttons.ActualWidth, 0), editor).X);
+        }
+        Snapshot(editor, "editor-toolbar-narrow.png");
+
+        editor.BodyInput.Select(text.IndexOf("Zeile", StringComparison.Ordinal), "Zeile 2".Length);
+        var ai = editor.ShowHasteScriptAi();
+        Assert.Same(ai, editor.ShowHasteScriptAi());
+        Assert.Same(editor, ai.Owner);
+        Snapshot(ai, "hastescript-ai.png");
+        Assert.Equal("Anmeldung – HasteScript-KI", ai.Title);
+        Assert.Equal("Kommt mit: das Skript (3 Zeilen), die Markierung (Zeile 2), Probleme laut Editor (2), die HasteScript-Referenz und deine Aufgabe.",
+            ai.IncludesText.Text);
+        Assert.Equal(Visibility.Visible, ai.Placeholder.Visibility);
+        Assert.Equal(Visibility.Collapsed, ai.ResetTemplateLink.Visibility);
+
+        // Leer: auf Fehler prüfen. Das rote Tag und der Skriptfehler kommen mit, die Knöpfe heissen wie in der Oberfläche.
+        Assert.EndsWith(HasteScriptPrompt.DefaultTask + "\n", ai.Prompt);
+        Assert.Contains("Name: Anmeldung.txt", ai.Prompt);
+        Assert.Contains("- Line 1: {tab,x} – ", ai.Prompt);
+        Assert.Contains("- Script: Block 1: ", ai.Prompt);
+        Assert.Contains("I selected this part (line 2)", ai.Prompt);
+        Assert.Contains("\"Element erfassen\" (Pick element)", ai.Prompt);
+        Assert.Equal(ai.Prompt, ai.PromptPreview.Text);
+        Assert.Contains("Zeichen", ai.SizeText.Text);
+
+        ai.TaskInput.Text = "Auch die Telefonnummer";
+        Assert.Equal(Visibility.Collapsed, ai.Placeholder.Visibility);
+        Assert.EndsWith("Auch die Telefonnummer\n", ai.Prompt);
+
+        // Eine Änderung im Editor zählt beim nächsten Aktivieren bzw. Kopieren
+        editor.BodyInput.Text = "Neu{enter}";
+        ai.Refresh();
+        Assert.Contains("```\nNeu{enter}\n```", ai.Prompt);
+        Assert.DoesNotContain("Problems found by the editor", ai.Prompt);
+
+        // Eigene Vorlage, Zurücksetzen erst dann sichtbar
+        var template = AppController.CreateTemplate(controller.HasteScriptTemplate);
+        Assert.Equal(Path.Combine(dir.Path, "hastescript-prompt.txt"), template);
+        Assert.Equal(HasteScriptPrompt.DefaultTemplate, File.ReadAllText(template));
+        File.WriteAllText(template, "Bitte: {task}\n{snippet}");
+        ai.Refresh();
+        Assert.Equal(Visibility.Visible, ai.ResetTemplateLink.Visibility);
+        Assert.StartsWith("Bitte: Auch die Telefonnummer\n", ai.Prompt);
+        Assert.EndsWith("# HasteScript reference\n\n" + HasteScriptPrompt.Docs(HelpWindow.ReadReadme()) + "\n", ai.Prompt);
+        File.Delete(template);
+
+        // Esc schliesst, die Aufgabe ist beim nächsten Öffnen wieder da
+        ai.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(ai)!, 0, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        Assert.False(ai.IsVisible);
+        var again = editor.ShowHasteScriptAi();
+        Assert.NotSame(ai, again);
+        Assert.Equal("Auch die Telefonnummer", again.TaskInput.Text);
+
+        // Geht mit dem Editor zu. Nichts geändert, was gespeichert werden müsste: ohne Rückfrage
+        editor.NameInput.Text = "";
+        editor.BodyInput.Text = "";
+        editor.Close();
+        Assert.False(again.IsVisible);
     }
 
     /// <summary>Editor: Knopf, Haltepunkte im Rand (Klick und F9), Markierung des Schritts, Sperre während des Laufs.</summary>

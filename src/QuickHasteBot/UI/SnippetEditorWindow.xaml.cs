@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -634,6 +635,60 @@ internal partial class SnippetEditorWindow : Window
     void OnPickerClick(object sender, RoutedEventArgs e) => _app.ShowElementPicker();
 
     void OnAiClick(object sender, RoutedEventArgs e) => _app.ShowAiPrompt();
+
+    void OnHasteScriptAiClick(object sender, RoutedEventArgs e) => ShowHasteScriptAi();
+
+    /// <summary>Ein Fenster pro Editor, gehört ihm und geht mit ihm zu. Ein weiterer Klick holt es nach vorne.</summary>
+    internal HasteScriptAiWindow ShowHasteScriptAi()
+    {
+        if (_hasteScriptAi is null)
+        {
+            var window = new HasteScriptAiWindow(_app, this, _hasteScriptAiTask) { Owner = this };
+            window.Closed += (_, _) =>
+            {
+                // Die Aufgabe bleibt, solange der Editor offen ist
+                _hasteScriptAiTask = window.TaskInput.Text;
+                if (_hasteScriptAi == window)
+                    _hasteScriptAi = null;
+            };
+            _hasteScriptAi = window;
+            window.Show();
+        }
+
+        if (_hasteScriptAi.WindowState == WindowState.Minimized)
+            _hasteScriptAi.WindowState = WindowState.Normal;
+        _hasteScriptAi.Activate();
+        return _hasteScriptAi;
+    }
+
+    HasteScriptAiWindow? _hasteScriptAi;
+    string _hasteScriptAiTask = "";
+
+    /// <summary>
+    /// Was "HasteScript AI" über den Text weiss: Markierung, rot unterstrichene Tags mit Grund und den Fehler, an dem das
+    /// Skript scheitert. Die Vorschau sendet nichts, und run() startet nichts.
+    /// </summary>
+    internal HasteScriptRequest HasteScriptAiRequest(string task)
+    {
+        var text = BodyInput.Text;
+        var problems = Highlighting.Spans()
+            .Where(s => s.Kind == SyntaxKind.Error)
+            .Select(s => $"Line {HasteScriptPrompt.LineAt(text, s.Start)}: {text.Substring(s.Start, s.Length)} – {s.Error}")
+            .ToList();
+        if (_app.Settings.EvaluateScripts && SnippetScript.HasBlocks(text) && _app.Preview(text).Error is { } error)
+            problems.Add("Script: " + error);
+
+        var buttons = new Dictionary<string, string>
+        {
+            ["Pick element"] = Strings.EditorPicker,
+            ["Insert into editor"] = Strings.PickerInsert,
+            ["Test"] = Strings.EditorTest,
+            ["Step by step"] = Strings.EditorStepRun,
+            ["Record"] = Strings.EditorRecord,
+        };
+        return new HasteScriptRequest(task, text, BodyInput.SelectionStart, BodyInput.SelectionLength, NameInput.Text,
+            _extension, AppVersion.Display(), CultureInfo.CurrentCulture.Name, problems, buttons);
+    }
 
     void OnHelpClick(object sender, RoutedEventArgs e) => _app.ShowHelp(HelpWindow.EditorAnchor);
 
