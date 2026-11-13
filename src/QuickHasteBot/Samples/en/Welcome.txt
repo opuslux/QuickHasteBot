@@ -2,6 +2,6 @@ Hello from QuickHasteBot!
 
 Create .txt files and subfolders in the structure folder next to the exe, they show up in the popup right away. The Demo folder is only for trying things out: it can be deleted, and Settings › "Export examples…" rebuilds it at any time. So don't keep your own snippets in Demo.
 
-The folders show what QuickHasteBot can do, by topic, one snippet each with a description at the top: simple texts, asking before pasting and changing selected text, formatted text, forms (with a test form to try them on), other programs and special keys, scripts and calculating, conditions that decide on the way what gets typed, and messages with Yes or No. Open them with right-click › Edit.
+The folders show what QuickHasteBot can do, by topic, one snippet each with a description at the top: simple texts, asking before pasting and changing selected text, formatted text, forms (with a test form to try them on), other programs and special keys, scripts and calculating, conditions that decide on the way what gets typed, and messages, from Yes or No to dice, an oracle and a tea timer. Open them with right-click › Edit.
 
 "JavaScript blocks" in "Scripts" shows what script blocks can do: dates, the clipboard, random values and more. The AI writes your own script blocks, via the sparkle icon in the popup.

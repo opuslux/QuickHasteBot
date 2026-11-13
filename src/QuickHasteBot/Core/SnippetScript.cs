@@ -39,7 +39,9 @@ public enum MessageIcon { None, Info, Question, Warning, Error }
 /// <param name="Title">Ohne Angabe "QuickHasteBot".</param>
 /// <param name="CloseSeconds">Nur msg(): schliesst sich nach so vielen Sekunden von selbst, 0 nie.</param>
 /// <param name="Confirm">confirm(): Ja und Nein statt OK.</param>
-public sealed record MessageRequest(string Text, string? Title, MessageIcon Icon, int CloseSeconds, bool Confirm);
+/// <param name="AfterSeconds">Nur msg(): erscheint erst nach so vielen Sekunden, im Hintergrund; der Baustein wartet nicht
+/// darauf. 0 sofort.</param>
+public sealed record MessageRequest(string Text, string? Title, MessageIcon Icon, int CloseSeconds, bool Confirm, int AfterSeconds = 0);
 
 /// <summary>Eine Frage aus ask(): die Beschriftung und die Vorgabe, wie sie im Baustein stehen.</summary>
 public sealed record Question(string Label, string Default);
@@ -99,12 +101,15 @@ public static partial class SnippetScript
         ("rclick(el)", "right-click an element; click('name=…') then picks from its context menu"),
         ("window(app)", "bring a program to the front"),
         ("run(file, args?, {wait, hidden, dir, args}?)", "runs a script or program right here and waits (wait in seconds, default 60; dir = working folder, default the script's); returns {code, out, err}, as text its output"),
-        ("msg(text, {title, icon, close}?)", "shows a message box and waits for OK; icon 'info', 'warning', 'error' or 'none'; close = closes itself after that many seconds"),
+        ("msg(text, {title, icon, close, after}?)", "shows a message box and waits for OK; icon 'info', 'warning', 'error' or 'none'; close = closes itself after that many seconds; after = shows it only after that many seconds in the background, the snippet doesn't wait (e.g. a timer)"),
         ("confirm(text, {title, icon}?)", "asks Yes or No in a message box, true for Yes; Esc stops the snippet"),
     ];
 
     /// <summary>So lange schliesst sich eine Meldung aus msg() höchstens von selbst, in Sekunden.</summary>
     public const int MaxMessageClose = 600;
+
+    /// <summary>So lange wartet eine Meldung aus msg() mit after höchstens, in Sekunden: ein Tag.</summary>
+    public const int MaxMessageAfter = 86_400;
 
     /// <summary>So lange wartet run() ohne Angabe, in Sekunden.</summary>
     public const int DefaultRunWait = 60;
@@ -305,6 +310,7 @@ public static partial class SnippetScript
         string? title = null;
         var icon = confirm ? MessageIcon.Question : MessageIcon.Info;
         var close = 0;
+        var after = 0;
         if (Arguments.At(args, 1) is ObjectInstance o)
         {
             title = Text(o.Get("title"));
@@ -326,6 +332,13 @@ public static partial class SnippetScript
                     throw new ArgumentException("confirm waits for an answer, close only works with msg()");
                 close = Math.Clamp((int)Math.Round(TypeConverter.ToNumber(c)), 0, MaxMessageClose);
             }
+            if (o.Get("after") is { } a && !a.IsUndefined())
+            {
+                if (confirm)
+                    throw new ArgumentException("confirm waits for an answer, after only works with msg()");
+                var seconds = TypeConverter.ToNumber(a);
+                after = double.IsNaN(seconds) ? 0 : (int)Math.Clamp(Math.Round(seconds), 0, MaxMessageAfter);
+            }
         }
         else if (!Arguments.At(args, 1).IsUndefined())
         {
@@ -334,7 +347,7 @@ public static partial class SnippetScript
 
         if (context.Message is null) return true;
         var answer = context.Message(new MessageRequest(KeyTags.StripMarkers(text), title is null ? null : KeyTags.StripMarkers(title),
-            icon, close, confirm));
+            icon, close, confirm, after));
         // Das Warten zählt nicht zur Zeitgrenze eines Blocks, wie bei run()
         engine.Constraints.Reset();
         // Esc oder das X bei confirm(): wie Esc sonst, der Baustein hört auf

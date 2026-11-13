@@ -1,0 +1,11 @@
+{# The oracle answers any yes-or-no question. It knows five levels from yes to no, all equally likely, and a few sayings for each.
+ask() first asks for the question, the message shows it with the saying, and the level is in the title bar. Nothing is typed.
+Add your own sayings to the list of the matching level. Please still make important decisions yourself.}
+{{ var question = ask('Your question for the oracle', 'Should I dare?'); var levels = [
+  ['Yes', ['The mists part, and there it is written plainly: yes.', 'The oracle has cast the bones. They all point upwards.', 'So be it! Fate nods at you.']],
+  ['Rather yes', ['The signs point to yes, even if a small cloud drifts by.', 'The oracle is inclined to agree. Quite inclined, in fact.', 'The ravens fly to the right. That is usually a good sign.']],
+  ['Maybe', ['The mists are too thick today. Ask again later, mortal.', 'The oracle sees two paths, and both lie in the haze.', 'The crystal ball shows … a question mark.']],
+  ['Rather no', ['The signs are crooked. The oracle advises caution.', 'A crow has cawed. The oracle takes that seriously.', 'The tea leaves form a no. A small one, but still.']],
+  ['No', ['The stars have spoken, and they say: no.', 'The oracle shakes its ancient head.', 'Not in this life, and probably not in the next one either.']],
+]; var level = levels[Math.floor(Math.random() * levels.length)]; var saying = level[1][Math.floor(Math.random() * level[1].length)] }}
+{{ msg((question ? question + '\n\n' : '') + saying, { title: 'The oracle says: ' + level[0], icon: 'none' }) }}

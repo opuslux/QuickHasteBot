@@ -1,0 +1,11 @@
+{# Das Orakel beantwortet jede Ja-Nein-Frage. Es kennt fünf Stufen von Ja bis Nein, alle gleich wahrscheinlich, und zu jeder ein paar Sprüche.
+ask() fragt vorher nach der Frage, die Meldung zeigt sie mit dem Spruch, die Stufe steht in der Titelleiste. Getippt wird nichts.
+Eigene Sprüche einfach in die Liste der passenden Stufe schreiben. Wichtige Entscheidungen bitte trotzdem selbst treffen.}
+{{ var frage = ask('Deine Frage an das Orakel', 'Soll ich es wagen?'); var stufen = [
+  ['Ja', ['Die Nebel lichten sich, und klar steht dort geschrieben: Ja.', 'Das Orakel hat die Knochen geworfen. Alle zeigen nach oben.', 'So sei es! Das Schicksal nickt dir zu.']],
+  ['Eher ja', ['Die Zeichen deuten auf Ja, auch wenn eine kleine Wolke vorbeizieht.', 'Das Orakel ist geneigt, dir zuzustimmen. Ziemlich geneigt sogar.', 'Die Raben fliegen nach rechts. Das ist meistens ein gutes Zeichen.']],
+  ['Vielleicht', ['Die Nebel sind heute zu dicht. Frag später noch einmal, Sterblicher.', 'Das Orakel sieht zwei Wege, und beide liegen im Dunst.', 'Die Kristallkugel zeigt … ein Fragezeichen.']],
+  ['Eher nein', ['Die Zeichen stehen schief. Das Orakel rät zur Vorsicht.', 'Eine Krähe hat gekrächzt. Das Orakel nimmt das ernst.', 'Die Teeblätter formen ein Nein. Ein kleines, aber immerhin.']],
+  ['Nein', ['Die Sterne haben gesprochen, und sie sagen: Nein.', 'Das Orakel schüttelt sein uraltes Haupt.', 'Nicht in diesem Leben, und im nächsten wohl auch nicht.']],
+]; var stufe = stufen[Math.floor(Math.random() * stufen.length)]; var spruch = stufe[1][Math.floor(Math.random() * stufe[1].length)] }}
+{{ msg((frage ? frage + '\n\n' : '') + spruch, { title: 'Das Orakel sagt: ' + stufe[0], icon: 'none' }) }}

@@ -33,7 +33,7 @@ public class SampleStructureTests
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(38, paths.Count);
+        Assert.Equal(41, paths.Count);
         Assert.Contains(JavaScriptBlocks(language), paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -121,7 +121,7 @@ public class SampleStructureTests
         var files = SampleStructure.Files(language);
         // Ab Ordner 2 hat jeder Baustein oben eine Beschreibung, die einfachen Texte in 1 nicht
         var examples = files.Where(f => f.Path[0] is >= '2' and <= '8' && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(28, examples.Count);
+        Assert.Equal(31, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -189,7 +189,95 @@ public class SampleStructureTests
             Paste("Ja oder Nein.txt", ""));
         Assert.Equal("Diese Zeile kam vor der Meldung.{enter}Und diese nach dem OK.{enter}", Paste("Meldung am Ende.txt", ""));
         Assert.Equal("", Paste("Computer-Infos als Meldung.txt", ""));
+        Assert.Equal("", Paste("Würfel.txt", ""));
+        Assert.Equal("", Paste("Orakel-Entscheider.txt", ""));
+        Assert.Equal("", Paste("Tee-Timer.txt", ""));
+    }
 
+    /// <summary>
+    /// Der Tee-Timer: Minuten:Sekunden oder nur Minuten, Unsinn gibt 5:00. Erst ein kurzer Hinweis, dann die Meldung mit
+    /// after, auf die der Baustein nicht wartet.
+    /// </summary>
+    [Theory]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "2:30", 150, "2:30")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "3", 180, "3:00")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "1,5", 90, "1:30")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "0:45", 45, "0:45")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "Tee", 300, "5:00")]
+    [InlineData("en", "Tea timer.txt", "Time (minutes:seconds)", "4:05", 245, "4:05")]
+    [InlineData("en", "Tea timer.txt", "Time (minutes:seconds)", "", 300, "5:00")]
+    public void Tea_timer_shows_a_message_after_the_time(string language, string name, string label, string answer, int seconds, string shown)
+    {
+        var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        var messages = new List<MessageRequest>();
+        var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+            Answers: new Dictionary<string, string> { [label] = answer }, Message: request => { messages.Add(request); return true; });
+        Assert.Equal("", SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context).Trim());
+
+        Assert.Equal(2, messages.Count);
+        Assert.Equal((3, 0), (messages[0].CloseSeconds, messages[0].AfterSeconds));
+        Assert.Contains(shown, messages[0].Text);
+        Assert.Equal((0, seconds), (messages[1].CloseSeconds, messages[1].AfterSeconds));
+        Assert.Contains(shown, messages[1].Text);
+    }
+
+    /// <summary>Würfel und Orakel zeigen nur eine Meldung: die Würfe passen zu Seiten und Anzahl, das Orakel nennt die Frage.</summary>
+    [Theory]
+    [InlineData("de", "Würfel.txt", "Wie viele Seiten?", "Wie viele Würfel?", "W", "Gewürfelt: ")]
+    [InlineData("en", "Dice.txt", "How many sides?", "How many dice?", "d", "You rolled: ")]
+    public void Dice_rolls_in_range_and_adds_up(string language, string name, string sidesLabel, string countLabel, string letter, string single)
+    {
+        var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        List<MessageRequest> Roll(string sides, string count)
+        {
+            var shown = new List<MessageRequest>();
+            var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+                Answers: new Dictionary<string, string> { [sidesLabel] = sides, [countLabel] = count },
+                Message: request => { shown.Add(request); return true; });
+            SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context);
+            return shown;
+        }
+
+        for (var i = 0; i < 50; i++)
+        {
+            var three = Assert.Single(Roll("20", "3"));
+            Assert.Equal("3" + letter + "20", three.Title);
+            var match = Regex.Match(three.Text, @"^(\d+) \+ (\d+) \+ (\d+) = (\d+)$");
+            Assert.True(match.Success, three.Text);
+            var rolls = Enumerable.Range(1, 3).Select(g => int.Parse(match.Groups[g].Value)).ToList();
+            Assert.All(rolls, r => Assert.InRange(r, 1, 20));
+            Assert.Equal(rolls.Sum(), int.Parse(match.Groups[4].Value));
+
+            var one = Assert.Single(Roll("", "x")); // Unsinn gibt einen normalen Würfel
+            Assert.Equal("1" + letter + "6", one.Title);
+            Assert.InRange(int.Parse(one.Text[single.Length..]), 1, 6);
+        }
+    }
+
+    /// <summary>Das Orakel: fünf Stufen von Ja bis Nein in der Titelleiste, alle kommen vor, die Frage steht über dem Spruch.</summary>
+    [Theory]
+    [InlineData("de", "Orakel-Entscheider.txt", "Deine Frage an das Orakel", "Das Orakel sagt: ", "Ja|Eher ja|Vielleicht|Eher nein|Nein")]
+    [InlineData("en", "Oracle decider.txt", "Your question for the oracle", "The oracle says: ", "Yes|Rather yes|Maybe|Rather no|No")]
+    public void Decider_answers_with_one_of_five_levels(string language, string name, string label, string prefix, string levels)
+    {
+        var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        var seen = new HashSet<string>();
+        var sayings = new HashSet<string>();
+        for (var i = 0; i < 300; i++)
+        {
+            var shown = new List<MessageRequest>();
+            var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+                Answers: new Dictionary<string, string> { [label] = "Pizza?" }, Message: request => { shown.Add(request); return true; });
+            Assert.Equal("", SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context).Trim());
+            var message = Assert.Single(shown);
+            Assert.StartsWith(prefix, message.Title);
+            seen.Add(message.Title![prefix.Length..]);
+            Assert.Equal(MessageIcon.None, message.Icon);
+            Assert.StartsWith("Pizza?\n\n", message.Text);
+            sayings.Add(message.Text["Pizza?\n\n".Length..]);
+        }
+        Assert.Equal(levels.Split('|').Order(), seen.Order());
+        Assert.Equal(15, sayings.Count);
     }
 
     [Theory]

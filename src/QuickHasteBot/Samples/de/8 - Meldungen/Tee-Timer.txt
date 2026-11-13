@@ -1,0 +1,6 @@
+{# Ein Tee-Timer: ask() fragt nach der Zeit als Minuten:Sekunden, z.B. 5:00 oder 2:30; eine Zahl allein sind Minuten. Getippt wird nichts.
+after wartet so viele Sekunden im Hintergrund. Der Baustein ist gleich fertig, alles andere geht weiter, und am Ende kommt die Meldung.
+close: 3 bestätigt kurz, dass der Timer läuft. Höchstens ein Tag; wird QuickHasteBot vorher beendet, fällt die Meldung weg.}
+{{ var zeit = ask('Zeit (Minuten:Sekunden)', '5:00').trim(); var teile = zeit.split(':'); var sekunden = Math.max(0, Math.round(teile.length > 1 ? (Number(teile[0]) || 0) * 60 + (Number(teile[1]) || 0) : (Number(zeit.replace(',', '.')) || 0) * 60)) || 300; var dauer = Math.floor(sekunden / 60) + ':' + String(sekunden % 60).padStart(2, '0') }}
+{{ msg('Der Timer läuft: ' + dauer + ' Minuten.', { title: 'Tee-Timer', close: 3 }) }}
+{{ msg('Der Tee ist fertig! (' + dauer + ' Minuten)', { title: 'Tee-Timer', after: sekunden }) }}

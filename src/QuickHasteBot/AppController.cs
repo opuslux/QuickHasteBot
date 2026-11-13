@@ -553,16 +553,39 @@ internal sealed class AppController : IDisposable
         return null;
     }
 
-    /// <summary>msg() und confirm() aus einem Skript: Das läuft im Hintergrund, die Meldung gehört auf den UI-Thread.</summary>
-    static bool? ScriptMessage(MessageRequest request) =>
-        Application.Current.Dispatcher.Invoke(() => MessageDialog.ShowScript(request.Text, request.Title, request.Icon switch
+    /// <summary>
+    /// msg() und confirm() aus einem Skript: Das läuft im Hintergrund, die Meldung gehört auf den UI-Thread. Mit after
+    /// kommt sie erst später, der Baustein läuft gleich weiter. Wird QuickHasteBot vorher beendet, fällt sie weg.
+    /// </summary>
+    static bool? ScriptMessage(MessageRequest request)
+    {
+        if (request.AfterSeconds > 0)
+        {
+            Log.Info($"msg() in {request.AfterSeconds} s: {request.Title ?? "QuickHasteBot"}");
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(request.AfterSeconds) };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    ShowScriptMessage(request);
+                };
+                timer.Start();
+            });
+            return true;
+        }
+        return Application.Current.Dispatcher.Invoke(() => ShowScriptMessage(request));
+    }
+
+    static bool? ShowScriptMessage(MessageRequest request) =>
+        MessageDialog.ShowScript(request.Text, request.Title, request.Icon switch
         {
             MessageIcon.Info => MessageBoxImage.Information,
             MessageIcon.Question => MessageBoxImage.Question,
             MessageIcon.Warning => MessageBoxImage.Warning,
             MessageIcon.Error => MessageBoxImage.Error,
             _ => MessageBoxImage.None,
-        }, request.CloseSeconds, request.Confirm));
+        }, request.CloseSeconds, request.Confirm);
 
     /// <summary>Was ask() bisher eingegeben bekam, als Vorschlag beim nächsten Mal. Nur solange das Programm läuft.</summary>
     readonly Dictionary<string, string> _lastAnswers = [];
