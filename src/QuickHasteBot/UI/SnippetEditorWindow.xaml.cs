@@ -79,6 +79,14 @@ internal partial class SnippetEditorWindow : Window
         UpdateTitle();
         UpdatePreview();
 
+        if (app.Settings.EditorBounds is { IsUsable: true } bounds)
+        {
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            // Ist schon ein Editor offen, etwas versetzt, sonst läge der neue genau darauf
+            SourceInitialized += (_, _) => WindowPlacement.Apply(this, bounds,
+                CascadeStep * Application.Current.Windows.OfType<SnippetEditorWindow>().Count(w => w != this && w.IsVisible));
+        }
+
         Loaded += (_, _) =>
         {
             if (path is null) NameInput.Focus();
@@ -1097,10 +1105,27 @@ internal partial class SnippetEditorWindow : Window
 
     void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
-        if (!IsDirty) return;
-        var answer = MessageDialog.Show(this, string.Format(Strings.EditorSaveChangesFormat, DisplayName),
-            MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Yes);
-        if (answer == MessageBoxResult.Cancel || answer == MessageBoxResult.Yes && !Save())
-            e.Cancel = true;
+        if (IsDirty)
+        {
+            var answer = MessageDialog.Show(this, string.Format(Strings.EditorSaveChangesFormat, DisplayName),
+                MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Yes);
+            if (answer == MessageBoxResult.Cancel || answer == MessageBoxResult.Yes && !Save())
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+        RememberBounds();
+    }
+
+    /// <summary>Um so viele Pixel steht jeder weitere offene Editor weiter rechts unten.</summary>
+    const int CascadeStep = 32;
+
+    /// <summary>Grösse und Stelle für den nächsten Editor, beim Schliessen.</summary>
+    void RememberBounds()
+    {
+        if (WindowPlacement.Read(this) is not { IsUsable: true } bounds || bounds == _app.Settings.EditorBounds) return;
+        _app.Settings.EditorBounds = bounds;
+        _app.SaveSettings();
     }
 }

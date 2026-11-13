@@ -133,6 +133,12 @@ public sealed class AppSettings
     /// <summary>Lange Zeilen im Editor umbrechen (Standard), sonst horizontal scrollen.</summary>
     public bool WrapEditor { get; set; } = true;
 
+    /// <summary>
+    /// Wo der zuletzt geschlossene Editor stand, und wie gross er war. Der nächste geht dort auf. Leer (Standard):
+    /// in der Mitte des Bildschirms.
+    /// </summary>
+    public WindowBounds? EditorBounds { get; set; }
+
     /// <summary>Das Popup öffnet im zuletzt angezeigten Ordner statt oben, mit dem damals markierten Eintrag.</summary>
     public bool RememberFolder { get; set; }
 
@@ -170,4 +176,14 @@ public sealed class AppSettings
     }
 
     public static PasteMode Other(PasteMode mode) => mode == PasteMode.Clipboard ? PasteMode.Typing : PasteMode.Clipboard;
+}
+
+/// <summary>
+/// Grösse und Stelle eines Fensters in Bildschirmpixeln, so wie es ohne Maximieren steht, und ob es maximiert war.
+/// </summary>
+public sealed record WindowBounds(int Left, int Top, int Width, int Height, bool Maximized = false)
+{
+    /// <summary>Von Hand eingetragen: ohne Breite oder Höhe gilt der Standard.</summary>
+    [JsonIgnore]
+    public bool IsUsable => Width > 0 && Height > 0;
 }

@@ -52,6 +52,7 @@ public class WindowSmokeTests
             RecordBarAndEditor();
             EditorInsertsPickedTagsOnTheirOwnLine();
             EditorWrapToggle();
+            EditorRemembersBounds();
             HelpShowsReadme();
             MarkdownBlocksAndClicks();
         }
@@ -148,6 +149,56 @@ public class WindowSmokeTests
     static IEnumerable<System.Windows.Documents.Hyperlink> Hyperlinks(System.Windows.Documents.TextElement element) =>
         System.Windows.LogicalTreeHelper.GetChildren(element).OfType<System.Windows.Documents.TextElement>()
             .SelectMany(child => child is System.Windows.Documents.Hyperlink link ? [link] : Hyperlinks(child));
+
+    /// <summary>
+    /// Der Editor merkt sich beim Schliessen Grösse, Stelle und Maximiert, der nächste geht dort auf, ein zweiter offener
+    /// etwas versetzt. Läge die Stelle auf keinem Bildschirm (Monitor abgesteckt), holt Windows ihn zurück.
+    /// </summary>
+    static void EditorRemembersBounds()
+    {
+        using var dir = new TempDirectory();
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var folder = Path.Combine(dir.Path, "structure");
+        SnippetEditorWindow Show()
+        {
+            var editor = SnippetEditorWindow.New(controller, folder);
+            editor.ShowActivated = false;
+            editor.Show();
+            return editor;
+        }
+        nint Handle(Window window) => new System.Windows.Interop.WindowInteropHelper(window).Handle;
+
+        // Ohne gemerkte Stelle wie bisher in der Mitte, beim Schliessen gemerkt und gespeichert
+        Assert.Null(controller.Settings.EditorBounds);
+        var first = Show();
+        Assert.True(NativeMethods.SetWindowPos(Handle(first), 0, 140, 120, 900, 650, 0x0014)); // SWP_NOZORDER | SWP_NOACTIVATE
+        var placed = WindowPlacement.Read(first)!;
+        Assert.Equal((900, 650, false), (placed.Width, placed.Height, placed.Maximized));
+        first.Close();
+        Assert.Equal(placed, controller.Settings.EditorBounds);
+        Assert.Contains(@"""EditorBounds"": {", File.ReadAllText(Path.Combine(dir.Path, "settings.json")));
+
+        // Der nächste geht dort auf, ein weiterer daneben versetzt; maximiert bleibt maximiert
+        var second = Show();
+        Assert.Equal(placed, WindowPlacement.Read(second));
+        var third = Show();
+        Assert.Equal(placed with { Left = placed.Left + 32, Top = placed.Top + 32 }, WindowPlacement.Read(third));
+        third.Close();
+        second.WindowState = WindowState.Maximized;
+        second.Close();
+        Assert.Equal(placed with { Maximized = true }, controller.Settings.EditorBounds);
+        var maximized = Show();
+        Assert.Equal(WindowState.Maximized, maximized.WindowState);
+        maximized.WindowState = WindowState.Normal;
+        Assert.Equal(placed, WindowPlacement.Read(maximized));
+        maximized.Close();
+
+        // Weit ausserhalb jedes Bildschirms: Windows holt ihn zurück
+        controller.Settings.EditorBounds = new WindowBounds(-30000, -30000, 800, 600);
+        var lost = Show();
+        Assert.NotEqual(0, NativeMethods.MonitorFromWindow(Handle(lost), 0)); // MONITOR_DEFAULTTONULL
+        lost.Close();
+    }
 
     /// <summary>Umbruch-Schalter unten rechts im Editor, wie in der Textvorschau des Popups, und Shift+Mausrad.</summary>
     static void EditorWrapToggle()
