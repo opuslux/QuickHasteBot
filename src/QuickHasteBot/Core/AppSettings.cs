@@ -133,6 +133,9 @@ public sealed class AppSettings
     /// <summary>Lange Zeilen im Editor umbrechen (Standard), sonst horizontal scrollen.</summary>
     public bool WrapEditor { get; set; } = true;
 
+    /// <summary>Zeilennummern links im Editor. Standard aus: Bausteine sind meist kurz.</summary>
+    public bool ShowLineNumbers { get; set; }
+
     /// <summary>
     /// Wo der zuletzt geschlossene Editor stand, und wie gross er war. Der nächste geht dort auf. Leer (Standard):
     /// in der Mitte des Bildschirms.
