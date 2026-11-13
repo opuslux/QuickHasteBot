@@ -1298,13 +1298,25 @@ public class WindowSmokeTests
     static void AskDialogAndUpdateLink()
     {
         UiLanguage.Apply("de");
-        var dialog = new AskDialog("Offerte", [new Question("Kunde", "Muster"), new Question("Betreff", "")],
+        var dialog = new AskDialog("Offerte", [new Question("Kunde", "Muster"), new Question("Betreff", "")], new AskWindowOptions(),
             new Dictionary<string, string> { ["Kunde"] = "Meier", ["Betreff"] = "Anfrage" });
         Snapshot(dialog, "ask.png");
         Assert.Equal("Offerte – QuickHasteBot", dialog.Title);
+        Assert.Equal("Einfügen", dialog.ConfirmButton.Content);
+        Assert.Equal("«Offerte» braucht vor dem Einfügen noch ein paar Angaben:", dialog.Prompt.Text);
+        Assert.Equal(Visibility.Visible, dialog.Symbol.Visibility);
         Assert.Equal(["Muster", "Anfrage"], dialog.Inputs.Select(i => i.Text));
         dialog.Inputs[1].Text = "Rückfrage";
         Assert.Equal("Rückfrage", dialog.Answers["Betreff"]);
+        dialog.Close();
+
+        // Eigener Knopf, Titel und Text aus den Optionen von ask()
+        dialog = new AskDialog("Orakel", [new Question("Deine Frage", "Soll ich?")],
+            new AskWindowOptions("Orakel befragen", "Das Orakel", "Was möchtest du wissen?"), new Dictionary<string, string>());
+        Snapshot(dialog, "ask-options.png");
+        Assert.Equal("Das Orakel", dialog.Title);
+        Assert.Equal("Orakel befragen", dialog.ConfirmButton.Content);
+        Assert.Equal("Was möchtest du wissen?", dialog.Prompt.Text);
         dialog.Close();
 
         using var dir = new TempDirectory();

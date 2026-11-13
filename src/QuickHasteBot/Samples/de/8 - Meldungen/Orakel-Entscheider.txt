@@ -1,7 +1,7 @@
 {# Das Orakel beantwortet jede Ja-Nein-Frage. Es kennt fünf Stufen von Ja bis Nein, alle gleich wahrscheinlich, und zu jeder ein paar Sprüche.
-ask() fragt vorher nach der Frage, die Meldung zeigt sie mit dem Spruch, die Stufe steht in der Titelleiste. Getippt wird nichts.
+ask() fragt vorher nach der Frage, mit eigenem Knopf und Titel, die Meldung zeigt sie mit dem Spruch, die Stufe steht in der Titelleiste. Getippt wird nichts.
 Eigene Sprüche einfach in die Liste der passenden Stufe schreiben. Wichtige Entscheidungen bitte trotzdem selbst treffen.}
-{{ var frage = ask('Deine Frage an das Orakel', 'Soll ich es wagen?'); var stufen = [
+{{ var frage = ask('Deine Frage an das Orakel', 'Soll ich es wagen?', { button: 'Orakel befragen', title: 'Das Orakel' }); var stufen = [
   ['Ja', ['Die Nebel lichten sich, und klar steht dort geschrieben: Ja.', 'Das Orakel hat die Knochen geworfen. Alle zeigen nach oben.', 'So sei es! Das Schicksal nickt dir zu.']],
   ['Eher ja', ['Die Zeichen deuten auf Ja, auch wenn eine kleine Wolke vorbeizieht.', 'Das Orakel ist geneigt, dir zuzustimmen. Ziemlich geneigt sogar.', 'Die Raben fliegen nach rechts. Das ist meistens ein gutes Zeichen.']],
   ['Vielleicht', ['Die Nebel sind heute zu dicht. Frag später noch einmal, Sterblicher.', 'Das Orakel sieht zwei Wege, und beide liegen im Dunst.', 'Die Kristallkugel zeigt … ein Fragezeichen.']],

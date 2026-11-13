@@ -270,7 +270,7 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `isoweek(days)` | The ISO calendar week (`45`), optionally shifted by `days` like `date()`. |
 | `clipboard` | The text that was on the clipboard before pasting. |
 | `selection` | The text that was selected in the target window before pasting, `''` if none. QuickHasteBot copies it with Ctrl+C and puts the clipboard back afterwards. |
-| `ask(label, default)` | Asks before pasting and gives what was typed, see [Asking before pasting](#asking-before-pasting). |
+| `ask(label, default, options)` | Asks before pasting and gives what was typed, see [Asking before pasting](#asking-before-pasting). |
 | `user` | The Windows user name. |
 | `guid()` | A new GUID, e.g. for reference numbers. |
 | `key(name, count)` | Presses a key instead of typing text, with the same names as the [key tags](#forms-key-tags): `key('tab')`, `key('shift+tab')`, `key('down', 3)`. The result has to end up in the output. |
@@ -302,7 +302,14 @@ your order {{ ask('Order number') }} ships on {{ date('dd.MM.yyyy', Number(ask('
 - All `ask()` of a snippet come in one window before anything is pasted, one field per label in the order they appear. The same label is asked once and gives the same answer everywhere, also in [included snippets](#snippets-in-snippets).
 - The second argument is a default, e.g. `ask('Days', '3')`. Without one, the field offers what was typed last time for that label (until QuickHasteBot is closed). The suggestion is selected, so typing replaces it.
 - Enter pastes, Esc cancels, and nothing is pasted. Test (F5) and Step by step ask on every run.
-- The label has to be written in quotes: `ask(label)` with a variable can't be asked beforehand and stops with a message.
+- Options go in braces after the label or the default and change the window: `button: 'Ask the oracle'` replaces "Paste", `title: 'Oracle'` the title bar and `text: 'What do you want to know?'` the line at the top:
+
+  ```
+  {{ var question = ask('Your question', 'Should I dare?', { button: 'Ask the oracle', title: 'Oracle' }) }}
+  ```
+
+  With several `ask()`, the first one that sets an option counts. Cancel and the question mark next to the fields stay as they are.
+- The label and the options have to be written in quotes: `ask(label)` or `{ button: b }` with a variable can't be asked beforehand and stops with a message.
 - The [preview](#editor) in the editor shows the default or `[label]` instead of asking.
 
 ### Running scripts
