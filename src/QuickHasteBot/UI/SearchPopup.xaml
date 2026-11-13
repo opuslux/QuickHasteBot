@@ -318,6 +318,8 @@
                     <Grid>
                         <ListBox x:Name="DetailList"
                                  ItemsSource="{Binding DetailItems}"
+                                 SelectedItem="{Binding DetailSelected}"
+                                 SelectionChanged="OnDetailSelectionChanged"
                                  Focusable="False"
                                  Background="Transparent" BorderThickness="0"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
