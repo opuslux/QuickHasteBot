@@ -6,7 +6,10 @@ public enum SyntaxKind
 {
     /// <summary>Tasten- und Ablauf-Tags: {tab}, {shift+tab}, {wait,500}, {guard,off}.</summary>
     Key,
-    /// <summary>Klammern, Name und Kommas von {focus,…}, {click,…}, {set,…}, {dblclick,…}, {rclick,…}, {window,…}, {start,…}.</summary>
+    /// <summary>
+    /// Klammern, Name und Kommas von {focus,…}, {click,…}, {set,…}, {dblclick,…}, {rclick,…}, {window,…}, {start,…},
+    /// dazu {html}…{/html} und {if,…} {elseif,…} {else} {/if}.
+    /// </summary>
     Element,
     /// <summary>Selektor bzw. Programm in einem Element-Tag, z.B. #email oder name=Senden.</summary>
     Argument,
@@ -72,6 +75,7 @@ public static partial class SnippetSyntax
         var html = keyTags ? KeyTags.HtmlPairs(text) : [];
         var htmlClose = -1;
         int? cursor = null; // die Spanne des ersten {cursor}
+        var blocks = new List<(int Start, int Length, FormStep Step)>(); // {if}, {elseif}, {else}, {/if}: Passen sie zusammen?
         foreach (Match match in KeyTags.Candidate().Matches(text))
         {
             if (match.Groups["note"].Success)
@@ -110,7 +114,16 @@ public static partial class SnippetSyntax
                 continue;
             }
 
+            if (KeyTags.IsIfEnd(content))
+            {
+                spans.Add(new(match.Index, match.Length, SyntaxKind.Element));
+                blocks.Add((match.Index, match.Length, new EndIfStep()));
+                continue;
+            }
+
             var steps = Tag(spans, match.Index, content, includeExists);
+            if (steps is [IfStep or ElseStep])
+                blocks.Add((match.Index, match.Length, steps[0]));
             if (steps is [CursorStep])
             {
                 if (cursor is null)
@@ -127,6 +140,15 @@ public static partial class SnippetSyntax
                     Error = $"only text may follow {{cursor}}, but {text.Substring(match.Index, match.Length)} comes after it",
                 };
             }
+        }
+
+        // Ein {else} ohne {if}, ein {if} ohne {/if} …: das Tag, an dem es hapert, rot. Laufen würde der Baustein so nicht.
+        if (KeyTags.CheckBlocks([.. blocks.Select(b => b.Step)]) is { } broken)
+        {
+            var (start, length, _) = blocks[broken.Step];
+            var at = spans.FindIndex(s => s.Start >= start);
+            spans.RemoveAll(s => s.Start >= start && s.End <= start + length);
+            spans.Insert(at, new(start, length, SyntaxKind.Error, broken.Error));
         }
         return spans;
     }
@@ -172,7 +194,9 @@ public static partial class SnippetSyntax
             if (match.Groups["note"].Success) return null; // ein Kommentar läuft nicht, also alles
             if (!match.Groups[1].Success) return TestScope.Script;
             var name = KeyTags.NamePart().Match(match.Groups[1].Value);
-            return name.Success && KeyTags.IsTagName(name.Groups[1].Value) ? TestScope.Tag : null;
+            // {if,…} allein tut nichts und hätte kein {/if}: alles testen
+            return name.Success && KeyTags.IsTagName(name.Groups[1].Value)
+                && name.Groups[1].Value.ToLowerInvariant() is not ("if" or "elseif" or "else") ? TestScope.Tag : null;
         }
     }
 
@@ -195,8 +219,14 @@ public static partial class SnippetSyntax
         }
 
         var spec = name.Groups[1].Value.ToLowerInvariant();
-        if (!KeyTags.ElementTags.ContainsKey(spec) && spec is not ("window" or "start" or "include"))
+        if (spec == "else")
         {
+            spans.Add(new(start, length, SyntaxKind.Element));
+            return steps;
+        }
+        if (!KeyTags.ElementTags.ContainsKey(spec) && spec is not ("window" or "start" or "include" or "if" or "elseif"))
+        {
+
             spans.Add(new(start, length, SyntaxKind.Key));
             return steps;
         }

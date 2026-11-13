@@ -1,0 +1,9 @@
+{# Läuft Notepad schon, holt der Baustein es nach vorne und öffnet einen neuen Tab. Sonst startet er Notepad, dort ist der Tab schon leer.
+if,process=notepad prüft, ob ein Notepad-Fenster offen ist, und holt es dann nach vorne wie window. Ist keines da, geht es nach else weiter.
+Was nach /if steht, läuft in beiden Fällen. Das Notepad von Windows 11 verschluckt bei schnellem Tippen Zeichen, darum tippt delay,30 langsamer.}
+{if,process=notepad}
+{ctrl+n}
+{else}
+{start,notepad}
+{/if}
+{delay,30}Notiz vom {{ date('dddd, d. MMMM yyyy') }}, {{ time() }} Uhr{enter}{enter}

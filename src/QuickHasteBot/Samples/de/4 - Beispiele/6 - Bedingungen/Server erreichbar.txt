@@ -1,0 +1,9 @@
+{# Prüft mit ping, ob ein Server antwortet, und tippt je nachdem eine andere Meldung. Welcher Server, fragt der Baustein vorher.
+run() startet ping und wartet darauf. Danach prüft if,js="r.code == 0" den Rückgabewert: 0 heisst, eine Antwort kam.
+Die Bedingung wird erst geprüft, wenn der Lauf dort ankommt. Sie sieht darum das Ergebnis von run() und alle Variablen davor.}
+{{ const server = ask('Server', 'example.com'); const r = run('ping', '-n 1 -w 1000 ' + server, { wait: 10, hidden: true }) }}
+{if,js="r.code == 0"}
+{{ server }} ist erreichbar.
+{else}
+{{ server }} antwortet nicht.
+{/if}

@@ -1,0 +1,18 @@
+{# Asks before pasting whether you accept, and types an acceptance or a refusal depending on the answer. Works in any text field.
+js="…" checks a JavaScript expression, here the answers of ask(). Text in it goes in ' instead of ".
+Inside the acceptance is a second if: it adds the suggested date only if one was entered. That's how blocks sit inside each other, every if needs its /if.}
+{{ const accept = ask('Accept? (yes/no)', 'yes').trim().toLowerCase(); const when = ask('Suggested date (empty: none)', '').trim() }}
+Hi Max,
+
+
+{if,js="accept == 'yes' || accept == 'y'"}
+Thanks for the invitation, I'd be glad to come.
+{if,js="when != ''"}
+ Does {{ when }} suit you?
+{/if}
+{else}
+Thanks for the invitation, unfortunately I can't make it.
+{/if}
+
+
+Kind regards

@@ -114,6 +114,9 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
         frame.Hide();
         if (session.IsPaused && step.Step is ElementStep element)
             _ = FrameAsync(element, front, version, bar, frame);
+        // {if,…} mit Element: zeigen, was geprüft wird. Fehlt es, steht das in der Leiste, und der Lauf nimmt den Zweig danach.
+        else if (session.IsPaused && step.Step is IfStep { Condition.Element: { } selector })
+            _ = FrameAsync(new ElementStep(ElementAction.Focus, selector, null), front, version, bar, frame);
     }
 
     /// <summary>Das Zielfeld rahmen, bevor der Schritt läuft. Im Fenster des Tags, sonst im Fenster, das vorne ist.</summary>

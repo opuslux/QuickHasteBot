@@ -82,6 +82,11 @@ Der Element-Picker (Fadenkreuz im Popup oder im Tray-Menü) zeigt, woran sich da
 Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unter einem anderen Namen (ein Starter oder eine Store-App, z.B. calc), starte es von Hand und nimm stattdessen {{window,title=…}}.</value></data>
   <data name="FormScriptFailedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Das Skript in Block {1} ist fehlgeschlagen.
 {2}</value></data>
+  <data name="FormConditionFailedFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: Die Bedingung in {1} ist fehlgeschlagen.
+{2}</value></data>
+  <data name="FormConditionNoScriptsFormat" xml:space="preserve"><value>«{0}» wurde abgebrochen: {1} braucht Skripte, die sind aber in den Einstellungen ausgeschaltet.</value></data>
+  <data name="FormBlocksFormat" xml:space="preserve"><value>«{0}» wurde nicht ausgeführt: {1}</value></data>
+
   <data name="TargetElevatedFormat" xml:space="preserve"><value>«{0}» kommt nicht an {1} heran: Es läuft mit Administratorrechten, und Windows lässt normale Programme dort keine Tasten senden.
 
 {1} ohne Administratorrechte starten (in der Verknüpfung: Eigenschaften › Erweitert/Kompatibilität › «Als Administrator ausführen» ausschalten). QuickHasteBot selbst braucht keine.</value></data>
@@ -521,6 +526,13 @@ Das Datum vom nächsten Montag</value></data>
   <data name="TagHtmlText" xml:space="preserve"><value>fett</value></data>
   <data name="TagHtmlPaste" xml:space="preserve"><value>formatierten Text aus der Zwischenablage</value></data>
   <data name="TagHtmlPasteHelp" xml:space="preserve"><value>Formatierten Text kopieren, z.B. eine Signatur in Outlook, und hier als {html}-Block einfügen. Strg+Umschalt+V tut dasselbe.</value></data>
+  <data name="TagIf" xml:space="preserve"><value>wenn ein Element da ist, sonst …</value></data>
+  <data name="TagIfHelp" xml:space="preserve"><value>Prüft während des Laufs, ob das Element da und sichtbar ist, und wartet bis 1 Sekunde darauf (länger mit wait=3000). Wenn ja, läuft, was nach {if} steht, sonst, was nach {else} steht. Weitere Fälle mit {elseif,…}, das Gegenteil mit not: {if,not,name=OK}. Blöcke dürfen ineinander stehen, jedes {if} braucht sein {/if}.</value></data>
+  <data name="TagIfWindow" xml:space="preserve"><value>wenn ein Programm offen ist, sonst …</value></data>
+  <data name="TagIfWindowHelp" xml:space="preserve"><value>Prüft, ob ein Fenster des Programms offen ist, oder mit title=… eines mit diesem Titel. Wenn ja, kommt es wie bei {window} nach vorne, und was nach {if} steht, läuft, sonst, was nach {else} steht.</value></data>
+  <data name="TagIfScript" xml:space="preserve"><value>wenn ein Skript-Ausdruck stimmt, sonst …</value></data>
+  <data name="TagIfScriptHelp" xml:space="preserve"><value>Prüft einen JavaScript-Ausdruck, wenn der Baustein dort ankommt, mit den Variablen der Blöcke davor, z.B. der Antwort von ask() oder dem Ergebnis von run(). Text in den Anführungszeichen mit ' schreiben: js="antwort == 'ja'".</value></data>
+
   <data name="TagSelection" xml:space="preserve"><value>markierter Text im Ziel</value></data>
   <data name="TagSelectionHelp" xml:space="preserve"><value>Der Text, der vor dem Einfügen im Zielfenster markiert war, '' wenn keiner. QuickHasteBot kopiert ihn mit Strg+C und stellt die Zwischenablage danach wieder her.</value></data>
   <data name="TagAsk" xml:space="preserve"><value>vor dem Einfügen fragen</value></data>

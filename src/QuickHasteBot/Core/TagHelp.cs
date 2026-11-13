@@ -48,6 +48,7 @@ public static class TagHelp
         KeyTopics.Values.Concat(HelperTopics.Values)
             .Concat(["TagComment", "TagWait", "TagDelay", "TagClear", "TagGuardOff", "TagGuardOn", "TagFocus", "TagClick", "TagSet",
                 "TagDoubleClick", "TagRightClick", "TagWindow", "TagStart", "TagStartUrl", "TagLetterKey", "TagCursor", "TagHtml", "TagInclude",
+                "TagIf", "TagIfWindow", "TagIfScript",
                 AnyKey, Repeat])
             .Distinct();
 
@@ -74,6 +75,7 @@ public static class TagHelp
     static HelpTopic? Tag(string content)
     {
         if (KeyTags.IsHtmlEnd(content)) return new(0, 0, "TagHtml");
+        if (KeyTags.IsIfEnd(content)) return new(0, 0, "TagIf");
         var name = KeyTags.NamePart().Match(content);
         if (!name.Success || !KeyTags.IsTagName(name.Groups[1].Value)) return null; // {name}, JSON: Text
 
@@ -97,7 +99,12 @@ public static class TagHelp
             "cursor" => "TagCursor",
             "html" => "TagHtml",
             "include" => "TagInclude",
+            "if" or "elseif" => KeyTags.TryParse(content, null, out var steps, out _) && steps is [IfStep { Condition: var condition }]
+                ? condition.Script is not null ? "TagIfScript" : condition.Window is not null ? "TagIfWindow" : "TagIf"
+                : "TagIf",
+            "else" => "TagIf",
             _ => null,
+
         };
         if (key is not null) return new(0, 0, key);
 

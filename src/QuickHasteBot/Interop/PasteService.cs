@@ -31,6 +31,11 @@ internal enum FormOutcome
 /// <param name="Cancelled">Esc beim Warten auf run().</param>
 internal sealed record Expansion(IReadOnlyList<SourcedStep> Steps, string? Error = null, bool Cancelled = false);
 
+/// <summary>Was die Bedingung aus {if,js="…"} ergeben hat, oder warum nicht.</summary>
+/// <param name="Error">Die Meldung für den Benutzer, wenn der Ausdruck fehlgeschlagen ist.</param>
+/// <param name="Cancelled">Esc beim Warten auf run() im Ausdruck.</param>
+internal sealed record ScriptTest(bool Value, string? Error = null, bool Cancelled = false);
+
 /// <param name="Step">Bei Element-Fehlern der Schritt als Tag, z.B. "{focus,#email}".</param>
 /// <param name="Error">Bei <see cref="FormOutcome.ElementFailed"/> und <see cref="FormOutcome.StartFailed"/>: warum.</param>
 /// <param name="StepIndex">Bei einem Abbruch der Schritt (ab 0), bei dem es passiert ist.</param>
@@ -229,8 +234,9 @@ internal sealed class PasteService
     /// Wertet einen zurückgestellten Skriptblock aus, wenn der Lauf dort ankommt (run() an seiner Stelle), mit der Herkunft
     /// des Blocks. Seine Schritte kommen direkt dahinter. Ohne werden solche Blöcke übersprungen.
     /// </param>
+    /// <param name="test">Wertet die Bedingung aus {if,js="…"} aus, wenn der Lauf dort ankommt. Ohne bricht ein solches {if} ab.</param>
     public async Task<FormResult> RunFormAsync(IReadOnlyList<SourcedStep> plannedSteps, nint targetWindow, bool windowGuard, IStepGate? gate = null,
-        Func<DeferredStep, SourceSpan, Task<Expansion>>? expand = null)
+        Func<DeferredStep, SourceSpan, Task<Expansion>>? expand = null, Func<string, Task<ScriptTest>>? test = null)
     {
         var steps = plannedSteps.ToList();
         gate?.Planned([.. steps], paste: false);
@@ -253,6 +259,7 @@ internal sealed class PasteService
         nint checkedWindow = 0;
         var checkedBlocked = false;
         int? afterCursor = null; // {cursor}: so viele Stellen Text kamen seither. Eine Taste danach macht ihn ungültig.
+        var landedOnBranch = false; // Die Bedingung davor galt nicht, der Lauf sprang auf dieses {elseif}, {else} oder {/if}
 
         for (var i = 0; i < steps.Count; i++)
         {
@@ -272,8 +279,29 @@ internal sealed class PasteService
             if (guarded && WindowChanged(ref guardWindow))
                 return Aborted(FormOutcome.WindowChanged, i);
 
-            // {window,…} vor dem Element: Programm nach vorne holen, dann dort suchen. {start,…} startet es vorher, falls nötig.
             var step = steps[i].Step;
+            if (step is IfStep or ElseStep or EndIfStep)
+            {
+                var landed = landedOnBranch;
+                landedOnBranch = false;
+                if (step is ElseStep or IfStep { ElseIf: true } && !landed)
+                {
+                    i = NextBranch(i, endOnly: true); // Der Zweig davor lief: weiter nach dem {/if}
+                    continue;
+                }
+                if (step is not IfStep { Condition: var condition })
+                    continue;
+                var (met, failure) = await CheckAsync(condition, i);
+                if (failure is not null) return failure;
+                if (!met)
+                {
+                    i = NextBranch(i) - 1;
+                    landedOnBranch = true;
+                }
+                continue;
+            }
+
+            // {window,…} vor dem Element: Programm nach vorne holen, dann dort suchen. {start,…} startet es vorher, falls nötig.
             var searchWindow = GetForegroundWindow();
             var window = step switch
             {
@@ -417,9 +445,88 @@ internal sealed class PasteService
             return checkedBlocked;
         }
 
+        // Das nächste {elseif}, {else} oder {/if} (mit endOnly nur {/if}) im Block von steps[from]. Verschachtelte Blöcke
+        // dazwischen zählen nicht. Gesucht wird jedes Mal, denn zurückgestellte Blöcke fügen unterwegs Schritte ein.
+        int NextBranch(int from, bool endOnly = false)
+        {
+            var depth = 0;
+            for (var j = from + 1; j < steps.Count; j++)
+            {
+                switch (steps[j].Step)
+                {
+                    case IfStep { ElseIf: false }:
+                        depth++;
+                        break;
+                    case EndIfStep when depth > 0:
+                        depth--;
+                        break;
+                    case EndIfStep:
+                        return j;
+                    case IfStep or ElseStep when depth == 0 && !endOnly:
+                        return j;
+                }
+            }
+            return steps.Count;
+        }
+
+        // {if,…}: Ausdruck, Fenster oder Element prüfen. Ein Fenster, das da ist, kommt nach vorne wie bei {click,…;window=…}.
+        // Fehlt es oder das Element bis Wait, gilt die Bedingung nicht, ohne Abbruch.
+        async Task<(bool Met, FormResult? Failure)> CheckAsync(IfCondition condition, int step)
+        {
+            bool found;
+            if (condition.Script is { } script)
+            {
+                if (test is null)
+                    return (false, Aborted(FormOutcome.ScriptFailed, step, "{if,js=…} needs scripts"));
+                var front = GetForegroundWindow();
+                var result = await test(script);
+                if (result.Cancelled)
+                    return (false, Aborted(FormOutcome.EscapePressed, step));
+                if (result.Error is not null)
+                    return (false, Aborted(FormOutcome.ScriptFailed, step, result.Error));
+                if (GetForegroundWindow() != front && !await ResumeAsync(front))
+                    return (false, Aborted(FormOutcome.WindowChanged, step));
+                found = result.Value;
+            }
+            else
+            {
+                var deadline = Environment.TickCount64 + condition.Wait;
+                var hwnd = GetForegroundWindow();
+                found = true;
+                if ((condition.Window ?? condition.Element?.Window) is { } window)
+                {
+                    var (front, failure) = await BringToFrontAsync(window, step, null, deadline);
+                    if (failure is not null) return (false, failure);
+                    found = front != 0;
+                    if (found)
+                    {
+                        hwnd = front;
+                        guardWindow = RootOwner(front);
+                        guarded = windowGuard && !guardOff;
+                        // Wie nach {window,…}: kurz Zeit lassen, bis das Programm Eingaben annimmt
+                        await Task.Delay(Math.Max(keyDelay, 100));
+                    }
+                }
+                if (found && condition.Element is { } element)
+                {
+                    if (Blocked(hwnd))
+                        return (false, Aborted(FormOutcome.Elevated, step, ProcessAccess.ProcessName(hwnd)));
+                    var remaining = (int)Math.Max(0, deadline - Environment.TickCount64);
+                    var visible = await Task.Run(() => ElementAutomation.Exists(element, hwnd, remaining, EscapeDown));
+                    if (visible is null)
+                        return (false, Aborted(FormOutcome.EscapePressed, step));
+                    found = visible.Value;
+                }
+            }
+            var met = found != condition.Not;
+            Log.Info($"{KeyTags.Describe(steps[step].Step)} {(met ? "gilt" : "gilt nicht")}");
+            return (met, null);
+        }
+
         // Fenster suchen (bis FindTimeout, das Programm startet vielleicht gerade), wiederherstellen und nach vorne holen.
-        // Mit start: ist keins da, das Programm starten und länger warten, bis StartTimeout.
-        async Task<(nint Window, FormResult? Failure)> BringToFrontAsync(WindowSelector selector, int step, StartStep? start)
+        // Mit start: ist keins da, das Programm starten und länger warten, bis StartTimeout. Mit until (für {if,…}): nur
+        // bis dahin, und fehlt es dann, ist das kein Fehler (Fenster 0).
+        async Task<(nint Window, FormResult? Failure)> BringToFrontAsync(WindowSelector selector, int step, StartStep? start, long? until = null)
         {
             var hwnd = await Task.Run(() => WindowFinder.Find(selector));
             var launched = false;
@@ -434,12 +541,13 @@ internal sealed class PasteService
                 }
 
                 var timeout = launched ? WindowFinder.StartTimeout : ElementAutomation.FindTimeout;
-                var deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
+                var deadline = until ?? Environment.TickCount64 + (long)timeout.TotalMilliseconds;
                 while (hwnd == 0)
                 {
                     if (EscapeDown()) return (0, Aborted(FormOutcome.EscapePressed, step));
                     if (Environment.TickCount64 > deadline)
-                        return (0, Aborted(launched ? FormOutcome.StartedWindowNotFound : FormOutcome.WindowNotFound, step));
+                        return (0, until is not null ? null : Aborted(launched ? FormOutcome.StartedWindowNotFound : FormOutcome.WindowNotFound, step));
+
                     await Task.Delay(200);
                     hwnd = await Task.Run(() => WindowFinder.Find(selector));
                 }

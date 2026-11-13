@@ -82,6 +82,11 @@ The element picker (crosshair in the popup or tray menu) shows how the element c
 The window is recognized by the program's name. If the program opens its window under another name (a launcher or a Store app, e.g. calc), start it by hand and use {{window,title=…}} instead.</value></data>
   <data name="FormScriptFailedFormat" xml:space="preserve"><value>"{0}" was stopped: the script in block {1} failed.
 {2}</value></data>
+  <data name="FormConditionFailedFormat" xml:space="preserve"><value>"{0}" was stopped: the condition in {1} failed.
+{2}</value></data>
+  <data name="FormConditionNoScriptsFormat" xml:space="preserve"><value>"{0}" was stopped: {1} needs scripts, but they are turned off in the settings.</value></data>
+  <data name="FormBlocksFormat" xml:space="preserve"><value>"{0}" was not run: {1}</value></data>
+
   <data name="TargetElevatedFormat" xml:space="preserve"><value>"{0}" can't reach {1}: it runs as administrator, and Windows doesn't let normal programs send keys to it.
 
 Start {1} without administrator rights (in its shortcut: Properties › Advanced/Compatibility › turn off "Run as administrator"). QuickHasteBot itself doesn't need them.</value></data>
@@ -521,6 +526,13 @@ The date of next Monday</value></data>
   <data name="TagHtmlText" xml:space="preserve"><value>bold</value></data>
   <data name="TagHtmlPaste" xml:space="preserve"><value>formatted text from the clipboard</value></data>
   <data name="TagHtmlPasteHelp" xml:space="preserve"><value>Copy formatted text, e.g. a signature in Outlook, and insert it here as an {html} block. Ctrl+Shift+V does the same.</value></data>
+  <data name="TagIf" xml:space="preserve"><value>if an element is there, else …</value></data>
+  <data name="TagIfHelp" xml:space="preserve"><value>Checks while running whether the element is there and visible, waiting up to 1 second (longer with wait=3000). If so, what follows {if} runs, otherwise what follows {else}. More cases with {elseif,…}, the opposite with not: {if,not,name=OK}. Blocks may be nested, every {if} needs its {/if}.</value></data>
+  <data name="TagIfWindow" xml:space="preserve"><value>if a program is open, else …</value></data>
+  <data name="TagIfWindowHelp" xml:space="preserve"><value>Checks whether a window of the program is open, or with title=… one with that title. If so, it comes to the front like with {window} and what follows {if} runs, otherwise what follows {else}.</value></data>
+  <data name="TagIfScript" xml:space="preserve"><value>if a script expression is true, else …</value></data>
+  <data name="TagIfScriptHelp" xml:space="preserve"><value>Checks a JavaScript expression when the snippet gets there, with the variables of the blocks before it, e.g. the answer of ask() or the result of run(). Write text inside the quotes with ': js="answer == 'yes'".</value></data>
+
   <data name="TagSelection" xml:space="preserve"><value>selected text in the target</value></data>
   <data name="TagSelectionHelp" xml:space="preserve"><value>The text that was selected in the target window before pasting, '' if nothing was. QuickHasteBot copies it with Ctrl+C and puts the clipboard back afterwards.</value></data>
   <data name="TagAsk" xml:space="preserve"><value>ask before pasting</value></data>

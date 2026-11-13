@@ -384,7 +384,7 @@ internal partial class SnippetEditorWindow : Window
             return;
         }
         var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, startLine.LineNumber);
-        Insert((before ? newLine : "") + tag + (after || endLine.NextLine is null ? newLine : ""), select);
+        Insert((before ? newLine : "") + tag.ReplaceLineEndings(newLine) + (after || endLine.NextLine is null ? newLine : ""), select);
     }
 
     /// <summary>
@@ -422,7 +422,9 @@ internal partial class SnippetEditorWindow : Window
     /// <param name="Description">Name des Texts mit der Kurzbeschreibung rechts im Menü. Der Hilfetext im Tooltip heisst
     /// gleich mit "Help" dahinter (<see cref="Help"/>).</param>
     /// <param name="FromClipboard">Statt <see cref="Tag"/> den formatierten Text aus der Zwischenablage als {html}-Block.</param>
-    internal sealed record TagEntry(string Tag, string Description, string? Select = null, bool OwnLine = false, bool FromClipboard = false)
+    /// <param name="Text">Was eingefügt wird, wenn es nicht <see cref="Tag"/> ist, z.B. ein ganzer {if}-Block über mehrere Zeilen.</param>
+    internal sealed record TagEntry(string Tag, string Description, string? Select = null, bool OwnLine = false, bool FromClipboard = false,
+        string? Text = null)
     {
         public string Help => Description + "Help";
     }
@@ -454,6 +456,9 @@ internal partial class SnippetEditorWindow : Window
             new("{include,Folder/Name}", nameof(Strings.TagInclude), "Folder/Name"),
             new("{html}…{/html}", nameof(Strings.TagHtmlPaste), FromClipboard: true),
             new("{html}<b>" + Strings.TagHtmlText + "</b>{/html}", nameof(Strings.TagHtml), Strings.TagHtmlText), null,
+            new("{if,name=Label}…{else}…{/if}", nameof(Strings.TagIf), "Label", OwnLine: true, Text: IfBlock("name=Label")),
+            new("{if,process=program}…{/if}", nameof(Strings.TagIfWindow), "program", OwnLine: true, Text: IfBlock("process=program")),
+            new("{if,js=\"x == 1\"}…{/if}", nameof(Strings.TagIfScript), "x == 1", OwnLine: true, Text: IfBlock("js=\"x == 1\"")), null,
             new("{guard,off}", nameof(Strings.TagGuardOff)), new("{guard,on}", nameof(Strings.TagGuardOn)),
         ]),
         (nameof(Strings.EditorTagsElements),
@@ -477,6 +482,9 @@ internal partial class SnippetEditorWindow : Window
             new("{{ run('msg', '* " + Strings.TagMessageText + "', { wait: 0, hidden: true }) }}", nameof(Strings.TagMessage), Strings.TagMessageText, OwnLine: true),
         ]),
     ];
+
+    /// <summary>Ein leerer {if}-Block mit {else}, je eine Leerzeile für die beiden Zweige.</summary>
+    static string IfBlock(string condition) => "{if," + condition + "}\n\n{else}\n\n{/if}";
 
     /// <summary>Ein Text in der Sprache der Oberfläche.</summary>
     static string Local(string key) => Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
@@ -610,8 +618,9 @@ internal partial class SnippetEditorWindow : Window
             item.Click += (_, _) =>
             {
                 if (entry.FromClipboard) PasteFormatted();
-                else if (entry.OwnLine) InsertTag(entry.Tag, entry.Select);
-                else Insert(entry.Tag, entry.Select);
+                else if (entry.OwnLine) InsertTag(entry.Text ?? entry.Tag, entry.Select);
+                else Insert(entry.Text ?? entry.Tag, entry.Select);
+
             };
             return item;
         }
