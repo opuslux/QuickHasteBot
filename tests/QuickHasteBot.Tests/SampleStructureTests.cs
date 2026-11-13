@@ -33,7 +33,7 @@ public class SampleStructureTests
     public void Both_languages_have_the_same_small_structure(string language, params string[] some)
     {
         var paths = SampleStructure.Files(language).Select(f => f.Path).ToList();
-        Assert.Equal(40, paths.Count);
+        Assert.Equal(41, paths.Count);
         Assert.Contains(JavaScriptBlocks(language), paths);
         Assert.Subset(paths.ToHashSet(), some.ToHashSet());
         Assert.All(SampleStructure.Files(language), f => Assert.DoesNotContain("\n", f.Text.Replace("\r\n", "")));
@@ -121,7 +121,7 @@ public class SampleStructureTests
         var files = SampleStructure.Files(language);
         // Ab Ordner 2 hat jeder Baustein oben eine Beschreibung, die einfachen Texte in 1 nicht
         var examples = files.Where(f => f.Path[0] is >= '2' and <= '8' && f.Path.EndsWith(".txt", StringComparison.Ordinal)).ToList();
-        Assert.Equal(30, examples.Count);
+        Assert.Equal(31, examples.Count);
         foreach (var (path, text) in examples)
         {
             Assert.StartsWith("{#", text);
@@ -191,7 +191,34 @@ public class SampleStructureTests
         Assert.Equal("", Paste("Computer-Infos als Meldung.txt", ""));
         Assert.Equal("", Paste("Würfel.txt", ""));
         Assert.Equal("", Paste("Entscheider.txt", ""));
+        Assert.Equal("", Paste("Tee-Timer.txt", ""));
+    }
 
+    /// <summary>
+    /// Der Tee-Timer: Minuten:Sekunden oder nur Minuten, Unsinn gibt 5:00. Erst ein kurzer Hinweis, dann die Meldung mit
+    /// after, auf die der Baustein nicht wartet.
+    /// </summary>
+    [Theory]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "2:30", 150, "2:30")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "3", 180, "3:00")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "1,5", 90, "1:30")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "0:45", 45, "0:45")]
+    [InlineData("de", "Tee-Timer.txt", "Zeit (Minuten:Sekunden)", "Tee", 300, "5:00")]
+    [InlineData("en", "Tea timer.txt", "Time (minutes:seconds)", "4:05", 245, "4:05")]
+    [InlineData("en", "Tea timer.txt", "Time (minutes:seconds)", "", 300, "5:00")]
+    public void Tea_timer_shows_a_message_after_the_time(string language, string name, string label, string answer, int seconds, string shown)
+    {
+        var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
+        var messages = new List<MessageRequest>();
+        var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+            Answers: new Dictionary<string, string> { [label] = answer }, Message: request => { messages.Add(request); return true; });
+        Assert.Equal("", SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context).Trim());
+
+        Assert.Equal(2, messages.Count);
+        Assert.Equal((3, 0), (messages[0].CloseSeconds, messages[0].AfterSeconds));
+        Assert.Contains(shown, messages[0].Text);
+        Assert.Equal((0, seconds), (messages[1].CloseSeconds, messages[1].AfterSeconds));
+        Assert.Contains(shown, messages[1].Text);
     }
 
     /// <summary>Würfel und Orakel zeigen nur eine Meldung: die Würfe passen zu Seiten und Anzahl, das Orakel nennt die Frage.</summary>

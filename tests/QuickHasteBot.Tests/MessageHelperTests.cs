@@ -40,6 +40,19 @@ public class MessageHelperTests
         ], _shown);
     }
 
+    /// <summary>after: später im Hintergrund, z.B. ein Tee-Timer. Sekunden, gerundet, höchstens ein Tag.</summary>
+    [Fact]
+    public void Msg_after_asks_for_a_later_message()
+    {
+        Render("{{ msg('Tee fertig', { title: 'Tee-Timer', after: 3 * 60 }) }}");
+        Render("{{ msg('a', { after: 2.6 }) }}");
+        Render("{{ msg('b', { after: 999999 }) }}");
+        Render("{{ msg('c', { after: -5 }) }}");
+        Render("{{ msg('d', { after: 'bald' }) }}");
+        Assert.Equal([180, 3, SnippetScript.MaxMessageAfter, 0, 0], _shown.Select(r => r.AfterSeconds));
+        Assert.Equal(new MessageRequest("Tee fertig", "Tee-Timer", MessageIcon.Info, 0, false, AfterSeconds: 180), _shown[0]);
+    }
+
     [Theory]
     [InlineData(true, "dringend")]
     [InlineData(false, "normal")]
@@ -70,6 +83,7 @@ public class MessageHelperTests
     [InlineData("{{ confirm('  ') }}", "confirm needs a text")]
     [InlineData("{{ msg('x', { icon: 'smile' }) }}", "doesn't know the icon 'smile'")]
     [InlineData("{{ confirm('x', { close: 3 }) }}", "close only works with msg()")]
+    [InlineData("{{ confirm('x', { after: 3 }) }}", "after only works with msg()")]
     [InlineData("{{ msg('x', 'Titel') }}", "the second argument of msg holds the options")]
     public void Wrong_arguments_say_what_is_wrong(string text, string error)
     {

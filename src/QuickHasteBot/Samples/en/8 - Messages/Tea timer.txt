@@ -1,0 +1,6 @@
+{# A tea timer: ask() asks for the time as minutes:seconds, e.g. 5:00 or 2:30; a number alone means minutes. Nothing is typed.
+after waits that many seconds in the background. The snippet is done right away, everything else goes on, and at the end the message comes.
+close: 3 briefly confirms that the timer runs. One day at most; if QuickHasteBot is closed before, the message is dropped.}
+{{ var time = ask('Time (minutes:seconds)', '5:00').trim(); var parts = time.split(':'); var seconds = Math.max(0, Math.round(parts.length > 1 ? (Number(parts[0]) || 0) * 60 + (Number(parts[1]) || 0) : (Number(time.replace(',', '.')) || 0) * 60)) || 300; var duration = Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0') }}
+{{ msg('The timer is running: ' + duration + ' minutes.', { title: 'Tea timer', close: 3 }) }}
+{{ msg('Your tea is ready! (' + duration + ' minutes)', { title: 'Tea timer', after: seconds }) }}
