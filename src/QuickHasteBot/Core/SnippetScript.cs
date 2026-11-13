@@ -46,6 +46,12 @@ public sealed record MessageRequest(string Text, string? Title, MessageIcon Icon
 /// <summary>Eine Frage aus ask(): die Beschriftung und die Vorgabe, wie sie im Baustein stehen.</summary>
 public sealed record Question(string Label, string Default);
 
+/// <summary>Das Fenster von ask() mit den Optionen der Aufrufe: null heisst Standard.</summary>
+/// <param name="Button">Statt "Einfügen".</param>
+/// <param name="Title">Statt des Namens des Bausteins in der Titelleiste.</param>
+/// <param name="Text">Statt "«Name» braucht vor dem Einfügen noch ein paar Angaben:".</param>
+public sealed record AskWindowOptions(string? Button = null, string? Title = null, string? Text = null);
+
 /// <summary>Was run() starten soll. <paramref name="WaitSeconds"/> 0: nur starten, nicht warten.</summary>
 /// <param name="Directory">Der Arbeitsordner („Ausführen in“), ohne Angabe der Ordner des Skripts.</param>
 /// <param name="SnippetFolder">Der Ordner des Bausteins: ein relativer Pfad, der dort liegt, wird dort gestartet.</param>
@@ -89,7 +95,7 @@ public static partial class SnippetScript
         ("isoweek(days?)", "ISO week number"),
         ("clipboard", "clipboard text"),
         ("selection", "the text selected in the target window before pasting, '' if none"),
-        ("ask(label, default?)", "asks the user before pasting, all ask() of a snippet in one window; label must be a fixed text"),
+        ("ask(label, default?, {button, title, text}?)", "asks the user before pasting, all ask() of a snippet in one window; label and options must be fixed texts"),
         ("user", "Windows user name"),
         ("guid()", "new GUID"),
         ("key(name, count?)", "presses a key, e.g. key('tab'), key('down', 3); put it and the next ones in the output"),
@@ -154,9 +160,42 @@ public static partial class SnippetScript
     public static bool UsesSelection(string text) =>
         text.Contains("selection") && Block().Matches(text).Any(m => SelectionWord().IsMatch(m.Groups[1].Value));
 
-    // ask('Kunde') oder ask("Kunde", 'Muster'): nur feste Texte, damit alle Fragen vor dem ersten Block feststehen
-    [GeneratedRegex("""(?<![\w$.])ask\s*\(\s*(?:'(?<l>(?:\\.|[^'\\\r\n])*)'|"(?<l>(?:\\.|[^"\\\r\n])*)")\s*(?:,\s*(?:'(?<d>(?:\\.|[^'\\\r\n])*)'|"(?<d>(?:\\.|[^"\\\r\n])*)")\s*)?\)""")]
+    // ask('Kunde'), ask("Kunde", 'Muster'), ask('Kunde', 'Muster', { button: 'Weiter' }) oder ask('Kunde', { title: '…' }):
+    // nur feste Texte, damit alle Fragen und das Fenster vor dem ersten Block feststehen
+    [GeneratedRegex("""(?<![\w$.])ask\s*\(\s*(?:'(?<l>(?:\\.|[^'\\\r\n])*)'|"(?<l>(?:\\.|[^"\\\r\n])*)")\s*(?:,\s*(?:'(?<d>(?:\\.|[^'\\\r\n])*)'|"(?<d>(?:\\.|[^"\\\r\n])*)")\s*)?(?:,\s*\{(?<o>\s*(?:['"]?\w+['"]?\s*:\s*(?:'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*")\s*(?:,\s*['"]?\w+['"]?\s*:\s*(?:'(?:\\.|[^'\\\r\n])*'|"(?:\\.|[^"\\\r\n])*")\s*)*,?\s*)?)\}\s*)?\)""")]
     private static partial Regex AskCall();
+
+    // Eine Option im Fenster von ask(): button: 'Weiter'
+    [GeneratedRegex("""['"]?(?<k>\w+)['"]?\s*:\s*(?:'(?<v>(?:\\.|[^'\\\r\n])*)'|"(?<v>(?:\\.|[^"\\\r\n])*)")""")]
+    private static partial Regex AskOption();
+
+    /// <summary>Die Optionen, die das Fenster von ask() kennt.</summary>
+    static readonly string[] AskOptionNames = ["button", "title", "text"];
+
+    /// <summary>
+    /// Wie das Fenster von ask() aussehen soll: Text des Knopfs, Titel und Zeile oben aus den Optionen der ask() eines
+    /// Bausteins, je die erste Angabe. Ohne Angabe null, dann gilt der Standard.
+    /// </summary>
+    public static AskWindowOptions AskWindow(string text)
+    {
+        var options = new Dictionary<string, string>();
+        if (text.Contains("ask"))
+        {
+            foreach (Match block in Block().Matches(text))
+            {
+                foreach (Match call in AskCall().Matches(block.Groups[1].Value))
+                {
+                    foreach (Match option in AskOption().Matches(call.Groups["o"].Value))
+                    {
+                        var value = Unescape(option.Groups["v"].Value);
+                        if (value.Trim().Length > 0)
+                            options.TryAdd(option.Groups["k"].Value, value);
+                    }
+                }
+            }
+        }
+        return new(options.GetValueOrDefault("button"), options.GetValueOrDefault("title"), options.GetValueOrDefault("text"));
+    }
 
     /// <summary>Ob ein Skript ask() aufruft: Nur dann kommt vor dem Einfügen das Fenster mit den Fragen.</summary>
     public static bool UsesAsk(string text) => text.Contains("ask") && Questions(text).Count > 0;
@@ -252,7 +291,7 @@ public static partial class SnippetScript
         Function("guid", 0, _ => Guid.NewGuid().ToString());
 
         // ask("Kunde", "Muster"): was im Fenster vor dem Einfügen eingegeben wurde. Ohne Fenster (Vorschau) die Vorgabe.
-        Function("ask", 2, args => Ask(context, Format(args, 0), Format(args, 1)));
+        Function("ask", 3, args => Ask(context, args));
 
         // key("tab"), key("shift+tab"), key("down", 3), key("wait,500"): dieselbe Syntax wie die Tags im Text.
         // Liefert einen unsichtbaren Marker, der im Ergebnis stehen muss, damit die Taste gedrückt wird.
@@ -289,14 +328,32 @@ public static partial class SnippetScript
             engine.SetValue(name, new ClrFunction(engine, name, (_, args) => body(args), length));
     }
 
-    static string Ask(ScriptContext context, string? label, string? fallback)
+    static string Ask(ScriptContext context, JsValue[] args)
     {
+        var label = Format(args, 0);
         if (string.IsNullOrEmpty(label))
             throw new ArgumentException("ask needs a label, e.g. ask('Customer')");
+        // Die Optionen als zweites oder drittes Argument: ask('Kunde', { … }) oder ask('Kunde', 'Muster', { … })
+        var second = Arguments.At(args, 1);
+        var fallback = second is ObjectInstance ? null : Format(args, 1);
+        var options = second is ObjectInstance ? second : Arguments.At(args, 2);
+        if (options is ObjectInstance o)
+        {
+            foreach (var key in o.GetOwnPropertyKeys())
+            {
+                if (!AskOptionNames.Contains(key.ToString()))
+                    throw new ArgumentException($"ask doesn't know the option '{key}', use {string.Join(", ", AskOptionNames)}");
+            }
+        }
+        else if (!options.IsUndefined())
+        {
+            throw new ArgumentException("the last argument of ask holds the options, e.g. ask('Question', { button: 'Ask' })");
+        }
+
         if (context.Answers is null)
             return KeyTags.StripMarkers(string.IsNullOrEmpty(fallback) ? "[" + label + "]" : fallback);
         if (!context.Answers.TryGetValue(label, out var answer))
-            throw new ArgumentException($"ask() needs a fixed text as its label, e.g. ask('{label}'), not a variable");
+            throw new ArgumentException($"ask() needs fixed texts in quotes, e.g. ask('{label}') or ask('{label}', {{ button: 'OK' }}), not variables");
         // Marker weg: Eingetipptes soll keine Tasten auslösen
         return KeyTags.StripMarkers(answer);
     }

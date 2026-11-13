@@ -1,7 +1,7 @@
 {# The oracle answers any yes-or-no question. It knows five levels from yes to no, all equally likely, and a few sayings for each.
-ask() first asks for the question, the message shows it with the saying, and the level is in the title bar. Nothing is typed.
+ask() first asks for the question, with its own button and title, the message shows it with the saying, and the level is in the title bar. Nothing is typed.
 Add your own sayings to the list of the matching level. Please still make important decisions yourself.}
-{{ var question = ask('Your question for the oracle', 'Should I dare?'); var levels = [
+{{ var question = ask('Your question for the oracle', 'Should I dare?', { button: 'Ask the oracle', title: 'The oracle' }); var levels = [
   ['Yes', ['The mists part, and there it is written plainly: yes.', 'The oracle has cast the bones. They all point upwards.', 'So be it! Fate nods at you.']],
   ['Rather yes', ['The signs point to yes, even if a small cloud drifts by.', 'The oracle is inclined to agree. Quite inclined, in fact.', 'The ravens fly to the right. That is usually a good sign.']],
   ['Maybe', ['The mists are too thick today. Ask again later, mortal.', 'The oracle sees two paths, and both lie in the haze.', 'The crystal ball shows … a question mark.']],

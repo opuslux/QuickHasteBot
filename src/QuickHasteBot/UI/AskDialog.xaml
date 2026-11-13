@@ -7,9 +7,17 @@
         ResizeMode="NoResize" ShowInTaskbar="True" Topmost="True" WindowStartupLocation="CenterScreen">
 
     <StackPanel Margin="20,16,20,20">
-        <TextBlock x:Name="Prompt" TextWrapping="Wrap" Margin="0,0,0,4" />
-        <!-- Pro ask() eine Beschriftung und ein Feld, im Code gefüllt -->
-        <ItemsControl x:Name="Fields" Focusable="False" />
+        <!-- Fragezeichen wie bei den Meldungen von confirm(), immer da: Hier wird etwas gefragt -->
+        <DockPanel>
+            <TextBlock x:Name="Symbol" DockPanel.Dock="Left" Text="&#xE9CE;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                       FontSize="28" VerticalAlignment="Top" Margin="0,0,16,0"
+                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+            <StackPanel>
+                <TextBlock x:Name="Prompt" TextWrapping="Wrap" Margin="0,0,0,4" />
+                <!-- Pro ask() eine Beschriftung und ein Feld, im Code gefüllt -->
+                <ItemsControl x:Name="Fields" Focusable="False" />
+            </StackPanel>
+        </DockPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button x:Name="ConfirmButton" Content="{x:Static ui:Strings.AskConfirm}" MinWidth="100" IsDefault="True"

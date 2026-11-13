@@ -429,7 +429,7 @@ internal sealed class AppController : IDisposable
         if (scripts && SnippetScript.Questions(text) is { Count: > 0 } questions)
         {
             // Nach selection: das Fenster nimmt dem Zielfenster den Fokus, Einfügen holt es danach zurück
-            answers = AskDialog.Ask(name, questions, _lastAnswers);
+            answers = AskDialog.Ask(name, questions, SnippetScript.AskWindow(text), _lastAnswers);
             if (answers is null)
                 return gate is null ? null : new("", MessageBoxImage.Information, 0, Stopped: true);
             foreach (var (label, answer) in answers)

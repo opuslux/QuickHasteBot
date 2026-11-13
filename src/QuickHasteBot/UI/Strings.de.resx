@@ -546,7 +546,7 @@ Das Datum vom nächsten Montag</value></data>
   <data name="TagSelection" xml:space="preserve"><value>markierter Text im Ziel</value></data>
   <data name="TagSelectionHelp" xml:space="preserve"><value>Der Text, der vor dem Einfügen im Zielfenster markiert war, '' wenn keiner. QuickHasteBot kopiert ihn mit Strg+C und stellt die Zwischenablage danach wieder her.</value></data>
   <data name="TagAsk" xml:space="preserve"><value>vor dem Einfügen fragen</value></data>
-  <data name="TagAskHelp" xml:space="preserve"><value>Fragt vor dem Einfügen und setzt das Eingetippte ein, z.B. {{ ask('Kunde', 'Muster') }} mit Vorgabe. Alle ask() eines Bausteins kommen in ein Fenster, dieselbe Beschriftung wird einmal gefragt.</value></data>
+  <data name="TagAskHelp" xml:space="preserve"><value>Fragt vor dem Einfügen und setzt das Eingetippte ein, z.B. {{ ask('Kunde', 'Muster') }} mit Vorgabe. Alle ask() eines Bausteins kommen in ein Fenster, dieselbe Beschriftung wird einmal gefragt. Optionen ändern das Fenster: ask('Frage', { button: 'Fragen', title: 'Orakel', text: 'Was willst du wissen?' }).</value></data>
   <data name="TagAskLabel" xml:space="preserve"><value>Kunde</value></data>
   <data name="UpdateAvailableFormat" xml:space="preserve"><value>Version {0} herunterladen</value></data>
   <data name="UpdateNotificationText" xml:space="preserve"><value>Eine neue Version von QuickHasteBot ist da.</value></data>

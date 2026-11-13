@@ -21,6 +21,48 @@ public class AskSelectionTests
     }
 
     [Fact]
+    public void Options_set_the_window_first_one_wins()
+    {
+        const string text = """
+            {{ var f = ask('Frage', 'Soll ich?', { button: 'Orakel befragen', title: "Das Orakel" }) }}
+            {{ ask('Name', { text: 'Wer fragt?', button: 'Später' }) }}
+            {{ ask('Ort', {}) }}
+            """;
+
+        Assert.Equal(new AskWindowOptions("Orakel befragen", "Das Orakel", "Wer fragt?"), SnippetScript.AskWindow(text));
+        Assert.Equal([new Question("Frage", "Soll ich?"), new Question("Name", ""), new Question("Ort", "")], SnippetScript.Questions(text));
+        Assert.Equal(new AskWindowOptions(), SnippetScript.AskWindow("{{ ask('Kunde') }}"));
+    }
+
+    [Fact]
+    public void Ask_with_options_gives_the_answer_or_default()
+    {
+        const string text = "{{ ask('Frage', 'Soll ich?', { button: 'Los' }) }} / {{ ask('Name', { title: 'Wer' }) }}";
+        Assert.Equal("Soll ich? / [Name]", Render(text));
+        var context = SnippetScriptTests.Context with { Answers = new Dictionary<string, string> { ["Frage"] = "Ja?", ["Name"] = "Max" } };
+        Assert.Equal("Ja? / Max", Render(text, context));
+    }
+
+    [Theory]
+    [InlineData("{{ ask('Frage', { icon: 'info' }) }}", "doesn't know the option 'icon'")]
+    [InlineData("{{ ask('Frage', 'Vorgabe', 'Knopf') }}", "holds the options")]
+    public void Wrong_options_fail(string text, string message)
+    {
+        var ex = Assert.Throws<SnippetScriptException>(() => Render(text));
+        Assert.Contains(message, ex.Message);
+    }
+
+    [Fact]
+    public void Options_with_variables_are_not_asked_and_fail_when_pasting()
+    {
+        const string text = "{{ var b = 'Los'; ask('Frage', { button: b }) }}";
+        Assert.Empty(SnippetScript.Questions(text));
+        var context = SnippetScriptTests.Context with { Answers = new Dictionary<string, string>() };
+        var ex = Assert.Throws<SnippetScriptException>(() => Render(text, context));
+        Assert.Contains("fixed texts in quotes", ex.Message);
+    }
+
+    [Fact]
     public void Ask_gives_the_answer()
     {
         var context = SnippetScriptTests.Context with { Answers = new Dictionary<string, string> { ["Kunde"] = "Meier" } };

@@ -546,7 +546,7 @@ The date of next Monday</value></data>
   <data name="TagSelection" xml:space="preserve"><value>selected text in the target</value></data>
   <data name="TagSelectionHelp" xml:space="preserve"><value>The text that was selected in the target window before pasting, '' if nothing was. QuickHasteBot copies it with Ctrl+C and puts the clipboard back afterwards.</value></data>
   <data name="TagAsk" xml:space="preserve"><value>ask before pasting</value></data>
-  <data name="TagAskHelp" xml:space="preserve"><value>Asks before pasting and puts in what was typed, e.g. {{ ask('Customer', 'Muster') }} with a default. All ask() of a snippet come in one window; the same label is asked once.</value></data>
+  <data name="TagAskHelp" xml:space="preserve"><value>Asks before pasting and puts in what was typed, e.g. {{ ask('Customer', 'Muster') }} with a default. All ask() of a snippet come in one window; the same label is asked once. Options change the window: ask('Question', { button: 'Ask', title: 'Oracle', text: 'What do you want to know?' }).</value></data>
   <data name="TagAskLabel" xml:space="preserve"><value>Customer</value></data>
   <data name="UpdateAvailableFormat" xml:space="preserve"><value>Download version {0}</value></data>
   <data name="UpdateNotificationText" xml:space="preserve"><value>A new version of QuickHasteBot is available.</value></data>
