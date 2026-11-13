@@ -186,13 +186,18 @@ public class WindowSmokeTests
         var third = Show();
         Assert.Equal(placed with { Left = placed.Left + 32, Top = placed.Top + 32 }, WindowPlacement.Read(third));
         third.Close();
+        // Bei mehreren Monitoren maximiert Windows ein nie aktiviertes Fenster mitunter auf einem anderen Bildschirm
+        // (dort, wo die Maus oder das Vordergrundfenster ist), und die Stelle zum Wiederherstellen wandert mit. Darum
+        // zählt hier nicht der Bildschirm, sondern: maximiert gemerkt, gleiche Grösse, und der nächste stellt genau
+        // die gemerkte Stelle wieder her.
         second.WindowState = WindowState.Maximized;
         second.Close();
-        Assert.Equal(placed with { Maximized = true }, controller.Settings.EditorBounds);
+        var saved = controller.Settings.EditorBounds!;
+        Assert.Equal((placed.Width, placed.Height, true), (saved.Width, saved.Height, saved.Maximized));
         var maximized = Show();
         Assert.Equal(WindowState.Maximized, maximized.WindowState);
         maximized.WindowState = WindowState.Normal;
-        Assert.Equal(placed, WindowPlacement.Read(maximized));
+        Assert.Equal(saved with { Maximized = false }, WindowPlacement.Read(maximized));
         maximized.Close();
 
         // Weit ausserhalb jedes Bildschirms: Windows holt ihn zurück
