@@ -412,7 +412,9 @@ internal sealed class AppController : IDisposable
             text = KeyTags.MarkTags(text, form);
         }
 
-        var scripts = Settings.EvaluateScripts && SnippetScript.HasBlocks(text);
+        // {if,js="…"} braucht die Engine auch ohne {{ … }} im Text
+        var conditions = form is not null && form.Steps.Any(s => s is IfStep { Condition.Script: not null });
+        var scripts = Settings.EvaluateScripts && (SnippetScript.HasBlocks(text) || conditions);
         // Vor dem Einfügen lesen, PasteService legt danach den Baustein in die Zwischenablage
         var clipboard = scripts && SnippetScript.UsesClipboard(text) ? PasteService.TryGetClipboardText() : "";
         var selection = "";
@@ -445,7 +447,7 @@ internal sealed class AppController : IDisposable
             {
                 // run() an seiner Stelle: Steht davor schon ein Tag, werden die Blöcke ab dem ersten run() erst
                 // ausgewertet, wenn der Lauf dort ankommt. Sonst passiert vorher nichts, und alles läuft jetzt.
-                if (form is not null && ScriptSession.NeedsStaging(text))
+                if (form is not null && ScriptSession.NeedsStaging(text, form))
                     text = session.RenderStaged(text);
                 else if (ScriptSession.UsesRun(text))
                     text = await Task.Run(() => session.Render(text)); // run() wartet, die Oberfläche nicht
@@ -476,8 +478,12 @@ internal sealed class AppController : IDisposable
 
         if (planned is not null)
         {
+            // Unpassende {if}-Blöcke: gar nicht erst anfangen, statt mittendrin falsch abzubiegen
+            if (KeyTags.CheckBlocks([.. planned.Select(s => s.Step)]) is { } broken)
+                return new(string.Format(Strings.FormBlocksFormat, name, broken.Error), MessageBoxImage.Warning, broken.Step);
+
             var result = await _paste.RunFormAsync(planned, targetWindow, Settings.KeyTagsWindowGuard, gate,
-                session is null ? null : ExpandAsync);
+                session is null ? null : ExpandAsync, TestAsync);
             if (gate is not null && result.Outcome == FormOutcome.EscapePressed)
                 return new("", MessageBoxImage.Information, result.StepIndex, Stopped: true);
             return FormMessage(result, name) is { } message ? new(message, MessageBoxImage.Information, result.StepIndex) : null;
@@ -500,7 +506,29 @@ internal sealed class AppController : IDisposable
                     return new Expansion([], Cancelled: true);
                 }
             }
+
+            // {if,js="…"}: jetzt auswerten, mit den Variablen der Blöcke davor
+            async Task<ScriptTest> TestAsync(string expression)
+            {
+                var tag = "{if,js=\"" + expression + "\"}";
+                if (session is null)
+                    return new ScriptTest(false, string.Format(Strings.FormConditionNoScriptsFormat, name, tag));
+                try
+                {
+                    return new ScriptTest(await Task.Run(() => session.Test(expression)));
+                }
+                catch (SnippetScriptException ex)
+                {
+                    Log.Error($"Bedingung {tag} fehlgeschlagen: {logPath ?? name}", ex);
+                    return new ScriptTest(false, string.Format(Strings.FormConditionFailedFormat, name, tag, ex.Message));
+                }
+                catch (OperationCanceledException)
+                {
+                    return new ScriptTest(false, Cancelled: true);
+                }
+            }
         }
+
 
         if (gate is not null)
         {

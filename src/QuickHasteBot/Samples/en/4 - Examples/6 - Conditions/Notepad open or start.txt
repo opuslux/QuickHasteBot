@@ -1,0 +1,9 @@
+{# If Notepad is running, the snippet brings it to the front and opens a new tab. Otherwise it starts Notepad, where the tab is empty already.
+if,process=notepad checks whether a Notepad window is open and then brings it to the front like window. If there is none, it goes on after else.
+What follows /if runs in both cases. The Notepad of Windows 11 swallows characters when typing fast, so delay,30 types more slowly.}
+{if,process=notepad}
+{ctrl+n}
+{else}
+{start,notepad}
+{/if}
+{delay,30}Note of {{ date('dddd, MMMM d, yyyy') }}, {{ time() }}{enter}{enter}

@@ -1,0 +1,18 @@
+{# Fragt vor dem Einfügen, ob du zusagst, und tippt je nach Antwort eine Zusage oder eine Absage. Funktioniert in jedem Textfeld.
+js="…" prüft einen JavaScript-Ausdruck, hier die Antworten von ask(). Text darin steht in ' statt in ".
+In der Zusage steht ein zweites if: Es hängt den Terminvorschlag nur an, wenn einer eingegeben ist. So stehen Blöcke ineinander, jedes if braucht sein /if.}
+{{ const zusage = ask('Zusage? (ja/nein)', 'ja').trim().toLowerCase(); const termin = ask('Terminvorschlag (leer: keiner)', '').trim() }}
+Hallo Max,
+
+
+{if,js="zusage == 'ja' || zusage == 'j'"}
+Danke für die Einladung, ich bin gerne dabei.
+{if,js="termin != ''"}
+ Passt dir {{ termin }}?
+{/if}
+{else}
+Danke für die Einladung, leider kann ich nicht dabei sein.
+{/if}
+
+
+Freundliche Grüsse

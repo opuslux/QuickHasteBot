@@ -1,11 +1,11 @@
-{# Runs the batch file "19 - Number via batch file.bat" right next to it and writes its result into Notepad.
+{# Runs the batch file "Number via batch file.bat" right next to it and writes its result into Notepad.
 run looks for a path without a drive in the snippet's folder first, so the snippet finds its script wherever the folder is.
 The batch file waits two seconds and then prints the customer and a random number. Without a customer, it reports an error with exit code 2.
 run gives code (exit code), out (output) and err (error output), and wait: 10 waits at most 10 seconds.
 To try it, empty the customer in the window: then throw stops, and a message shows the error of the batch file.
 Clicking the batch file in the popup runs it. To read and change it: right-click › Show in Explorer and open it there with Notepad.}
 {start,notepad}{delay,30}{ctrl+n}Order for {{ ask('Customer', 'Muster Ltd') }}{enter}
-{{ const r = run('19 - Number via batch file.bat', '"' + ask('Customer', 'Muster Ltd') + '"', { wait: 10, hidden: true }) }}
+{{ const r = run('Number via batch file.bat', '"' + ask('Customer', 'Muster Ltd') + '"', { wait: 10, hidden: true }) }}
 {{ if (r.code != 0) throw new Error('The batch file reports ' + r.code + ': ' + r.err.trim()) }}
 Number: {{ r.out.trim() }}
 Exit code (r.code): {{ r.code }}

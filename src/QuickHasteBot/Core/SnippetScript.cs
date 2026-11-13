@@ -299,6 +299,9 @@ public static partial class SnippetScript
             throw new ArgumentException("scripts can't start programs, write {start,…} in the snippet text");
         if (steps.Any(s => s is IncludeStep or HtmlMarkStep))
             throw new ArgumentException("{include} and {html} only work in the snippet text, not in key()");
+        // Ein Block aus Skript-Ausgabe könnte die {if}-Blöcke des Bausteins durcheinanderbringen, und im Skript gibt es if
+        if (steps.Any(s => s is IfStep or ElseStep or EndIfStep))
+            throw new ArgumentException("{if}, {else} and {/if} only work in the snippet text, in scripts use if (…)");
         return context.Form.Markers(steps);
     }
 

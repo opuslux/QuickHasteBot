@@ -96,6 +96,32 @@ internal static class ElementAutomation
     }
 
     /// <summary>
+    /// Für {if,…}: ob das Element im Fenster da und sichtbar ist, wartet höchstens <paramref name="waitMs"/>. Sichtbar
+    /// heisst, es hat eine Fläche. Ausgeblendete und zugeklappte Elemente haben keine, ein Feld weiter unten auf einer
+    /// Webseite schon. Null bei Esc.
+    /// </summary>
+    public static bool? Exists(ElementSelector selector, nint window, int waitMs, Func<bool> cancelled)
+    {
+        if (window == 0) return false;
+        var deadline = Environment.TickCount64 + waitMs;
+        while (true)
+        {
+            try
+            {
+                if (FindInWindow(window, selector)?.Current.BoundingRectangle is { IsEmpty: false, Width: > 0, Height: > 0 })
+                    return true;
+            }
+            catch (Exception ex) when (ex is ElementNotAvailableException or COMException or ArgumentException or InvalidOperationException)
+            {
+                // Fenster oder Baum im Umbau (Seite lädt), gleich nochmals
+            }
+            if (cancelled()) return null;
+            if (Environment.TickCount64 > deadline) return false;
+            Thread.Sleep(PollInterval);
+        }
+    }
+
+    /// <summary>
     /// Wo das Element gerade steht (physische Pixel), für den Rahmen im Schritt-für-Schritt-Lauf. Sucht einmal, ohne zu
     /// warten. Null, wenn es (noch) nicht da ist.
     /// </summary>

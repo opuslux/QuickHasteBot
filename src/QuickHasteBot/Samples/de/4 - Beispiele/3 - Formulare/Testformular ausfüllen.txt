@@ -1,4 +1,4 @@
-{# Füllt das Testformular aus. Erst «14 - Testformular» im Popup öffnen, es erscheint im Browser. Dann diesen Baustein wählen, egal aus welchem Fenster.
+{# Füllt das Testformular aus. Erst «Testformular» im Popup öffnen, es erscheint im Browser. Dann diesen Baustein wählen, egal aus welchem Fenster.
 window holt das Browserfenster mit diesem Titel nach vorne. Die Element-Tags finden die Felder über UI Automation, ohne Tabs zu zählen:
 #vorname über die id, name=Nachname über die Beschriftung, help= über den grauen Platzhaltertext, und * steht für beliebigen Text.
 name=Lieferadresse > name=Strasse sucht die Strasse nur im Kasten Lieferadresse, denn eine Strasse gibt es zweimal.

@@ -10,6 +10,7 @@ namespace QuickHasteBot.Core;
 /// Normalerweise werden alle {{ … }} ausgewertet, bevor die erste Taste gedrückt wird (<see cref="Render"/>). Damit
 /// run() an seiner Stelle läuft, wertet <see cref="RenderStaged"/> ab dem ersten Block mit run() nichts mehr aus, sondern
 /// setzt <see cref="DeferredStep"/>s ein. Die wertet der Lauf dann mit <see cref="Evaluate"/> aus, wenn er dort ankommt.
+/// Ebenso ab dem ersten {if,…}: Ein Block in einem Zweig läuft nur, wenn der Zweig an der Reihe ist.
 /// </summary>
 public sealed class ScriptSession : IDisposable
 {
@@ -36,18 +37,35 @@ public sealed class ScriptSession : IDisposable
 
     /// <summary>
     /// Ob <see cref="RenderStaged"/> nötig ist: Vor dem ersten Block mit run() steht schon ein Tag (in
-    /// <paramref name="marked"/> ein Marker), es passiert also etwas, bevor das Skript laufen soll. Sonst kann alles
+    /// <paramref name="marked"/> ein Marker), es passiert also etwas, bevor das Skript laufen soll. Oder vor einem Block
+    /// steht ein {if,…} (aus <paramref name="form"/>): Ob er läuft, entscheidet sich erst unterwegs. Sonst kann alles
     /// vorher ausgewertet werden, auch run().
     /// </summary>
-    public static bool NeedsStaging(string marked)
+    public static bool NeedsStaging(string marked, FormBuilder? form = null)
     {
+        var runSeen = false;
         foreach (Match match in SnippetScript.Block().Matches(marked))
         {
-            if (SnippetScript.CallsRun(match.Groups[1].Value))
-                return KeyTags.HasMarkers(marked[..match.Index]);
+            if (form is not null && KeyTags.HasIfMarker(marked, match.Index, form))
+                return true;
+            if (!runSeen && SnippetScript.CallsRun(match.Groups[1].Value))
+            {
+                if (KeyTags.HasMarkers(marked[..match.Index]))
+                    return true;
+                runSeen = true; // Das erste run() darf vorher laufen, ein {if} danach entscheidet trotzdem
+            }
         }
         return false;
     }
+
+    /// <summary>
+    /// Wertet die Bedingung aus {if,js="…"} jetzt aus, in derselben Engine wie die Blöcke, sieht also ihre Variablen.
+    /// Blockiert, falls der Ausdruck run() aufruft: nicht auf dem UI-Thread aufrufen.
+    /// </summary>
+    /// <exception cref="SnippetScriptException">Fehler im Ausdruck (Block 0).</exception>
+    /// <exception cref="OperationCanceledException">Esc beim Warten auf run().</exception>
+    public bool Test(string expression) =>
+        SnippetScript.Evaluate(_engine, "!!(" + expression + "\n)", 0) == "true";
 
     /// <summary>
     /// Führt die Blöcke in <paramref name="text"/> nur wegen ihrer Variablen aus, die Ausgabe fällt weg und Fehler werden
@@ -111,7 +129,7 @@ public sealed class ScriptSession : IDisposable
             var unit = blocks.Skip(i).Take(last - i + 1).ToList();
             result.Append(text, pos, start - pos);
 
-            if (staged && (deferring |= unit.Any(m => SnippetScript.CallsRun(m.Groups[1].Value))))
+            if (staged && (deferring |= unit.Any(m => SnippetScript.CallsRun(m.Groups[1].Value)) || KeyTags.HasIfMarker(text, start, form!)))
             {
                 // Herkunft: der ganze Block oder die ganze Zeile
                 form!.BeginScript(start, end - start);

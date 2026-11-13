@@ -82,6 +82,18 @@ public sealed record HtmlStep(string Html) : FormStep;
 /// </summary>
 public sealed record IncludeStep(string Path) : FormStep;
 
+/// <summary>
+/// {if,…} bzw. {elseif,…}: Gilt die Bedingung, geht es dahinter weiter, sonst beim nächsten {elseif}, {else} oder {/if}
+/// desselben Blocks. Geprüft wird erst, wenn der Lauf dort ankommt.
+/// </summary>
+public sealed record IfStep(IfCondition Condition, bool ElseIf) : FormStep;
+
+/// <summary>{else}: Hier geht es weiter, wenn keine Bedingung des Blocks galt. Kommt der Lauf von oben, springt er zum {/if}.</summary>
+public sealed record ElseStep : FormStep;
+
+/// <summary>{/if}: Ende eines {if}-Blocks, tut selbst nichts.</summary>
+public sealed record EndIfStep : FormStep;
+
 /// <summary>Eine Stelle im Bausteintext, so wie er an <see cref="KeyTags.MarkTags"/> ging.</summary>
 public readonly record struct SourceSpan(int Start, int Length)
 {
@@ -294,7 +306,8 @@ public static partial class KeyTags
     internal static partial Regex NamePart();
 
     static readonly HashSet<string> Commands = new(StringComparer.OrdinalIgnoreCase)
-        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start", "key", "cursor", "html", "include" };
+        { "wait", "delay", "guard", "clear", "focus", "click", "set", "dblclick", "rclick", "window", "start", "key", "cursor", "html", "include",
+          "if", "elseif", "else" };
 
     /// <summary>Das Ende eines {html}-Blocks, das einzige Tag mit "/".</summary>
     internal const string HtmlEnd = "/html";
@@ -302,6 +315,11 @@ public static partial class KeyTags
     internal static bool IsHtmlEnd(string content) => content.Trim().Equals(HtmlEnd, StringComparison.OrdinalIgnoreCase);
 
     internal static bool IsHtmlStart(string content) => content.Trim().Equals("html", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Das Ende eines {if}-Blocks.</summary>
+    internal const string IfEnd = "/if";
+
+    internal static bool IsIfEnd(string content) => content.Trim().Equals(IfEnd, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Die {html}…{/html}-Paare in <paramref name="text"/>, als Stellen der beiden Tags (Index des Treffers von
@@ -436,6 +454,11 @@ public static partial class KeyTags
             steps = [new HtmlMarkStep(false)];
             return true;
         }
+        if (IsIfEnd(content))
+        {
+            steps = [new EndIfStep()];
+            return true;
+        }
 
         // Bewusst streng: "{ end }" in Code-Bausteinen soll keine Taste sein
         var name = NamePart().Match(content);
@@ -456,6 +479,25 @@ public static partial class KeyTags
 
         if (spec == "key")
             return TryParseLetterKey(args, count, out steps, out error);
+
+        if (spec is "if" or "elseif")
+        {
+            if (!IfCondition.TryParse(spec, args, out var condition, out error))
+                return false;
+            steps = [new IfStep(condition, spec == "elseif")];
+            return true;
+        }
+
+        if (spec == "else")
+        {
+            if (args.Count > 0)
+            {
+                error = "\"else\" takes no condition, use {elseif,…} for one";
+                return false;
+            }
+            steps = [new ElseStep()];
+            return true;
+        }
 
         if (spec == "include")
         {
@@ -865,6 +907,53 @@ public static partial class KeyTags
         return result;
     }
 
+    /// <summary>
+    /// Ob die {if}-Blöcke zusammenpassen: jedes {elseif}, {else} und {/if} gehört zu einem {if}, {else} kommt höchstens
+    /// einmal und zuletzt, jedes {if} hat sein {/if}. Sonst der Schritt, an dem es hapert, und warum.
+    /// </summary>
+    public static (int Step, string Error)? CheckBlocks(IReadOnlyList<FormStep> steps)
+    {
+        var open = new Stack<(int Step, bool Else)>();
+        for (var i = 0; i < steps.Count; i++)
+        {
+            switch (steps[i])
+            {
+                case IfStep { ElseIf: false }:
+                    open.Push((i, false));
+                    break;
+                case IfStep or ElseStep when open.Count == 0:
+                    return (i, (steps[i] is ElseStep ? "{else}" : "{elseif,…}") + " without {if,…} before it");
+                case IfStep or ElseStep when open.Peek().Else:
+                    return (i, steps[i] is ElseStep ? "a second {else} in the same {if,…}" : "{elseif,…} after {else}, {else} comes last");
+                case ElseStep:
+                    open.Push((open.Pop().Step, true));
+                    break;
+                case EndIfStep when open.Count == 0:
+                    return (i, "{/if} without {if,…} before it");
+                case EndIfStep:
+                    open.Pop();
+                    break;
+            }
+        }
+        return open.Count > 0 ? (open.Peek().Step, "{if,…} without {/if}, every {if,…} needs its {/if}") : null;
+    }
+
+    /// <summary>Ob in <paramref name="text"/> vor <paramref name="end"/> der Marker eines {if,…} steht.</summary>
+    internal static bool HasIfMarker(string text, int end, FormBuilder form)
+    {
+        var pos = 0;
+        while ((pos = text.IndexOf(MarkerStart, pos)) >= 0 && pos < end)
+        {
+            var close = text.IndexOf(MarkerEnd, pos);
+            if (close < 0) break;
+            if (int.TryParse(text.AsSpan(pos + 1, close - pos - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var index)
+                && index < form.Steps.Count && form.Steps[index] is IfStep)
+                return true;
+            pos = close + 1;
+        }
+        return false;
+    }
+
     /// <summary>Hinter Leerzeichen und einem Umbruch am Anfang von text[from..to], sonst <paramref name="from"/>.</summary>
     static int LayoutBreakAfter(string text, int from, int to)
     {
@@ -901,6 +990,9 @@ public static partial class KeyTags
         HtmlMarkStep h => h.Start ? "{html}" : "{" + HtmlEnd + "}",
         HtmlStep h => "{html}" + h.Html + "{" + HtmlEnd + "}",
         IncludeStep i => "{include," + i.Path + "}",
+        IfStep i => "{" + (i.ElseIf ? "elseif," : "if,") + i.Condition + "}",
+        ElseStep => "{else}",
+        EndIfStep => "{" + IfEnd + "}",
         _ => "",
     };
 

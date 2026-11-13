@@ -77,7 +77,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 - **Hidden files** as well as `desktop.ini` and `thumbs.db` are ignored.
 - **Changes** show up right away, no restart needed. The folder can be rearranged in Explorer while QuickHasteBot is running, and every hotkey checks the folder again, so even replacing or renaming the whole `structure` folder is picked up.
 
-**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4 - Examples` with snippets for the other features (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys, `run()` and one to try **Step by step** on), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
+**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4 - Examples` with snippets for the other features in folders by topic (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys, `run()`, [conditions](#conditions-if-elseif-else) and one to try **Step by step** on), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
 
 Snippets can be created, renamed, cloned and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
 
@@ -315,7 +315,7 @@ your order {{ ask('Order number') }} ships on {{ date('dd.MM.yyyy', Number(ask('
 ```
 
 - **What runs** is what a double-click would run: programs (`.exe`) directly, `.ps1` with PowerShell (its execution policy applies), everything else through Windows' file types (`.bat`, `.cmd`, `.py`, `.vbs`, …). A name without a folder, like `run('ping', '-n 1 example.com')`, is looked up like in a command prompt. Slashes work in paths, so there are no `\` to double in JavaScript.
-- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `19 - Number via batch file` in `4 - Examples` works this way.
+- **Scripts next to the snippet:** a path without a drive, like `run('number.bat')` or `run('scripts/number.bat')`, is looked for in the snippet's folder first. So a script can sit right next to its snippet and still be found when the `structure` folder moves or is synced to another computer. The example `Number via batch file` in `4 - Examples/5 - Scripts` works this way.
 - **Arguments** are a text, passed on as written. Quote paths with spaces: `run('tool.exe', '"C:/my files/a.txt"')`. They can also go in the options as `args`: `run('tool.exe', { args: '-v', wait: 10 })`, but not both ways at once.
 - **Working folder** ("Start in"): `dir` sets it, e.g. `run('export.bat', { dir: 'd:/data' })`; environment variables like `%TEMP%` work. A script without a folder in its name is then looked for there too. Without `dir`, the script runs in its own folder. If the folder doesn't exist, the snippet stops with a message.
 - **Options:** `wait` is how long to wait in seconds (default 60). If the script isn't done by then, the snippet stops with a message; the script itself keeps running. `wait: 0` only starts it and goes on, `code` is then `null`. `hidden: true` starts it without a window. A visible console window stays empty, since the output goes to `out`. If the script starts another program (`start app.exe`), `run()` doesn't wait for that program; it takes what was printed up to a second after the script ended.
@@ -399,6 +399,7 @@ types the first name, jumps to the next field with Tab, ticks a checkbox with Sp
 | `{cursor}` | Where the cursor ends up after pasting: `Dear {cursor},` puts it before the comma. Only text may follow it, no keys. Works in plain snippets too, which are then still pasted with the method set |
 | `{include,Folder/Name}` | Another snippet at this point, see [Snippets in snippets](#snippets-in-snippets) |
 | `{html}`…`{/html}` | Formatted text, see [Formatted text](#formatted-text) |
+| `{if,…}`…`{else}`…`{/if}` | Only if an element is there, a program is open or a script expression is true, see [Conditions](#conditions-if-elseif-else) |
 | `{guard,off}` `{guard,on}` | Turns the [window guard](#window-guard) off or on from here |
 
 Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdown, `{ctrl+enter}` sends in Outlook, Teams and many web editors, `{ctrl+l}` jumps to the browser's address bar, `{alt+space}` opens the window menu, and [`{start,notepad}`](#other-programs-window-and-start) starts a program. Ctrl+Alt+Del and Win+L can't be sent (Windows protects them).
@@ -566,7 +567,40 @@ With a web address, `{start,…}` opens it in the default browser, and the rest 
 - Which browser that is, Windows decides (Settings › Apps › Default apps). To use a particular browser instead, start it and type the address: `{start,chrome}{ctrl+t}{ctrl+l}https://example.com{enter}`.
 - The element tags wait up to 5 seconds for their field while the page loads. For slower pages, put a `{wait,2000}` after the `{start,…}`.
 
+### Conditions: if, elseif, else
+
+`{if,…}` decides while the snippet runs what comes next: if the condition holds, what follows it runs, otherwise what follows `{else}`. Each tag can go on a line of its own like any other tag, and `{/if}` ends the block:
+
+```
+{window,process=outlook}
+{if,name=Send}
+{ctrl+enter}
+{else}
+{alt+s}
+{/if}
+```
+
+- **Element:** `{if,name=Send}` holds if the element is there and visible, with the same selectors as `{click,…}`: `#id`, `name=`, `help=`, `class=`, `type=`, `*` and containers with ` > `. Hidden or collapsed elements don't count; a field further down a web page does. It searches the window in front, or with `window=` in the selector that window, which then comes to the front: `{if,window=crm;name=Save}`.
+- **Window:** `{if,process=outlook}`, `{if,title=*Draft*}` or `{if,window=crm}` (as in [`{window,…}`](#other-programs-window-and-start)) hold if such a window is open. It then comes to the front like with `{window,…}`, so the keys after it go there.
+- **Script:** `{if,js="r.code == 0"}` holds if the JavaScript expression is true. It's checked when the run gets there, with the variables of the blocks before it, so it sees the answers of [`ask()`](#asking-before-pasting) and the result of [`run()`](#running-scripts). Text inside the quotes is written with `'`: `{if,js="answer == 'yes'"}`.
+- **Waiting:** elements and windows get up to 1 second to turn up, `wait=3000` gives them 3 (at most 10). If they don't, the condition doesn't hold. Unlike `{click,…}`, that's no error, the snippet just goes on after `{else}` (or after `{/if}`).
+- **Not:** `{if,not,name=Send}` holds if the element is not there.
+- **More cases:** `{elseif,…}` checks the next condition if the ones before didn't hold, `{else}` comes last and is optional:
+
+  ```
+  {if,name=Send}{ctrl+enter}
+  {elseif,name=Reply}{click,name=Reply}
+  {else}{esc}
+  {/if}
+  ```
+
+- **Nesting:** blocks may sit inside each other, every `{if}` needs its `{/if}`. A `{else}` without `{if}` or a missing `{/if}` shows red in the editor, and the snippet doesn't start.
+- **Scripts in a branch** only run when their branch does. So `{{ … }}` blocks after an `{if}` are evaluated when the run gets there, like blocks with `run()`.
+- **Step by step** stops at `{if}` and frames the element it checks. The next step shown is the branch it takes.
+- **Insert tag ▾** → Flow has a block for each kind of condition. The examples in `4 - Examples/6 - Conditions` show all of them.
+
 ### Programs running as administrator
+
 
 Windows doesn't let normal programs send keys to programs running as administrator or read their fields, and drops everything silently. QuickHasteBot doesn't need administrator rights and doesn't ask for them. Instead, it detects such a program before typing or pasting and says so, and the element picker shows it while hovering. The fix is to start that program without administrator rights.
 
