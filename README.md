@@ -107,7 +107,9 @@ Thank you for your order.
 | Enter | Paste (or open the folder) |
 | Shift+Enter | Paste with the [other method](#pasting-two-methods) |
 | Alt+1 … Alt+9 | Like a click on the entry with that number (the first nine entries are numbered on the right); with Shift, the other paste method |
-| → / ← / Backspace | With an empty search box: open folder / go up one level |
+| → | Into the folder contents on the right: ↑ ↓ and Enter then work there. On a folder there, → moves the columns one level on, like a column view. While searching, only at the end of the search text, and typing goes on searching. |
+| ← | Back from the right to the list on the left. On the left with an empty search box: up one level |
+| Backspace | With an empty search box: up one level |
 | Ctrl+O | Edit the snippet in the [editor](#editor) |
 | Ctrl+N | New snippet in the current folder |
 | Ctrl+E | Show it in Explorer |

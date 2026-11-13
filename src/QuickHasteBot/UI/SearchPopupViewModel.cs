@@ -11,6 +11,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     string _query = "";
     string _folderPath = ""; // relativ zum structure-Ordner, überlebt ein Neuladen der Bibliothek
     SnippetItem? _selected;
+    SnippetItem? _detailSelected;
     IReadOnlyList<Breadcrumb> _breadcrumbs = [];
     string _detailText = "";
     string _emptyText = "";
@@ -43,10 +44,32 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         get => _selected;
         set
         {
+            // Links etwas gewählt, auch derselbe Eintrag (Alt+1, Klick): die Tastatur ist wieder links
             if (Set(ref _selected, value))
                 UpdateDetail(value?.Snippet);
+            else
+                DetailSelected = null;
         }
     }
+
+    /// <summary>
+    /// Mit der Pfeiltaste nach rechts in den Ordnerinhalt der rechten Spalte gewechselt: dort markiert, die Pfeile
+    /// und Enter gelten dann rechts. Null, solange die Tastatur in der linken Liste ist.
+    /// </summary>
+    public SnippetItem? DetailSelected
+    {
+        get => _detailSelected;
+        set
+        {
+            if (Set(ref _detailSelected, value))
+                OnPropertyChanged(nameof(InDetail));
+        }
+    }
+
+    public bool InDetail => _detailSelected is not null;
+
+    /// <summary>Was Strg+O, Strg+E und F2 meinen: rechts das Markierte, sonst die Auswahl links.</summary>
+    public Snippet? CurrentSnippet => (_detailSelected ?? _selected)?.Snippet;
 
     /// <summary>Kopfzeile: Ordnerpfad beim Blättern, Trefferzahl beim Suchen.</summary>
     public IReadOnlyList<Breadcrumb> Breadcrumbs
@@ -246,8 +269,14 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         return true;
     }
 
+    /// <summary>In der Liste, in der die Tastatur gerade ist.</summary>
     public void MoveSelection(int delta)
     {
+        if (_detailSelected is { } detail)
+        {
+            DetailSelected = DetailItems[Math.Clamp(DetailItems.IndexOf(detail) + delta, 0, DetailItems.Count - 1)];
+            return;
+        }
         if (Items.Count == 0) return;
         var index = _selected is null ? -1 : Items.IndexOf(_selected);
         Selected = Items[Math.Clamp(index + delta, 0, Items.Count - 1)];
@@ -255,8 +284,36 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     public void SelectEdge(bool last)
     {
-        if (Items.Count > 0)
+        if (InDetail)
+            DetailSelected = last ? DetailItems[^1] : DetailItems[0];
+        else if (Items.Count > 0)
             Selected = last ? Items[^1] : Items[0];
+    }
+
+    /// <summary>Pfeil nach rechts: in den Ordnerinhalt rechts, dort beim ersten Eintrag. Nichts, wenn rechts keine Liste steht.</summary>
+    public bool EnterDetail()
+    {
+        if (DetailItems.Count == 0) return false;
+        DetailSelected ??= DetailItems[0];
+        return true;
+    }
+
+    /// <summary>Pfeil nach links: zurück in die linke Liste, deren Auswahl ist dieselbe wie vorher.</summary>
+    public void LeaveDetail() => DetailSelected = null;
+
+    /// <summary>
+    /// Pfeil nach rechts auf einem Ordner rechts: Die Spalten rücken eine Ebene weiter. Links steht dann der Ordner,
+    /// in dem er liegt, mit ihm markiert, rechts sein Inhalt mit der Tastatur darin. Aus der Suche heraus wird geblättert.
+    /// Pfeil nach links und <see cref="GoUp"/> führen den Weg zurück.
+    /// </summary>
+    public void ShiftColumns(Snippet folder)
+    {
+        _folderPath = folder.Parent?.RelativePath ?? "";
+        _query = "";
+        OnPropertyChanged(nameof(Query));
+        OnPropertyChanged(nameof(ShowPlaceholder));
+        Refresh(selectRelativePath: folder.RelativePath);
+        EnterDetail();
     }
 
     public void EnterFolder(Snippet folder)
@@ -307,6 +364,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     void UpdateDetail(Snippet? snippet)
     {
+        // Neuer Inhalt rechts (andere Auswahl, Tippen, Neuladen): die Tastatur ist wieder links
+        DetailSelected = null;
         DetailItems.Clear();
         if (snippet is { IsFolder: true })
         {

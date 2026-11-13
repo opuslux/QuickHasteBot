@@ -313,6 +313,76 @@ public class WindowSmokeTests
         Assert.Equal(["Bausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
         viewModel.GoTo("");
 
+        // Beim Suchen führt der Pfeil nach rechts in den Ordnerinhalt rechts, aber nur am Ende des Suchtexts
+        void Press(Key key) => popup.SearchBox.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice,
+            PresentationSource.FromVisual(popup.SearchBox)!, 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        popup.SearchBox.Text = "grüsse";
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse");
+        popup.SearchBox.Select(2, 0);
+        Press(Key.Right);
+        Assert.False(viewModel.InDetail);
+        // Ganz markiert wie nach dem Öffnen mit gemerktem Suchtext: gleich nach rechts, der Text bleibt zum Weitertippen
+        popup.SearchBox.SelectAll();
+        Press(Key.Right);
+        Assert.Equal("Intern", viewModel.DetailSelected?.Snippet.Name);
+        Assert.Equal((6, 0), (popup.SearchBox.SelectionStart, popup.SearchBox.SelectionLength));
+        Press(Key.Down);
+        Press(Key.Down);
+        Press(Key.Down);
+        Assert.Equal("03-MfG-EN", viewModel.DetailSelected?.Snippet.Name);
+        Assert.Same(viewModel.DetailSelected, popup.DetailList.SelectedItem);
+        Assert.Equal("03-MfG-EN", viewModel.CurrentSnippet?.Name);
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        Press(Key.Up);
+        Assert.Equal("01-MfG-DE", viewModel.DetailSelected?.Snippet.Name);
+        // Pfeil nach links: zurück in die linke Liste, dort ist noch derselbe Ordner markiert
+        Press(Key.Left);
+        Assert.False(viewModel.InDetail);
+        Assert.Null(popup.DetailList.SelectedItem);
+        Assert.Equal("4-Grüsse", viewModel.CurrentSnippet?.Name);
+        // Alt+Ziffer bzw. ein Klick links, auch auf denselben Eintrag, holt die Tastatur zurück nach links
+        Press(Key.Right);
+        Assert.True(viewModel.InDetail);
+        viewModel.Selected = viewModel.Selected;
+        Assert.False(viewModel.InDetail);
+        // Ein Ordner rechts lässt die Spalten weiterrücken, aus der Suche heraus wird geblättert
+        Press(Key.Right);
+        Press(Key.Right);
+        Assert.Equal("", viewModel.Query);
+        Assert.Equal(["Bausteine", "4-Grüsse"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("Intern", viewModel.Selected?.Snippet.Name);
+        Assert.Equal("01-Gruss", viewModel.DetailSelected?.Snippet.Name);
+        // Zurück: in die linke Liste, dann eine Ebene hoch, der Ordner von vorher bleibt markiert
+        Press(Key.Left);
+        Press(Key.Left);
+        Assert.Equal(["Bausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        // Ohne Suchtext genauso: Der Pfeil nach rechts öffnet links keinen Ordner, er geht nur in die rechte Liste
+        Press(Key.Right);
+        Assert.Equal(["Bausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        Assert.Equal("Intern", viewModel.DetailSelected?.Snippet.Name);
+        Press(Key.Down);
+        Assert.Equal("01-MfG-DE", viewModel.DetailSelected?.Snippet.Name);
+        Press(Key.Right);
+        Assert.Equal("01-MfG-DE", viewModel.DetailSelected?.Snippet.Name);
+        Press(Key.Left);
+        Assert.False(viewModel.InDetail);
+        Assert.Equal(["Bausteine"], viewModel.Breadcrumbs.Select(c => c.Name));
+        // Weitertippen holt die Tastatur zurück nach links
+        popup.SearchBox.Text = "grüsse";
+        viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "4-Grüsse");
+        popup.SearchBox.Select(popup.SearchBox.Text.Length, 0);
+        Press(Key.Right);
+        Assert.True(viewModel.InDetail);
+        popup.SearchBox.Text = "grüss";
+        Assert.False(viewModel.InDetail);
+        // Bei einem Text rechts gibt es nichts auszuwählen, der Pfeil bleibt beim Suchfeld
+        popup.SearchBox.Text = "mfg";
+        popup.SearchBox.Select(3, 0);
+        Press(Key.Right);
+        Assert.False(viewModel.InDetail);
+
         viewModel.Query = "";
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
         Assert.Equal(["Bausteine", "6-Weblinks"], viewModel.Breadcrumbs.Select(c => c.Name));

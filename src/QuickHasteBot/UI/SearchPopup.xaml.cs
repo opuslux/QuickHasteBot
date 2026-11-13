@@ -497,6 +497,12 @@ internal partial class SearchPopup : Window
             Results.ScrollIntoView(Results.SelectedItem);
     }
 
+    void OnDetailSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (DetailList.SelectedItem is not null)
+            DetailList.ScrollIntoView(DetailList.SelectedItem);
+    }
+
     // Wie in einem Menü folgt die Auswahl sofort der Maus, ausser sie ist unterwegs zur rechten Spalte
     void OnResultsMouseMove(object sender, MouseEventArgs e)
     {
@@ -646,17 +652,17 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
-    // Ohne Auswahl gilt der angezeigte Ordner
+    // Ohne Auswahl gilt der angezeigte Ordner. Ist die Tastatur rechts, der Eintrag dort.
     void EditSelected()
     {
         HideUnlessKeptOpen();
-        _app.EditSnippet(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
+        _app.EditSnippet(_viewModel.CurrentSnippet ?? _viewModel.CurrentFolder);
     }
 
     void RevealSelected()
     {
         HideUnlessKeptOpen();
-        _app.RevealInExplorer(_viewModel.Selected?.Snippet ?? _viewModel.CurrentFolder);
+        _app.RevealInExplorer(_viewModel.CurrentSnippet ?? _viewModel.CurrentFolder);
     }
 
     void OpenSettings()
@@ -849,9 +855,11 @@ internal partial class SearchPopup : Window
     void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         var ctrl = Keyboard.Modifiers == ModifierKeys.Control;
-        // Pfeile nach links/rechts gehören dem Suchfeld, sobald etwas drinsteht
+        // Pfeile nach links/rechts gehören dem Suchfeld, sobald etwas drinsteht. Nur am Ende des Suchtexts (leer: immer)
+        // führt der Pfeil nach rechts in den Ordnerinhalt rechts, dort zurück der Pfeil nach links.
         var browsing = _viewModel.Query.Length == 0;
-        var selected = _viewModel.Selected?.Snippet;
+        var inDetail = _viewModel.InDetail;
+        var selected = _viewModel.CurrentSnippet;
 
         e.Handled = true;
         switch (e.Key)
@@ -878,6 +886,9 @@ internal partial class SearchPopup : Window
             case Key.End when ctrl:
                 _viewModel.SelectEdge(last: e.Key == Key.End);
                 break;
+            case Key.Enter when inDetail:
+                ActivateDetail(_viewModel.DetailSelected!.Snippet, alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
+                break;
             case Key.Enter:
                 ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
                 break;
@@ -888,8 +899,19 @@ internal partial class SearchPopup : Window
                 if (_viewModel.SelectNumber(e.SystemKey - Key.D0))
                     ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift));
                 break;
-            case Key.Right when browsing && selected is { IsFolder: true }:
-                _viewModel.EnterFolder(selected);
+            // Wie in einer Spaltenansicht: Ein Ordner rechts lässt die Spalten weiterrücken
+            case Key.Right when inDetail:
+                if (selected is { IsFolder: true })
+                    _viewModel.ShiftColumns(selected);
+                break;
+            case Key.Left when inDetail:
+                _viewModel.LeaveDetail();
+                break;
+            // Mit und ohne Suchtext gleich: in den Ordnerinhalt rechts, geöffnet wird nichts
+            case Key.Right when _viewModel.ShowDetailItems && IsCaretAtEnd():
+                // Ein markierter Suchtext bleibt stehen, Weitertippen hängt an statt zu ersetzen
+                SearchBox.Select(SearchBox.Text.Length, 0);
+                _viewModel.EnterDetail();
                 break;
             case Key.Left when browsing:
                 _viewModel.GoUp();
@@ -920,6 +942,9 @@ internal partial class SearchPopup : Window
                 break;
         }
     }
+
+    // Auch wenn der Text bis zum Ende markiert ist: Der Pfeil würde die Schreibmarke dort nur noch ans Ende setzen
+    bool IsCaretAtEnd() => SearchBox.SelectionStart + SearchBox.SelectionLength == SearchBox.Text.Length;
 
     void ActivateSelected(bool alternate)
     {
