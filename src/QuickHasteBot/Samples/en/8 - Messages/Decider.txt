@@ -1,5 +1,0 @@
-{# The oracle answers any yes-or-no question, at random and not always seriously. The answer comes as a message, nothing is typed.
-ask() first asks for the question, the message shows it with the answer. Add your own sayings to the list.
-Please still make important decisions yourself.}
-{{ var question = ask('Your question for the oracle', 'Should I leave work early today?'); var answers = ['Yes, definitely.', 'No. And don\'t ask again.', 'The stars say yes, the coffee says no.', 'Ask again after lunch.', 'Absolutely. What could possibly go wrong?', 'Rather not. The oracle has a bad feeling about this.', 'Yes, but only after the next meeting.', 'The oracle is on a break.', 'If you have to ask: no.', 'Yes! The universe is on your side.', 'Maybe. The oracle isn\'t sure either.', 'Flip a coin. The oracle stays out of this.'] }}
-{{ msg((question ? question + '\n\n' : '') + answers[Math.floor(Math.random() * answers.length)], { title: 'Oracle', icon: 'none' }) }}

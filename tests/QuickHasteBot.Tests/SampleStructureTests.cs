@@ -190,7 +190,7 @@ public class SampleStructureTests
         Assert.Equal("Diese Zeile kam vor der Meldung.{enter}Und diese nach dem OK.{enter}", Paste("Meldung am Ende.txt", ""));
         Assert.Equal("", Paste("Computer-Infos als Meldung.txt", ""));
         Assert.Equal("", Paste("Würfel.txt", ""));
-        Assert.Equal("", Paste("Entscheider.txt", ""));
+        Assert.Equal("", Paste("Orakel-Entscheider.txt", ""));
         Assert.Equal("", Paste("Tee-Timer.txt", ""));
     }
 
@@ -254,21 +254,30 @@ public class SampleStructureTests
         }
     }
 
+    /// <summary>Das Orakel: fünf Stufen von Ja bis Nein in der Titelleiste, alle kommen vor, die Frage steht über dem Spruch.</summary>
     [Theory]
-    [InlineData("de", "Entscheider.txt", "Deine Frage an das Orakel", "Orakel")]
-    [InlineData("en", "Decider.txt", "Your question for the oracle", "Oracle")]
-    public void Decider_answers_the_question_in_a_message(string language, string name, string label, string title)
+    [InlineData("de", "Orakel-Entscheider.txt", "Deine Frage an das Orakel", "Das Orakel sagt: ", "Ja|Eher ja|Vielleicht|Eher nein|Nein")]
+    [InlineData("en", "Oracle decider.txt", "Your question for the oracle", "The oracle says: ", "Yes|Rather yes|Maybe|Rather no|No")]
+    public void Decider_answers_with_one_of_five_levels(string language, string name, string label, string prefix, string levels)
     {
         var text = SampleStructure.Files(language).Single(f => f.Path.EndsWith(name, StringComparison.Ordinal)).Text;
-        var shown = new List<MessageRequest>();
-        var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
-            Answers: new Dictionary<string, string> { [label] = "Pizza?" }, Message: request => { shown.Add(request); return true; });
-        Assert.Equal("", SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context).Trim());
-        var message = Assert.Single(shown);
-        Assert.Equal(title, message.Title);
-        Assert.Equal(MessageIcon.None, message.Icon);
-        Assert.StartsWith("Pizza?\n\n", message.Text);
-        Assert.True(message.Text.Length > "Pizza?\n\n".Length);
+        var seen = new HashSet<string>();
+        var sayings = new HashSet<string>();
+        for (var i = 0; i < 300; i++)
+        {
+            var shown = new List<MessageRequest>();
+            var context = new ScriptContext(Now, CultureInfo.InvariantCulture, "", Zone, new FormBuilder(),
+                Answers: new Dictionary<string, string> { [label] = "Pizza?" }, Message: request => { shown.Add(request); return true; });
+            Assert.Equal("", SnippetScript.Render(KeyTags.MarkTags(text, context.Form!), context).Trim());
+            var message = Assert.Single(shown);
+            Assert.StartsWith(prefix, message.Title);
+            seen.Add(message.Title![prefix.Length..]);
+            Assert.Equal(MessageIcon.None, message.Icon);
+            Assert.StartsWith("Pizza?\n\n", message.Text);
+            sayings.Add(message.Text["Pizza?\n\n".Length..]);
+        }
+        Assert.Equal(levels.Split('|').Order(), seen.Order());
+        Assert.Equal(15, sayings.Count);
     }
 
     [Theory]
