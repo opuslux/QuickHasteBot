@@ -323,7 +323,8 @@ internal partial class SnippetEditorWindow : Window
         var upTo = text[..(start + length)];
         string[] notes =
         [
-            .. ScriptSession.UsesRun(upTo) ? [Strings.EditorPreviewRunNote] : Array.Empty<string>(),
+            .. SnippetScript.UsesRun(upTo) ? [Strings.EditorPreviewRunNote] : Array.Empty<string>(),
+            .. SnippetScript.UsesMessages(upTo) ? [Strings.EditorPreviewMessageNote] : Array.Empty<string>(),
             .. SnippetScript.UsesAsk(upTo) ? [Strings.EditorPreviewAskNote] : Array.Empty<string>(),
             .. SnippetScript.UsesSelection(upTo) ? [Strings.EditorPreviewSelectionNote] : Array.Empty<string>(),
         ];
@@ -479,7 +480,11 @@ internal partial class SnippetEditorWindow : Window
             new("{{ const r = run('d:/scripts/file.bat') }}", nameof(Strings.TagRun), "d:/scripts/file.bat", OwnLine: true),
             new("{{ const r = run('d:/scripts/file.bat', { args: '', dir: 'd:/data' }) }}", nameof(Strings.TagRunOptions), "d:/scripts/file.bat", OwnLine: true),
             new("{{ run('powershell', '-NoProfile -Command \"$env:COMPUTERNAME\"', { hidden: true }).out.trim() }}", nameof(Strings.TagPowerShell), "$env:COMPUTERNAME"),
-            new("{{ run('msg', '* " + Strings.TagMessageText + "', { wait: 0, hidden: true }) }}", nameof(Strings.TagMessage), Strings.TagMessageText, OwnLine: true),
+            new("{{ msg('" + Strings.TagMessageText + "') }}", nameof(Strings.TagMessage), Strings.TagMessageText, OwnLine: true),
+            new("{{ msg('" + Strings.TagMessageText + "', { title: 'QuickHasteBot', icon: 'warning', close: 5 }) }}", nameof(Strings.TagMessageOptions),
+                Strings.TagMessageText, OwnLine: true),
+            new("{if,js=\"confirm('" + Strings.TagConfirmText + "')\"}…{/if}", nameof(Strings.TagConfirm), Strings.TagConfirmText, OwnLine: true,
+                Text: IfBlock("js=\"confirm('" + Strings.TagConfirmText + "')\"")),
         ]),
     ];
 

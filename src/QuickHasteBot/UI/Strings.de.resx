@@ -120,6 +120,7 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="EditorPreviewError" xml:space="preserve"><value>Skriptfehler</value></data>
   <data name="EditorPreviewScript" xml:space="preserve"><value>Dieser Block ergibt</value></data>
   <data name="EditorPreviewSelection" xml:space="preserve"><value>Die Auswahl ergibt</value></data>
+  <data name="EditorPreviewMessageNote" xml:space="preserve"><value>msg() und confirm() zeigen hier nichts, confirm() gibt true. Sie erscheinen erst beim Testen (F5).</value></data>
   <data name="EditorPreviewRunNote" xml:space="preserve"><value>run() startet hier nichts und liefert ein leeres Ergebnis. Es läuft erst beim Testen (F5).</value></data>
   <data name="EditorPreviewEmpty" xml:space="preserve"><value>(nichts)</value></data>
   <data name="EditorTest" xml:space="preserve"><value>Testen</value></data>
@@ -203,6 +204,9 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagPowerShell" xml:space="preserve"><value>PowerShell-Befehl, tippt seine Ausgabe</value></data>
   <data name="TagMessage" xml:space="preserve"><value>Meldung anzeigen (Popup, Message Box, Alert)</value></data>
   <data name="TagMessageText" xml:space="preserve"><value>Fertig</value></data>
+  <data name="TagMessageOptions" xml:space="preserve"><value>Meldung mit Titel, Symbol, schliesst sich selbst</value></data>
+  <data name="TagConfirm" xml:space="preserve"><value>Ja oder Nein fragen (confirm)</value></data>
+  <data name="TagConfirmText" xml:space="preserve"><value>Jetzt senden?</value></data>
   <data name="TagKey" xml:space="preserve"><value>Taste {0}</value></data>
   <data name="TagKeyHelper" xml:space="preserve"><value>Taste aus einem Skript</value></data>
   <!-- Hilfetexte im Menü "Tag einfügen" und beim Hover im Editor: Name der Kurzbeschreibung + "Help" -->
@@ -258,7 +262,9 @@ Das Fenster wird am Programmnamen erkannt. Öffnet das Programm sein Fenster unt
   <data name="TagRunHelp" xml:space="preserve"><value>Führt ein Skript oder Programm an dieser Stelle aus und wartet, bis es fertig ist (ohne Angabe 60 s). r.out ist seine Ausgabe, r.code sein Rückgabewert; {{ r.out.trim() }} tippt die Ausgabe.</value></data>
   <data name="TagRunOptionsHelp" xml:space="preserve"><value>Wie run(), mit Optionen: args geht ans Skript, dir ist sein Arbeitsordner («Ausführen in», sonst der Ordner des Skripts), wait die Wartezeit in Sekunden, hidden: true startet es ohne Fenster.</value></data>
   <data name="TagPowerShellHelp" xml:space="preserve"><value>Führt einen PowerShell-Befehl aus und tippt, was er ausgibt, hier den Computernamen; .trim() nimmt den Zeilenumbruch am Ende weg. Einfache Anführungszeichen im Befehl schreibt man in JavaScript als \'. Eine .ps1-Datei läuft direkt: run('d:/scripts/datei.ps1').</value></data>
-  <data name="TagMessageHelp" xml:space="preserve"><value>Zeigt eine Meldung an, z.B. am Ende eines Formulars: «Fertig». alert() gibt es in Skripten nicht; msg ist die Meldung von Windows (nicht in Windows Home, die Hilfe zeigt dafür eine Meldung mit PowerShell). wait: 0 wartet nicht darauf, so wird nichts getippt; hidden: true verhindert, dass ein Konsolenfenster aufblitzt.</value></data>
+  <data name="TagMessageHelp" xml:space="preserve"><value>Zeigt eine Meldung und wartet auf OK, z.B. am Ende eines Formulars: «Fertig». Getippt wird nichts. Esc bricht den Baustein ab. Optionen: { title: 'Bestellung', icon: 'warning', close: 5 }. alert() gibt es in Skripten nicht, dafür msg().</value></data>
+  <data name="TagMessageOptionsHelp" xml:space="preserve"><value>title setzt die Titelleiste (sonst QuickHasteBot). icon ist 'info' (Standard), 'warning', 'error' oder 'none', mit dem Ton von Windows. close: 5 schliesst die Meldung nach 5 Sekunden von selbst, der Baustein läuft ohne Klick weiter; der OK-Knopf zählt herunter.</value></data>
+  <data name="TagConfirmHelp" xml:space="preserve"><value>Fragt Ja oder Nein, wenn der Baustein dort ankommt: Ja führt aus, was nach {if} steht, Nein, was nach {else} steht. Esc bricht den Baustein ab. confirm() geht auch in Skripten: {{ confirm('Dringend?') ? 'DRINGEND: ' : '' }}. Mit { title: '…', icon: 'warning' } wie bei msg().</value></data>
   <data name="MenuEditExternal" xml:space="preserve"><value>Mit Standardprogramm öffnen</value></data>
   <data name="MenuNewSnippet" xml:space="preserve"><value>Neuer Baustein…</value></data>
   <data name="UseBuiltInEditor" xml:space="preserve"><value>Bausteine im eingebauten Editor bearbeiten</value></data>

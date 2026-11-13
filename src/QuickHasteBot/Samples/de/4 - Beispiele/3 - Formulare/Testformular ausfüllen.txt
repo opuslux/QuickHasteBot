@@ -4,7 +4,7 @@ window holt das Browserfenster mit diesem Titel nach vorne. Die Element-Tags fin
 name=Lieferadresse > name=Strasse sucht die Strasse nur im Kasten Lieferadresse, denn eine Strasse gibt es zweimal.
 set füllt ein Feld, wählt im Dropdown und hakt ein Kästchen an. click klickt, dblclick doppelklickt mit der Maus.
 Für eigene Formulare im Editor ein Element erfassen (Fadenkreuz) oder Aufnehmen wählen.
-Zum Schluss meldet ein Fenster von PowerShell, dass alles erledigt ist.}
+Zum Schluss meldet msg(), dass alles erledigt ist.}
 {window,title=QuickHasteBot-Testformular}
 {dblclick,name=Doppelklick hier;type=button}
 {focus,#vorname}{clear}Max
@@ -19,4 +19,4 @@ Zum Schluss meldet ein Fenster von PowerShell, dass alles erledigt ist.}
 {set,#newsletter,on}
 {focus,help=Ihre Nachricht*}{clear}Hallo, das hat QuickHasteBot getippt.
 {click,name=Absenden;type=button}
-{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'Das Testformular ist ausgefüllt.\')"', { wait: 0, hidden: true }) }}
+{{ msg('Das Testformular ist ausgefüllt.') }}

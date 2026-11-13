@@ -439,7 +439,7 @@ internal sealed class AppController : IDisposable
         using var session = scripts
             ? new ScriptSession(new ScriptContext(DateTimeOffset.Now, CultureInfo.CurrentCulture, clipboard,
                 Form: form, Run: request => ScriptRunner.Run(request, PasteService.EscapeDown), Selection: selection, Answers: answers,
-                Folder: folder))
+                Folder: folder, Message: ScriptMessage))
             : null;
         if (session is not null)
         {
@@ -449,8 +449,8 @@ internal sealed class AppController : IDisposable
                 // ausgewertet, wenn der Lauf dort ankommt. Sonst passiert vorher nichts, und alles läuft jetzt.
                 if (form is not null && ScriptSession.NeedsStaging(text, form))
                     text = session.RenderStaged(text);
-                else if (ScriptSession.UsesRun(text))
-                    text = await Task.Run(() => session.Render(text)); // run() wartet, die Oberfläche nicht
+                else if (ScriptSession.Waits(text))
+                    text = await Task.Run(() => session.Render(text)); // run() und msg() warten, die Oberfläche nicht
                 else
                     text = session.Render(text);
             }
@@ -530,6 +530,10 @@ internal sealed class AppController : IDisposable
         }
 
 
+        // Nichts mehr übrig, z.B. ein Baustein, der nur eine Meldung zeigt: kein leeres Strg+V ins Zielfenster
+        if (text.Length == 0 && html is null)
+            return null;
+
         if (gate is not null)
         {
             gate.Planned([new SourcedStep(new TextStep(text), new SourceSpan(0, sourceLength))], paste: true);
@@ -548,6 +552,17 @@ internal sealed class AppController : IDisposable
                 MessageBoxImage.Information, gate is null ? null : 0);
         return null;
     }
+
+    /// <summary>msg() und confirm() aus einem Skript: Das läuft im Hintergrund, die Meldung gehört auf den UI-Thread.</summary>
+    static bool? ScriptMessage(MessageRequest request) =>
+        Application.Current.Dispatcher.Invoke(() => MessageDialog.ShowScript(request.Text, request.Title, request.Icon switch
+        {
+            MessageIcon.Info => MessageBoxImage.Information,
+            MessageIcon.Question => MessageBoxImage.Question,
+            MessageIcon.Warning => MessageBoxImage.Warning,
+            MessageIcon.Error => MessageBoxImage.Error,
+            _ => MessageBoxImage.None,
+        }, request.CloseSeconds, request.Confirm));
 
     /// <summary>Was ask() bisher eingegeben bekam, als Vorschlag beim nächsten Mal. Nur solange das Programm läuft.</summary>
     readonly Dictionary<string, string> _lastAnswers = [];

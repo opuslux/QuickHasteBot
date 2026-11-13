@@ -40,7 +40,7 @@ public static class TagHelp
         ["date"] = "TagDate", ["time"] = "TagTime", ["isoweek"] = "TagWeek", ["clipboard"] = "TagClipboard", ["selection"] = "TagSelection", ["ask"] = "TagAsk", ["user"] = "TagUser",
         ["guid"] = "TagGuid", ["key"] = "TagKeyHelper", ["wait"] = "TagWait", ["focus"] = "TagFocus", ["click"] = "TagClick",
         ["set"] = "TagSet", ["dblclick"] = "TagDoubleClick", ["rclick"] = "TagRightClick", ["window"] = "TagWindow",
-        ["run"] = "TagRunOptions",
+        ["run"] = "TagRunOptions", ["msg"] = "TagMessage", ["confirm"] = "TagConfirm",
     };
 
     /// <summary>Alle Texte, auf die <see cref="At"/> zeigen kann, für den Test, dass es sie gibt.</summary>

@@ -77,7 +77,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 - **Hidden files** as well as `desktop.ini` and `thumbs.db` are ignored.
 - **Changes** show up right away, no restart needed. The folder can be rearranged in Explorer while QuickHasteBot is running, and every hotkey checks the folder again, so even replacing or renaming the whole `structure` folder is picked up.
 
-**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4 - Examples` with snippets for the other features in folders by topic (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys, `run()`, [conditions](#conditions-if-elseif-else) and one to try **Step by step** on), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
+**Examples:** on first start, QuickHasteBot fills the folder in the language of the interface: a welcome note, greetings, two emails with a date that moves along, two SQL snippets, `Script-Samples` with 16 script blocks (dates, the clipboard, random values and more), and `4 - Examples` with snippets for the other features in folders by topic (asking before pasting, calculating, selected text, `{cursor}`, `{include}`, formatted text, key tags and the element tags with a test form to try them on, other programs, media keys, `run()`, [conditions](#conditions-if-elseif-else), [messages](#messages-msg-and-confirm) and one to try **Step by step** on), each with a [comment](#forms-key-tags) at the top that explains it. They are only examples and can be deleted. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export samples…** under the snippets folder in the settings: it proposes the snippets folder and, if that already exists, asks whether to overwrite the sample files there (your own snippets stay) or to choose another folder.
 
 Snippets can be created, renamed, cloned and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
 
@@ -278,11 +278,13 @@ Besides standard JavaScript (`Date`, `Math`, `JSON`, string and array methods, t
 | `focus(el)`, `click(el)`, `set(el, value)`, `dblclick(el)`, `rclick(el)` | Like the [element tags](#elements-focus-click-set): `focus('#email')`, `click('name=Send;type=button')`, `set('#country', 'Austria')`, `dblclick('name=Report.docx')`. |
 | `window(app)` | Like [`{window,…}`](#other-programs-window-and-start): `window('crm')`. |
 | `run(file, args, options)` | Runs a script or program right where it stands and waits for it: `run('d:/scripts/number.bat')`, with options such as `{ wait: 30, dir: 'd:/data' }`. The result has `code`, `out` and `err`; as text it is its output. See [Running scripts](#running-scripts). |
+| `msg(text, options)` | Shows a message box and waits for OK: `msg('Done')`, `msg('Check the amount', { icon: 'warning' })`. Types nothing. See [Messages](#messages-msg-and-confirm). |
+| `confirm(text, options)` | Asks Yes or No, `true` for Yes: `{if,js="confirm('Send now?')"}`. See [Messages](#messages-msg-and-confirm). |
 
 - **`selection`** works on what is selected where you paste. Pasting replaces the selection, so `«{{ selection.trim() }}»` puts quotes around it and `{{ selection.toUpperCase() }}` turns it into capitals. Ctrl+C is only pressed for snippets whose scripts mention `selection`.
 - All blocks of a snippet share their variables: `{{ var n = 3; '' }}` defines `n` for later blocks without printing anything. `undefined` and `null` print nothing either.
 - **A line of blocks that prints nothing goes away**, line break included, like a comment line. So assignments and checks can stand on lines of their own, and a line can depend on a condition: `{{ vip ? 'Priority handling' : '' }}` on its own line appears only for VIPs. If the blocks print something, the line stays as written. Empty lines you type yourself stay.
-- There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist (for a message box, see [Message box and PowerShell](#message-box-and-powershell)), and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
+- There is no browser or Node.js: `alert`, `fetch`, `require` and the like don't exist (for a message box there is [`msg()`](#messages-msg-and-confirm)), and `Intl` is only partly supported (hence `date()`). Scripts have no access to files or the network.
 - `}}` always ends the block. A literal `{{` is written as `{{ '{{' }}`.
 - If a block fails (syntax error, runs longer than 250 ms or uses too much memory), nothing is pasted and a message names the block. The text preview in the popup always shows the snippet as written.
 - If your snippets contain `{{` that should be pasted as is (e.g. Mustache or Jinja templates), turn off "Run {{ … }} in snippets as JavaScript" in the settings (`EvaluateScripts`).
@@ -325,23 +327,42 @@ your order {{ ask('Order number') }} ships on {{ date('dd.MM.yyyy', Number(ask('
 - **Focus:** if the script's window comes to the front, the window that was in front before is brought back afterwards. Holding Esc stops the wait.
 - The preview, Test in the element picker and the AI window never start anything; there `run()` returns an empty result. With the [log](#portable) switched on, every start and exit code is written to it.
 
-#### Message box and PowerShell
+#### Messages: msg and confirm
 
-Scripts don't run in the browser, so there is no `alert()`. For a message box (popup), e.g. when a form is filled in, start the message of Windows with `run()`:
+Scripts don't run in the browser, so there is no `alert()`. `msg()` shows a message box (popup) instead, e.g. when a form is filled in, and `confirm()` asks Yes or No:
 
 ```
 {click,name=Send;type=button}
-{{ run('msg', '* The automation is done', { wait: 0, hidden: true }) }}
+{{ msg('The order is sent.') }}
 ```
 
-- `msg` comes with Windows Pro and Enterprise; `*` sends the message to your own session. `wait: 0` doesn't wait for the box, so the snippet goes on and nothing is typed. `hidden: true` keeps a console window from flashing. Since a tag comes before it, the box shows only when the snippet gets there.
-- Windows Home has no `msg`. A message box from PowerShell works on every edition:
-
 ```
-{{ run('powershell', '-NoProfile -Command "Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show(\'The automation is done\')"', { wait: 0, hidden: true }) }}
+{if,js="confirm('Send the reply now?')"}
+{ctrl+enter}
+{else}
+{{ msg('Not sent, the reply stays open.', { icon: 'warning' }) }}
+{/if}
 ```
 
-Any PowerShell command runs the same way, and its output can be typed:
+- **At its place:** like `run()`, a block with `msg()` or `confirm()` runs when the snippet gets there, so the message shows after what comes before it. The snippet waits for the answer and then brings the window it was working in back to the front.
+- **`msg()`** types nothing and goes on after OK or Enter.
+- **`confirm()`** gives `true` for Yes and `false` for No. In `{if,js="…"}` it picks the branch, in a block it works like any value: `{{ confirm('Urgent?') ? 'URGENT: ' : '' }}`.
+- **Esc** or the close button stops the snippet, for both.
+- **Options** go in braces after the text:
+  - `title: 'Order'` sets the title bar, otherwise it says QuickHasteBot.
+  - `icon: 'warning'` picks the symbol and sound of Windows: `'info'` (default for `msg()`), `'warning'`, `'error'` or `'none'`. `confirm()` shows a question mark unless you pick one.
+  - `close: 5` (only `msg()`) closes the message after 5 seconds by itself, the OK button counts down. So a hint doesn't hold up a snippet that runs on its own.
+  ```
+  {{ msg('Copying the order, don\'t touch the mouse.', { title: 'Order', close: 3 }) }}
+  ```
+- The message is the same window as QuickHasteBot's own messages, in light or dark like the app, and comes up on top of the window in front.
+- The preview and the AI window show no message; there `confirm()` gives `true`.
+- The examples in `4 - Examples/7 - Messages` show all of this.
+
+#### PowerShell
+
+Any PowerShell command runs with `run()`, and its output can be typed:
+
 
 ```
 Computer: {{ run('powershell', '-NoProfile -Command "$env:COMPUTERNAME"', { hidden: true }).out.trim() }}
@@ -582,7 +603,7 @@ With a web address, `{start,…}` opens it in the default browser, and the rest 
 
 - **Element:** `{if,name=Send}` holds if the element is there and visible, with the same selectors as `{click,…}`: `#id`, `name=`, `help=`, `class=`, `type=`, `*` and containers with ` > `. Hidden or collapsed elements don't count; a field further down a web page does. It searches the window in front, or with `window=` in the selector that window, which then comes to the front: `{if,window=crm;name=Save}`.
 - **Window:** `{if,process=outlook}`, `{if,title=*Draft*}` or `{if,window=crm}` (as in [`{window,…}`](#other-programs-window-and-start)) hold if such a window is open. It then comes to the front like with `{window,…}`, so the keys after it go there.
-- **Script:** `{if,js="r.code == 0"}` holds if the JavaScript expression is true. It's checked when the run gets there, with the variables of the blocks before it, so it sees the answers of [`ask()`](#asking-before-pasting) and the result of [`run()`](#running-scripts). Text inside the quotes is written with `'`: `{if,js="answer == 'yes'"}`.
+- **Script:** `{if,js="r.code == 0"}` holds if the JavaScript expression is true. It's checked when the run gets there, with the variables of the blocks before it, so it sees the answers of [`ask()`](#asking-before-pasting) and the result of [`run()`](#running-scripts). `{if,js="confirm('Send now?')"}` asks Yes or No right there, see [Messages](#messages-msg-and-confirm). Text inside the quotes is written with `'`: `{if,js="answer == 'yes'"}`.
 - **Waiting:** elements and windows get up to 1 second to turn up, `wait=3000` gives them 3 (at most 10). If they don't, the condition doesn't hold. Unlike `{click,…}`, that's no error, the snippet just goes on after `{else}` (or after `{/if}`).
 - **Not:** `{if,not,name=Send}` holds if the element is not there.
 - **More cases:** `{elseif,…}` checks the next condition if the ones before didn't hold, `{else}` comes last and is optional:

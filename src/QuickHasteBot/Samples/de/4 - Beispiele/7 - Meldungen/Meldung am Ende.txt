@@ -1,0 +1,7 @@
+{# msg() zeigt eine Meldung und wartet auf OK. Getippt wird dabei nichts, der Baustein geht in jedem Textfeld.
+Die Meldung erscheint erst, wenn der Baustein dort ankommt, also nach der ersten Zeile. Nach OK oder Enter geht es weiter, Esc bricht ab.
+title setzt die Titelleiste, icon das Symbol: 'info' (Standard), 'warning', 'error' oder 'none'.}
+Diese Zeile kam vor der Meldung.{enter}
+{{ msg('Die erste Zeile ist getippt. Nach OK kommt die zweite.', { title: 'Meldung am Ende' }) }}
+Und diese nach dem OK.{enter}
+{{ msg('Fertig!') }}

@@ -1,0 +1,7 @@
+{# msg() shows a message box and waits for OK. It types nothing, so the snippet works in any text field.
+The message shows only when the snippet gets there, so after the first line. OK or Enter goes on, Esc stops.
+title sets the title bar, icon the symbol: 'info' (default), 'warning', 'error' or 'none'.}
+This line came before the message.{enter}
+{{ msg('The first line is typed. The second comes after OK.', { title: 'Message at the end' }) }}
+And this one after OK.{enter}
+{{ msg('Done!') }}
