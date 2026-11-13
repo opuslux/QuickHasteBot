@@ -1,11 +1,11 @@
-{# Startet die Batch-Datei 20-Nummer per Batch-Datei.bat, die gleich daneben liegt, und schreibt ihr Ergebnis in Notepad.
+{# Startet die Batch-Datei «19 - Nummer per Batch-Datei.bat», die gleich daneben liegt, und schreibt ihr Ergebnis in Notepad.
 Ein Pfad ohne Laufwerk sucht run zuerst im Ordner des Bausteins, so findet der Baustein sein Skript, wo immer der Ordner liegt.
 Die Batch-Datei wartet zwei Sekunden und gibt dann Kunde und Zufallszahl aus. Ohne Kunde meldet sie einen Fehler mit Rückgabewert 2.
 run liefert code (Rückgabewert), out (Ausgabe) und err (Fehlerausgabe), und wait: 10 wartet höchstens 10 Sekunden.
 Zum Ausprobieren den Kunden im Fenster leeren: Dann bricht throw ab, und eine Meldung zeigt den Fehler der Batch-Datei.
 Ein Klick auf die Batch-Datei im Popup führt sie aus. Zum Ansehen und Ändern: Rechtsklick › Im Explorer anzeigen und sie dort mit Notepad öffnen.}
 {start,notepad}{delay,30}{ctrl+n}Bestellung für {{ ask('Kunde', 'Muster AG') }}{enter}
-{{ const r = run('20-Nummer per Batch-Datei.bat', '"' + ask('Kunde', 'Muster AG') + '"', { wait: 10, hidden: true }) }}
+{{ const r = run('19 - Nummer per Batch-Datei.bat', '"' + ask('Kunde', 'Muster AG') + '"', { wait: 10, hidden: true }) }}
 {{ if (r.code != 0) throw new Error('Die Batch-Datei meldet ' + r.code + ': ' + r.err.trim()) }}
 Nummer: {{ r.out.trim() }}
 Rückgabewert (r.code): {{ r.code }}

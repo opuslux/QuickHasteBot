@@ -4,4 +4,4 @@ Lege .txt-Dateien und Unterordner im Ordner structure neben der exe an, sie ersc
 
 Script-Samples zeigt, was Skriptblöcke können: Datum, Zwischenablage, Zufall und mehr. Eigene Skriptblöcke schreibt die KI, über das Funkel-Symbol im Popup.
 
-4-Beispiele zeigt die übrigen Möglichkeiten, je in einem Baustein mit Beschreibung oben: Rückfragen vor dem Einfügen, Rechnen, markierten Text umwandeln, formatierten Text, Formulare (mit einem Testformular zum Ausprobieren), andere Programme, Spezialtasten und Skripte. Öffne sie mit Rechtsklick › Bearbeiten.
+«4 - Beispiele» zeigt die übrigen Möglichkeiten, je in einem Baustein mit Beschreibung oben: Rückfragen vor dem Einfügen, Rechnen, markierten Text umwandeln, formatierten Text, Formulare (mit einem Testformular zum Ausprobieren), andere Programme, Spezialtasten und Skripte. Öffne sie mit Rechtsklick › Bearbeiten.

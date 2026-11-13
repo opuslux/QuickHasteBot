@@ -114,4 +114,18 @@ public class SnippetIncludesTests
         Assert.Null(library.FindIncluded("Bild"));
         Assert.Null(library.FindIncluded("3-Grüsse"));
     }
+
+    [Fact]
+    public void Numbers_with_spaced_dash_may_be_left_out()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"1 - Grüsse\01 - Freundliche Grüsse.txt", "MfG");
+        dir.File(@"2 - E-Mail\Abwesenheit.txt", "weg");
+        using var library = new SnippetLibrary(dir.Path, [".txt"]);
+
+        Assert.Equal("01 - Freundliche Grüsse", library.FindIncluded("Grüsse/Freundliche Grüsse")?.Name);
+        Assert.Equal("01 - Freundliche Grüsse", library.FindIncluded("1 - Grüsse/01 - Freundliche Grüsse.txt")?.Name);
+        // Nur der Strich nach der Nummer fällt weg, der in "E-Mail" bleibt
+        Assert.Equal("Abwesenheit", library.FindIncluded("E-Mail/Abwesenheit")?.Name);
+    }
 }

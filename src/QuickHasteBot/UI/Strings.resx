@@ -420,7 +420,7 @@ The date of next Monday</value></data>
   <data name="QuotedNameFormat" xml:space="preserve"><value>"{0}"</value></data>
   <data name="QuotedNameWithLocationFormat" xml:space="preserve"><value>"{0}" ({1})</value></data>
   <data name="FileHotkeysTab" xml:space="preserve"><value>Hotkeys</value></data>
-  <data name="FileHotkeysIntro" xml:space="preserve"><value>Every file and folder can have a hotkey of its own, written in its name: "Kind regards [Ctrl+Alt+G].txt" pastes the snippet from any program, "3-SQL [Ctrl+Alt+S]" opens the popup in that folder. Set it with "Set hotkey…" in the popup's right-click menu, by renaming, or here with a double-click.</value></data>
+  <data name="FileHotkeysIntro" xml:space="preserve"><value>Every file and folder can have a hotkey of its own, written in its name: "Kind regards [Ctrl+Alt+G].txt" pastes the snippet from any program, "3 - SQL [Ctrl+Alt+S]" opens the popup in that folder. Set it with "Set hotkey…" in the popup's right-click menu, by renaming, or here with a double-click.</value></data>
   <data name="FileHotkeysNone" xml:space="preserve"><value>No file or folder has a hotkey yet.</value></data>
   <data name="FileHotkeysSummaryFormat" xml:space="preserve"><value>{0} active</value></data>
   <data name="FileHotkeysProblemsFormat" xml:space="preserve"><value>{0} active, {1} not working</value></data>

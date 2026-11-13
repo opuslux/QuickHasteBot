@@ -153,7 +153,7 @@ internal static class ElementAutomation
                 continue;
             }
             // Verschachtelte Container (Gruppe in Gruppe) liefern dieselben Treffer mehrmals: nur einmal zählen
-            foreach (var match in Matches(scope, selector))
+            foreach (var match in Targets(scope, selector))
                 if (seen.Add(Key(match)) && ++position == selector.Index)
                     return match;
         }
@@ -191,8 +191,26 @@ internal static class ElementAutomation
     static AutomationElement? FindIn(AutomationElement root, ElementSelector selector)
     {
         if (selector.Classes.Count == 0 && selector.Index == 1 && !selector.NameIsPattern && !selector.HelpIsPattern)
-            return root.FindFirst(TreeScope.Descendants, ConditionFor(selector));
-        return Matches(root, selector).Skip(selector.Index - 1).FirstOrDefault();
+        {
+            var first = root.FindFirst(TreeScope.Descendants, ConditionFor(selector));
+            // Zuerst ein Text gefunden: vielleicht die Beschriftung, und das Feld dazu kommt erst danach
+            if (first is null || selector.Type is not null || first.Current.ControlType != ControlType.Text)
+                return first;
+        }
+        return Targets(root, selector).Skip(selector.Index - 1).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Die Treffer, die gemeint sind. Ohne type= ist ein Text, der gleich heisst wie ein anderer Treffer, dessen
+    /// Beschriftung: Chrome zeigt &lt;label&gt;Nachname&lt;/label&gt; als eigenes Text-Element vor dem Feld, das ebenfalls
+    /// "Nachname" heisst. Dann zählen nur die übrigen, auch für index=. Passen nur Texte, bleiben sie Treffer.
+    /// </summary>
+    static List<AutomationElement> Targets(AutomationElement root, ElementSelector selector)
+    {
+        var all = Matches(root, selector).ToList();
+        if (selector.Type is not null) return all;
+        var fields = all.Where(e => e.Cached.ControlType != ControlType.Text).ToList();
+        return fields.Count > 0 ? fields : all;
     }
 
     /// <summary>
@@ -206,6 +224,7 @@ internal static class ElementAutomation
         cache.Add(AutomationElement.ClassNameProperty);
         cache.Add(AutomationElement.NameProperty);
         cache.Add(AutomationElement.HelpTextProperty);
+        cache.Add(AutomationElement.ControlTypeProperty);
         cache.Add(AutomationElement.RuntimeIdProperty);
         AutomationElementCollection all;
         using (cache.Activate())

@@ -14,7 +14,7 @@
 <body>
 <h1>Testformular</h1>
 <p>Zum Ausprobieren von QuickHasteBot: Der Baustein „Testformular ausfüllen“ füllt alles aus. Nichts wird verschickt, die Seite läuft nur auf deinem Computer.</p>
-<p><button type="button" ondblclick="this.textContent = 'Doppelklick erkannt ✓'">Doppelklick hier</button></p>
+<p><button type="button" ondblclick="document.getElementById('doppelklick').textContent = 'Doppelklick erkannt ✓'">Doppelklick hier</button> <span id="doppelklick"></span></p>
 
 <fieldset><legend>Person</legend>
   <p><label class="feld" for="vorname">Vorname</label><input id="vorname"></p>

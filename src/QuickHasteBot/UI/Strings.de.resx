@@ -420,7 +420,7 @@ Das Datum vom nächsten Montag</value></data>
   <data name="QuotedNameFormat" xml:space="preserve"><value>«{0}»</value></data>
   <data name="QuotedNameWithLocationFormat" xml:space="preserve"><value>«{0}» ({1})</value></data>
   <data name="FileHotkeysTab" xml:space="preserve"><value>Hotkeys</value></data>
-  <data name="FileHotkeysIntro" xml:space="preserve"><value>Jede Datei und jeder Ordner kann einen eigenen Hotkey haben, er steht im Namen: «Freundliche Grüsse [Ctrl+Alt+G].txt» fügt den Baustein aus jedem Programm ein, «3-SQL [Ctrl+Alt+S]» öffnet das Popup in diesem Ordner. Festlegen mit «Hotkey festlegen…» im Rechtsklick-Menü des Popups, durch Umbenennen oder hier per Doppelklick.</value></data>
+  <data name="FileHotkeysIntro" xml:space="preserve"><value>Jede Datei und jeder Ordner kann einen eigenen Hotkey haben, er steht im Namen: «Freundliche Grüsse [Ctrl+Alt+G].txt» fügt den Baustein aus jedem Programm ein, «3 - SQL [Ctrl+Alt+S]» öffnet das Popup in diesem Ordner. Festlegen mit «Hotkey festlegen…» im Rechtsklick-Menü des Popups, durch Umbenennen oder hier per Doppelklick.</value></data>
   <data name="FileHotkeysNone" xml:space="preserve"><value>Noch keine Datei und kein Ordner hat einen Hotkey.</value></data>
   <data name="FileHotkeysSummaryFormat" xml:space="preserve"><value>{0} aktiv</value></data>
   <data name="FileHotkeysProblemsFormat" xml:space="preserve"><value>{0} aktiv, {1} wirken nicht</value></data>
