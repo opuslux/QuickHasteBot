@@ -1,6 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using H.NotifyIcon;
+using QuickHasteBot.Interop;
 
 namespace QuickHasteBot.UI;
 
@@ -10,6 +11,12 @@ internal sealed class TrayIcon : IDisposable
     readonly ContextMenu _menu;
     readonly AppController _app;
     MenuItem? _updateItem;
+    readonly ForegroundWatcher _foreground;
+    nint _lastWindow;
+    long _doubleClicked = long.MinValue / 2;
+
+    /// <summary>So lange nach einem Doppelklick zählt ein Loslassen noch zu ihm (Millisekunden).</summary>
+    const int DoubleClickGuard = 500;
 
     public TrayIcon(AppController app)
     {
@@ -29,8 +36,23 @@ internal sealed class TrayIcon : IDisposable
             IconSource = new BitmapImage(new Uri("pack://application:,,,/QuickHasteBot;component/Assets/QuickHasteBot.ico")),
             ContextMenu = menu,
         };
-        _icon.TrayMouseDoubleClick += (_, _) => app.ShowSettings();
-        _icon.TrayLeftMouseUp += (_, _) => app.BringKeptOpenPopupToFront();
+        // Linksklick öffnet das Popup wie der Hotkey, Doppelklick die Einstellungen. Der zweite Klick eines Doppelklicks
+        // öffnet das Popup nicht nochmals, es schliesst sich ohnehin, sobald die Einstellungen vorne sind.
+        _icon.TrayMouseDoubleClick += (_, _) =>
+        {
+            _doubleClicked = Environment.TickCount64;
+            app.ShowSettings();
+        };
+        _icon.TrayLeftMouseUp += (_, _) =>
+        {
+            if (Environment.TickCount64 - _doubleClicked > DoubleClickGuard)
+                app.ShowSearchFromTray(LastWindow());
+        };
+        _lastWindow = NativeMethods.GetForegroundWindow();
+        _foreground = new ForegroundWatcher(window =>
+        {
+            if (!IsShell(window)) _lastWindow = window;
+        });
         _icon.TrayBalloonTipClicked += (_, _) => app.OpenUpdatePage();
 
         // false: kein "Efficiency Mode", der würde den Prozess drosseln und den Hotkey träge machen
@@ -70,5 +92,21 @@ internal sealed class TrayIcon : IDisposable
 
     public void UpdateToolTip(string text) => _icon.ToolTipText = text;
 
-    public void Dispose() => _icon.Dispose();
+    /// <summary>
+    /// Wohin das Popup nach einem Klick aufs Tray-Symbol einfügt: das Fenster, das vorher vorne war. Beim Klick ist es die
+    /// Taskleiste, darum merkt sich ein <see cref="ForegroundWatcher"/> laufend das letzte andere (eigene Fenster meldet er nicht).
+    /// </summary>
+    nint LastWindow() =>
+        _lastWindow != 0 && NativeMethods.IsWindow(_lastWindow) && !IsShell(_lastWindow) ? _lastWindow : 0;
+
+    /// <summary>Taskleiste, Infobereich mit seinem Überlauf und Startmenü: kein Ziel zum Einfügen.</summary>
+    static bool IsShell(nint window) => WindowFinder.ClassName(window) is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd"
+        or "NotifyIconOverflowWindow" or "TopLevelWindowForOverflowXamlIsland" or "XamlExplorerHostIslandWindow"
+        or "Windows.UI.Core.CoreWindow";
+
+    public void Dispose()
+    {
+        _foreground.Dispose();
+        _icon.Dispose();
+    }
 }

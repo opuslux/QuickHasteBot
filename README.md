@@ -35,7 +35,7 @@ Unpack the ZIP into any folder and start `QuickHasteBot.exe`. No installation an
 
 The exe is not code-signed, so Windows SmartScreen may warn the first time you start it. Click **More info → Run anyway**. The ZIPs are built from this repository by the [release workflow](.github/workflows/release.yml).
 
-**The hotkey** that opens the popup is **Ctrl+Shift+Y** by default. To change it, open the settings (double-click the tray icon, or Ctrl+, in the popup), click the hotkey field under **General → Hotkey** and press the new combination. It must include Ctrl, Alt, Shift or Win; if another program already uses it, the settings say so right away. The hotkey is stored as `Hotkey` in `settings.json` and applies immediately.
+**The hotkey** that opens the popup is **Ctrl+Shift+Y** by default. To change it, open the settings (double-click the tray icon, or Ctrl+, in the popup), click the hotkey field under **General → Hotkey** and press the new combination. It must include Ctrl, Alt, Shift or Win; if another program already uses it, the settings say so right away. The hotkey is stored as `Hotkey` in `settings.json` and applies immediately. A left click on the tray icon opens the popup too, for the window that was in front before.
 
 The tray menu also opens the snippets folder, the [element picker](#elements-focus-click-set), the [AI prompt for scripts](#writing-a-block-with-ai) and this manual as **Help**, which the settings (next to the version) and the editor (**Help** button or F1) open as well. To start with Windows, enable "Start with Windows" in the settings.
 
@@ -170,7 +170,7 @@ Pin and filter are also in the settings under **When opening**.
 
 To paste several snippets one after another, e.g. while filling in a form, the lock at the right end of the shortcut row at the bottom (or Ctrl+T) keeps the popup from closing when it loses the focus. That is all it does: the popup is then an ordinary window that goes behind other windows when you click them and comes to the front when you click it.
 
-- After pasting, the popup comes back to the front at the same place and in the same folder, without taking the focus away from the program you pasted into. Click the next snippet, or press the hotkey to get back into the search box. A left click on the tray icon brings it to the front too.
+- After pasting, the popup comes back to the front at the same place and in the same folder, without taking the focus away from the program you pasted into. Click the next snippet, or press the hotkey to get back into the search box. A left click on the tray icon brings it to the front too, and it keeps pasting where it did.
 - Clicking into another program makes it the new target: the next snippet goes there. Windows of QuickHasteBot itself, like the editor, never become the target, and neither does a window a snippet brings to the front.
 - Editing a snippet, Explorer and the settings leave the popup open too.
 - Esc closes the popup, the lock stays on. The setting is saved (`KeepPopupOpen`) and applies until you switch it off again.
