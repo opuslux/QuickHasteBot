@@ -72,7 +72,7 @@ internal partial class HotkeyDialog : Window
         string? problem = null;
         if (_gesture is { } gesture && gesture != _snippet.Hotkey)
         {
-            problem = _app.HotkeyConflict(gesture, _snippet.FullPath)
+            problem = _app.FileHotkeys.Conflict(gesture, _snippet.FullPath)
                 ?? NameProblemText(SnippetFiles.Check(_folder, name, _currentName));
             if (problem is null && !gesture.Modifiers.HasFlag(HotkeyModifiers.Ctrl) && !gesture.Modifiers.HasFlag(HotkeyModifiers.Alt)
                 && !gesture.Modifiers.HasFlag(HotkeyModifiers.Win))

@@ -217,7 +217,7 @@ internal partial class ElementPickerWindow : Window
         StatusText.Text = Strings.PickerTestRunning;
         try
         {
-            var error = await _app.TestTagAsync(TagOutput.Text, info.Window);
+            var error = await _app.Runner.TestTagAsync(TagOutput.Text, info.Window);
             StatusText.Text = error ?? Strings.PickerTestDone;
         }
         finally

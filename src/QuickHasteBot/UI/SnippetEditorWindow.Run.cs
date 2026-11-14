@@ -40,7 +40,7 @@ internal partial class SnippetEditorWindow
 
         using var test = _test = new CancellationTokenSource(TargetTimeout);
         TestButton.Content = Strings.EditorTestCancel;
-        var startTag = _app.StartWindowTag(text);
+        var startTag = _app.Runner.StartWindowTag(text);
         if (startTag is null)
             ShowWaiting(scope == TestScope.All ? null : Shorten(text));
         try
@@ -53,7 +53,7 @@ internal partial class SnippetEditorWindow
                 return;
             }
             ShowStatus(Running(startTag, Strings.EditorTestRunning), StatusKind.Busy);
-            var problem = await _app.RunTextAsync(text, DisplayName, alternate: false, target, folder: _folder);
+            var problem = await _app.Runner.RunTextAsync(text, DisplayName, alternate: false, target, folder: _folder);
             ShowStatus(problem?.Message ?? Strings.EditorTestDone, problem is null ? StatusKind.Success : StatusKind.Error);
         }
         finally
@@ -83,7 +83,7 @@ internal partial class SnippetEditorWindow
         }
 
         var text = BodyInput.Text;
-        var startTag = _app.StartWindowTag(text);
+        var startTag = _app.Runner.StartWindowTag(text);
         var target = Handle;
         if (startTag is null)
         {

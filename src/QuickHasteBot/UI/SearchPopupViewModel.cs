@@ -221,7 +221,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         if (IsSearching)
         {
             var contentProvider = app.Settings.SearchContent ? library.GetSearchableText : (Func<Snippet, string?>?)null;
-            items = SnippetSearch.Search(library.All, _query, contentProvider).Select(hit => SnippetItem.ForHit(hit, app.HotkeyProblem(hit.Snippet))).ToList();
+            items = SnippetSearch.Search(library.All, _query, contentProvider).Select(hit => SnippetItem.ForHit(hit, app.FileHotkeys.Problem(hit.Snippet))).ToList();
             Breadcrumbs = [new(items.Count == 1 ? Strings.MatchesOne : string.Format(Strings.MatchesFormat, items.Count), Target: null, ShowSeparator: false)];
             EmptyText = items.Count == 0 ? Strings.NoMatches : "";
         }
@@ -234,7 +234,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
                 _folderPath = "";
             }
 
-            items = folder.Children.Select(child => SnippetItem.ForBrowsing(child, app.HotkeyProblem(child))).ToList();
+            items = folder.Children.Select(child => SnippetItem.ForBrowsing(child, app.FileHotkeys.Problem(child))).ToList();
             Breadcrumbs = BuildBreadcrumbs(folder.RelativePath);
             EmptyText = items.Count > 0 ? ""
                 : !Directory.Exists(library.RootPath) ? string.Format(Strings.FolderNotFoundFormat, library.RootPath)
@@ -370,7 +370,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         if (snippet is { IsFolder: true })
         {
             foreach (var child in snippet.Children)
-                DetailItems.Add(SnippetItem.ForBrowsing(child, app.HotkeyProblem(child)));
+                DetailItems.Add(SnippetItem.ForBrowsing(child, app.FileHotkeys.Problem(child)));
         }
         OnPropertyChanged(nameof(ShowDetailItems));
 

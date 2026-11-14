@@ -3,7 +3,7 @@ namespace QuickHasteBot.Tests;
 /// <summary>Beginnt ein Baustein mit {window,…} oder {start,…}, startet der Editor ihn ohne Klick ins Zielfeld.</summary>
 public class StartWindowTagTests
 {
-    static string? Tag(string text, bool keyTags = true, bool scripts = true) => AppController.StartWindowTag(text, keyTags, scripts);
+    static string? Tag(string text, bool keyTags = true, bool scripts = true) => SnippetRunner.StartWindowTag(text, keyTags, scripts);
 
     [Fact]
     public void Window_at_the_start_is_found() =>

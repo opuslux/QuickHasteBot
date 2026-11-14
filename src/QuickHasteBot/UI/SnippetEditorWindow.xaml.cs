@@ -508,7 +508,7 @@ internal partial class SnippetEditorWindow : Window
         }
 
         PreviewBox.Visibility = Visibility.Visible;
-        var preview = _app.Preview(text, start, length);
+        var preview = _app.Runner.Preview(text, start, length);
         // Auch ein run() davor: seine Variable ist hier leer. ask() und selection gibt es erst beim Einfügen.
         var upTo = text[..(start + length)];
         string[] notes =
@@ -664,7 +664,7 @@ internal partial class SnippetEditorWindow : Window
             .Where(s => s.Kind == SyntaxKind.Error)
             .Select(s => $"Line {HasteScriptPrompt.LineAt(text, s.Start)}: {text.Substring(s.Start, s.Length)} – {s.Error}")
             .ToList();
-        if (_app.Settings.EvaluateScripts && SnippetScript.HasBlocks(text) && _app.Preview(text).Error is { } error)
+        if (_app.Settings.EvaluateScripts && SnippetScript.HasBlocks(text) && _app.Runner.Preview(text).Error is { } error)
             problems.Add("Script: " + error);
 
         var buttons = new Dictionary<string, string>
@@ -695,7 +695,7 @@ internal partial class SnippetEditorWindow : Window
         var currentName = _path is null ? null : Path.GetFileName(_path);
         // In einen anderen Ordner: Dort zählt jeder gleichnamige Eintrag, auch einer, der sich nur in Gross/Klein unterscheidet
         var moving = _path is not null && !SamePath(_folder, Path.GetDirectoryName(_path) ?? "");
-        if (_app.HotkeyConflictForName(fileName, isFolder: false, _path, _hotkey) is { } conflict)
+        if (_app.FileHotkeys.ConflictForName(fileName, isFolder: false, _path, _hotkey) is { } conflict)
         {
             ShowStatus(string.Format(Strings.EditorHotkeyConflictFormat, hotkey, conflict), error: true);
             NameInput.Focus();

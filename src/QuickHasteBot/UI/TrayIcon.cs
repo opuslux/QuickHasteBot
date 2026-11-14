@@ -53,7 +53,7 @@ internal sealed class TrayIcon : IDisposable
         {
             if (!IsShell(window)) _lastWindow = window;
         });
-        _icon.TrayBalloonTipClicked += (_, _) => app.OpenUpdatePage();
+        _icon.TrayBalloonTipClicked += (_, _) => app.Updates.OpenPage();
 
         // false: kein "Efficiency Mode", der würde den Prozess drosseln und den Hotkey träge machen
         _icon.ForceCreate(enablesEfficiencyMode: false);
@@ -66,7 +66,7 @@ internal sealed class TrayIcon : IDisposable
     /// </summary>
     public void ShowUpdate(bool notify)
     {
-        if (_app.AvailableUpdate is not { } tag)
+        if (_app.Updates.Available is not { } tag)
         {
             // Abgeschaltet: Eintrag und Trenner wieder weg
             if (_updateItem is not null)
@@ -80,7 +80,7 @@ internal sealed class TrayIcon : IDisposable
         var text = string.Format(Strings.UpdateAvailableFormat, tag.TrimStart('v', 'V'));
         if (_updateItem is null)
         {
-            _updateItem = MenuIcons.Item(text, MenuIcons.Glyph(MenuIcons.Download), _app.OpenUpdatePage);
+            _updateItem = MenuIcons.Item(text, MenuIcons.Glyph(MenuIcons.Download), _app.Updates.OpenPage);
             _menu.Items.Insert(0, _updateItem);
             _menu.Items.Insert(1, new Separator());
         }

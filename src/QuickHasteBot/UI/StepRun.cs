@@ -78,7 +78,7 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
                 session.Changed += (_, _) => OnChanged(session, bar, frame, taken);
                 Log.Info($"Schritt für Schritt: {name}");
 
-                var problem = await app.RunTextAsync(text, name, alternate: false, target, gate: session, folder: folder);
+                var problem = await app.Runner.RunTextAsync(text, name, alternate: false, target, gate: session, folder: folder);
                 keys.UnregisterStepKeys();
                 _version++;
                 frame.Hide();
@@ -134,7 +134,7 @@ internal sealed class StepRun(AppController app, string text, string name, nint 
             bar.ShowNote(Strings.StepBarFieldNotFound);
     }
 
-    void ShowResult(StepSession session, StepBar bar, AppController.RunProblem? problem)
+    void ShowResult(StepSession session, StepBar bar, SnippetRunner.RunProblem? problem)
     {
         if (problem is null)
         {

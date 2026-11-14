@@ -992,21 +992,21 @@ public class WindowSmokeTests
         ai.Close();
 
         // Vorlage: wird beim ersten Mal mit dem eingebauten Prompt angelegt, eine eigene gilt für die Vorschau
-        var template = controller.CreateAiPromptTemplate();
+        var template = PromptTemplates.Create(controller.AiTemplate);
         Assert.Equal(ScriptPrompt.DefaultTemplate, File.ReadAllText(template));
         File.WriteAllText(template, "Mach mir JS: {task}");
-        Assert.Equal(template, controller.CreateAiPromptTemplate());
+        Assert.Equal(template, PromptTemplates.Create(controller.AiTemplate));
         Assert.Equal("Mach mir JS: {task}", File.ReadAllText(template));
         var own = new AiPromptWindow(controller);
         Assert.Equal("Mach mir JS: Datum in 14 Tagen mit Wochentag", own.PromptPreview.Text);
         // Zurücksetzen gibt es nur mit eigener Vorlage. Ohne Datei gilt wieder der eingebaute Prompt.
         Assert.Equal(Visibility.Visible, own.ResetTemplateLink.Visibility);
-        File.Delete(template); // im Programm über den Papierkorb, siehe ResetAiPromptTemplate
+        File.Delete(template); // im Programm über den Papierkorb, siehe PromptTemplates.Reset
         own.RefreshTemplate();
         Assert.Equal(Visibility.Collapsed, own.ResetTemplateLink.Visibility);
         Assert.StartsWith("Write JavaScript code for this task: Datum in 14 Tagen mit Wochentag", own.PromptPreview.Text);
-        controller.ResetAiPromptTemplate(0); // ohne Datei nichts zu tun
-        Assert.False(controller.HasAiPromptTemplate);
+        PromptTemplates.Reset(controller.AiTemplate, 0); // ohne Datei nichts zu tun
+        Assert.False(controller.AiTemplate.Exists);
         own.Close();
 
         var settings = new SettingsWindow(controller);
@@ -1238,7 +1238,7 @@ public class WindowSmokeTests
         dir.File(@"structure\Popup [Ctrl+Shift+Y].txt", "Popup");
         dir.File(@"structure\Notiz.txt", "Notiz");
         using var controller = new AppController(new AppPaths(dir.Path));
-        controller.SyncFileHotkeys(announce: false);
+        controller.FileHotkeys.Sync(announce: false);
 
         var popup = new SearchPopup(controller);
         var viewModel = (SearchPopupViewModel)popup.DataContext;
@@ -1278,7 +1278,7 @@ public class WindowSmokeTests
 
         // Umbenennen mit einem vergebenen Hotkey im Namen ist gesperrt, mit dem eigenen nicht
         var gruss = controller.Library.All.Single(s => s.Name == "Gruss");
-        var rename = NameDialog.ForRename(gruss, name => controller.HotkeyConflictForName(name, false, gruss.FullPath, gruss.Hotkey));
+        var rename = NameDialog.ForRename(gruss, name => controller.FileHotkeys.ConflictForName(name, false, gruss.FullPath, gruss.Hotkey));
         rename.NameInput.Text = "Grüsse [Ctrl+Alt+G].txt";
         Assert.Equal("", rename.Problem.Text);
         Assert.True(rename.ConfirmButton.IsEnabled);
@@ -1290,7 +1290,7 @@ public class WindowSmokeTests
         // Neuer Ordner: der Hinweis nennt den offenen Ordner, vergebene Namen und Hotkeys sperren
         var sql = controller.Library.All.Single(s => s.Name == "3-SQL");
         var newFolder = NameDialog.ForNewFolder(sql.FullPath, "Bausteine › 3-SQL",
-            name => controller.HotkeyConflictForName(name, true, null, null));
+            name => controller.FileHotkeys.ConflictForName(name, true, null, null));
         Assert.Equal("Neuer Ordner", newFolder.FileName);
         Assert.Equal("Neue Ordner entstehen immer im Ordner, der im Popup gerade offen ist: Bausteine › 3-SQL", newFolder.Hint.Text);
         Assert.Equal(Visibility.Visible, newFolder.Hint.Visibility);
@@ -1589,7 +1589,7 @@ public class WindowSmokeTests
         Assert.DoesNotContain("Problems found by the editor", ai.Prompt);
 
         // Eigene Vorlage, Zurücksetzen erst dann sichtbar
-        var template = AppController.CreateTemplate(controller.HasteScriptTemplate);
+        var template = PromptTemplates.Create(controller.HasteScriptTemplate);
         Assert.Equal(Path.Combine(dir.Path, "hastescript-prompt.txt"), template);
         Assert.Equal(HasteScriptPrompt.DefaultTemplate, File.ReadAllText(template));
         File.WriteAllText(template, "Bitte: {task}\n{snippet}");
@@ -1769,7 +1769,7 @@ public class WindowSmokeTests
         body.Text = "";
         editor.InsertTag("{window,process=chrome}");
         editor.InsertTag("{click,name=Zeit}");
-        Assert.Equal("{window,process=chrome}{click,name=Zeit}", controller.Preview(body.Text).Text);
+        Assert.Equal("{window,process=chrome}{click,name=Zeit}", controller.Runner.Preview(body.Text).Text);
 
         // In einem eingerückten Zweig: die Tags übernehmen die Einrückung, auch die Schreibmarke danach
         body.Text = "{if,process=x}\r\n    ";

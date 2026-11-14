@@ -50,8 +50,8 @@ internal partial class SettingsWindow : Window
 
         UpdateHotkeyStatus();
         UpdateFileHotkeys();
-        app.FileHotkeysChanged += OnFileHotkeysChanged;
-        Closed += (_, _) => app.FileHotkeysChanged -= OnFileHotkeysChanged;
+        app.FileHotkeys.Changed += OnFileHotkeysChanged;
+        Closed += (_, _) => app.FileHotkeys.Changed -= OnFileHotkeysChanged;
         UpdateStructureResolved();
         UpdateLegacyHint();
         StartClip();
@@ -89,9 +89,9 @@ internal partial class SettingsWindow : Window
 
     void UpdateFileHotkeys()
     {
-        var rows = _app.FileHotkeys.Select(entry =>
+        var rows = _app.FileHotkeys.Entries.Select(entry =>
         {
-            var problem = AppController.ConflictReason(entry);
+            var problem = FileHotkeyRegistry.ConflictReason(entry);
             return new FileHotkeyRow(entry.Snippet, entry.Gesture.ToString(), entry.Snippet.Name, entry.Snippet.Location,
                 problem ?? Strings.FileHotkeyStatusOk, problem is not null);
         }).ToList();
@@ -391,18 +391,18 @@ internal partial class SettingsWindow : Window
         Log.Info("Log eingeschaltet");
     }
 
-    void OnCheckForUpdatesChanged(object sender, RoutedEventArgs e) => _app.SetCheckForUpdates(CheckForUpdatesInput.IsChecked == true);
+    void OnCheckForUpdatesChanged(object sender, RoutedEventArgs e) => _app.Updates.SetEnabled(CheckForUpdatesInput.IsChecked == true);
 
     /// <summary>Neben der Version: "Version 2.16.0 herunterladen", wenn es auf GitHub eine neuere gibt.</summary>
     internal void ShowUpdate()
     {
-        var visible = _app.AvailableUpdate is not null ? Visibility.Visible : Visibility.Collapsed;
+        var visible = _app.Updates.Available is not null ? Visibility.Visible : Visibility.Collapsed;
         UpdateLink.Visibility = UpdateSeparator.Visibility = visible;
-        if (_app.AvailableUpdate is { } tag)
+        if (_app.Updates.Available is { } tag)
             UpdateLink.Text = string.Format(Strings.UpdateAvailableFormat, tag.TrimStart('v', 'V'));
     }
 
-    void OnUpdateClick(object sender, MouseButtonEventArgs e) => _app.OpenUpdatePage();
+    void OnUpdateClick(object sender, MouseButtonEventArgs e) => _app.Updates.OpenPage();
 
     void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
     {

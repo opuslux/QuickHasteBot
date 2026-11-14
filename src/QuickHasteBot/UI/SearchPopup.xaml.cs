@@ -754,7 +754,7 @@ internal partial class SearchPopup : Window
             .Concat(parent.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
                 .Select(folder => FileHotkey.Split(folder).Name)));
         var dialog = NameDialog.ForNewFolder(parent.FullPath, display,
-            name => _app.HotkeyConflictForName(name, isFolder: true, selfPath: null, currentHotkey: null));
+            name => _app.FileHotkeys.ConflictForName(name, isFolder: true, selfPath: null, currentHotkey: null));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(parent, Strings.NewFolderErrorFormat, () => SnippetFiles.CreateFolder(parent.FullPath, dialog.FileName));
@@ -771,7 +771,7 @@ internal partial class SearchPopup : Window
     void Clone(Snippet snippet)
     {
         var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix),
-            name => _app.HotkeyConflictForName(name, isFolder: false, selfPath: null, currentHotkey: null));
+            name => _app.FileHotkeys.ConflictForName(name, isFolder: false, selfPath: null, currentHotkey: null));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(snippet, Strings.CloneErrorFormat, () => SnippetFiles.Clone(snippet.FullPath, dialog.FileName));
@@ -780,7 +780,7 @@ internal partial class SearchPopup : Window
     void Rename(Snippet snippet)
     {
         var dialog = NameDialog.ForRename(snippet,
-            name => _app.HotkeyConflictForName(name, snippet.IsFolder, snippet.FullPath, snippet.Hotkey));
+            name => _app.FileHotkeys.ConflictForName(name, snippet.IsFolder, snippet.FullPath, snippet.Hotkey));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(snippet, Strings.RenameErrorFormat, () => SnippetFiles.Rename(snippet.FullPath, dialog.FileName));
