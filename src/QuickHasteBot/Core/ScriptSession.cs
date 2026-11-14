@@ -131,7 +131,6 @@ public sealed class ScriptSession : IDisposable
             result.Append(text, pos, start - pos);
 
             if (staged && (deferring |= unit.Any(m => SnippetScript.Waits(m.Groups[1].Value)) || KeyTags.HasIfMarker(text, start, form!)))
-
             {
                 // Herkunft: der ganze Block oder die ganze Zeile
                 form!.BeginScript(start, end - start);

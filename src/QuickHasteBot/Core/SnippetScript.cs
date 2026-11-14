@@ -412,7 +412,6 @@ public static partial class SnippetScript
     }
 
     static JsValue Run(Engine engine, ScriptContext context, JsValue[] args)
-
     {
         var file = Format(args, 0);
         if (string.IsNullOrWhiteSpace(file))

@@ -156,7 +156,6 @@ internal partial class MessageDialog : Window
     }
 
     public static MessageBoxResult Show(string text, MessageBoxButton buttons = MessageBoxButton.OK,
-
         MessageBoxImage icon = MessageBoxImage.None, MessageBoxResult defaultResult = MessageBoxResult.None) =>
         Show(null, text, buttons, icon, defaultResult);
 

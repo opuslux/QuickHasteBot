@@ -623,11 +623,10 @@ internal partial class SnippetEditorWindow : Window
     /// <see cref="OwnLine"/>: auf eine eigene Zeile wie die Tags aus dem Picker (Kommentare).
     /// </summary>
     /// <param name="Description">
-    /// Name des Texts in <see cref="Strings"/>, z.B. nameof(Strings.TagNextField): angezeigt in der Sprache der Oberfläche,
-    /// der Filter findet ihn auch auf Englisch.
+    /// Name des Texts in <see cref="Strings"/> mit der Kurzbeschreibung rechts im Menü, z.B. nameof(Strings.TagNextField):
+    /// angezeigt in der Sprache der Oberfläche, der Filter findet ihn auch auf Englisch. Der Hilfetext im Tooltip heisst
+    /// gleich mit "Help" dahinter (<see cref="Help"/>).
     /// </param>
-    /// <param name="Description">Name des Texts mit der Kurzbeschreibung rechts im Menü. Der Hilfetext im Tooltip heisst
-    /// gleich mit "Help" dahinter (<see cref="Help"/>).</param>
     /// <param name="FromClipboard">Statt <see cref="Tag"/> den formatierten Text aus der Zwischenablage als {html}-Block.</param>
     /// <param name="Text">Was eingefügt wird, wenn es nicht <see cref="Tag"/> ist, z.B. ein ganzer {if}-Block über mehrere Zeilen.</param>
     internal sealed record TagEntry(string Tag, string Description, string? Select = null, bool OwnLine = false, bool FromClipboard = false,
@@ -831,7 +830,6 @@ internal partial class SnippetEditorWindow : Window
                 if (entry.FromClipboard) PasteFormatted();
                 else if (entry.OwnLine) InsertTag(entry.Text ?? entry.Tag, entry.Select);
                 else Insert(entry.Text ?? entry.Tag, entry.Select);
-
             };
             return item;
         }

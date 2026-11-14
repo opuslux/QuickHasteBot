@@ -534,7 +534,6 @@ internal sealed class AppController : IDisposable
             }
         }
 
-
         // Nichts mehr übrig, z.B. ein Baustein, der nur eine Meldung zeigt: kein leeres Strg+V ins Zielfenster
         if (text.Length == 0 && html is null)
             return null;
