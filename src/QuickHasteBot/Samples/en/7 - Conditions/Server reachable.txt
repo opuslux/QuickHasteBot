@@ -1,9 +1,10 @@
 {# Checks with ping whether a server answers, and types a different message depending on it. The snippet asks for the server first.
 run() starts ping and waits for it. Then if,js="r.code == 0" checks the exit code: 0 means an answer came.
-The condition is only checked when the run gets there. So it sees the result of run() and all variables before it.}
+The condition is only checked when the run gets there. So it sees the result of run() and all variables before it.
+Because of if, the text is typed instead of pasted. The Windows 11 Notepad swallows characters when typing fast, so delay,30 types more slowly.}
 {{ const server = ask('Server', 'example.com'); const r = run('ping', '-n 1 -w 1000 ' + server, { wait: 10, hidden: true }) }}
 {if,js="r.code == 0"}
-{{ server }} is reachable.
+{delay,30}{{ server }} is reachable.
 {else}
-{{ server }} doesn't answer.
+{delay,30}{{ server }} doesn't answer.
 {/if}

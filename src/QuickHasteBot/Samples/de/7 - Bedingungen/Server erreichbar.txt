@@ -1,9 +1,10 @@
 {# Prüft mit ping, ob ein Server antwortet, und tippt je nachdem eine andere Meldung. Welcher Server, fragt der Baustein vorher.
 run() startet ping und wartet darauf. Danach prüft if,js="r.code == 0" den Rückgabewert: 0 heisst, eine Antwort kam.
-Die Bedingung wird erst geprüft, wenn der Lauf dort ankommt. Sie sieht darum das Ergebnis von run() und alle Variablen davor.}
+Die Bedingung wird erst geprüft, wenn der Lauf dort ankommt. Sie sieht darum das Ergebnis von run() und alle Variablen davor.
+Wegen if wird der Text getippt statt eingefügt. Das Notepad von Windows 11 verschluckt bei schnellem Tippen Zeichen, darum tippt delay,30 langsamer.}
 {{ const server = ask('Server', 'example.com'); const r = run('ping', '-n 1 -w 1000 ' + server, { wait: 10, hidden: true }) }}
 {if,js="r.code == 0"}
-{{ server }} ist erreichbar.
+{delay,30}{{ server }} ist erreichbar.
 {else}
-{{ server }} antwortet nicht.
+{delay,30}{{ server }} antwortet nicht.
 {/if}
