@@ -42,7 +42,7 @@ public class LocalizationTests
     {
         var english = Texts("");
         var german = Texts("de");
-        var entries = SnippetEditorWindow.TagGroups().SelectMany(g => g.Entries).OfType<SnippetEditorWindow.TagEntry>().ToList();
+        var entries = TagCatalog.Groups().SelectMany(g => g.Entries).OfType<TagEntry>().ToList();
 
         Assert.NotEmpty(entries);
         foreach (var entry in entries)
