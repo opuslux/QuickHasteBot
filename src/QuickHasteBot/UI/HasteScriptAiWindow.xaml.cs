@@ -48,7 +48,7 @@ internal partial class HasteScriptAiWindow : Window
     {
         Title = string.Format(Strings.HasteScriptAiTitleFormat, _editor.DisplayName);
         _request = _editor.HasteScriptAiRequest(TaskInput.Text);
-        _template = AppController.ReadTemplate(_app.HasteScriptTemplate);
+        _template = PromptTemplates.Read(_app.HasteScriptTemplate);
         ResetTemplateLink.Visibility = _app.HasteScriptTemplate.Exists ? Visibility.Visible : Visibility.Collapsed;
         IncludesText.Text = string.Format(Strings.HasteScriptAiIncludesFormat, string.Join(", ", Includes(_request)));
         UpdatePrompt();
@@ -123,7 +123,7 @@ internal partial class HasteScriptAiWindow : Window
 
     void OnEditTemplate(object sender, MouseButtonEventArgs e)
     {
-        _app.EditTemplate(_app.HasteScriptTemplate);
+        PromptTemplates.Edit(_app.HasteScriptTemplate);
         Refresh();
     }
 
@@ -133,7 +133,7 @@ internal partial class HasteScriptAiWindow : Window
         if (MessageDialog.Show(this, string.Format(Strings.AiPromptResetConfirm, template.FileName), MessageBoxButton.YesNo,
                 MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
 
-        AppController.ResetTemplate(template, new WindowInteropHelper(this).Handle);
+        PromptTemplates.Reset(template, new WindowInteropHelper(this).Handle);
         Refresh();
     }
 

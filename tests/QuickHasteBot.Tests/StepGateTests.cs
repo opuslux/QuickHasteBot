@@ -75,7 +75,7 @@ public class StepGateTests
 
         const string text = "{wait,1}{{ key('delay,5') }}{guard,off}";
         var gate = new RecordingGate(stopAt: 2);
-        var problem = await app.RunTextAsync(text, "Test", alternate: false, targetWindow: 0, gate: gate);
+        var problem = await app.Runner.RunTextAsync(text, "Test", alternate: false, targetWindow: 0, gate: gate);
 
         Assert.False(gate.Paste);
         Assert.Equal(["{wait,1}", "{{ key('delay,5') }}", "{guard,off}"],
@@ -94,7 +94,7 @@ public class StepGateTests
 
         // Stop vor dem Einfügen: es wird nichts gesendet
         var gate = new RecordingGate(stopAt: 0);
-        var problem = await app.RunTextAsync("Freundliche Grüsse\r\nMax", "Test", alternate: false, targetWindow: 0, gate: gate);
+        var problem = await app.Runner.RunTextAsync("Freundliche Grüsse\r\nMax", "Test", alternate: false, targetWindow: 0, gate: gate);
 
         Assert.True(gate.Paste);
         var step = Assert.Single(gate.Steps!);

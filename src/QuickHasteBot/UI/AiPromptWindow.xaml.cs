@@ -109,7 +109,7 @@ internal partial class AiPromptWindow : Window
 
     void OnEditTemplate(object sender, MouseButtonEventArgs e)
     {
-        _app.EditAiPromptTemplate();
+        PromptTemplates.Edit(_app.AiTemplate);
         RefreshTemplate();
     }
 
@@ -118,15 +118,15 @@ internal partial class AiPromptWindow : Window
         if (MessageDialog.Show(this, string.Format(Strings.AiPromptResetConfirm, _app.AiTemplate.FileName), MessageBoxButton.YesNo, MessageBoxImage.Question,
                 MessageBoxResult.No) != MessageBoxResult.Yes) return;
 
-        _app.ResetAiPromptTemplate(new WindowInteropHelper(this).Handle);
+        PromptTemplates.Reset(_app.AiTemplate, new WindowInteropHelper(this).Handle);
         RefreshTemplate();
     }
 
     /// <summary>Vorlage neu lesen: Vorschau aktualisieren, "Zurücksetzen" nur zeigen, wenn es eine eigene gibt.</summary>
     internal void RefreshTemplate()
     {
-        _template = _app.ReadAiPromptTemplate();
-        ResetTemplateLink.Visibility = _app.HasAiPromptTemplate ? Visibility.Visible : Visibility.Collapsed;
+        _template = PromptTemplates.Read(_app.AiTemplate);
+        ResetTemplateLink.Visibility = _app.AiTemplate.Exists ? Visibility.Visible : Visibility.Collapsed;
         UpdatePreview();
     }
 

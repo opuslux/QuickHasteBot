@@ -76,6 +76,8 @@ internal static class ElementAutomation
             }
             Thread.Sleep(PollInterval);
         }
+        // Nach der Schleife gibt es das Element immer (freigegeben oder nach Ablauf der Frist), das sagt es dem Compiler
+        if (element is null) return new(ElementOutcome.NotFound);
 
         try
         {
