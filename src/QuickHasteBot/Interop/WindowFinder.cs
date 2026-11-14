@@ -83,7 +83,7 @@ internal static class WindowFinder
         return pid;
     }
 
-    static unsafe string ClassName(nint hwnd)
+    internal static unsafe string ClassName(nint hwnd)
     {
         var buffer = stackalloc char[256];
         var length = GetClassName(hwnd, buffer, 256);

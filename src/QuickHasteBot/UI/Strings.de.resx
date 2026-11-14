@@ -584,4 +584,23 @@ Das Datum vom nächsten Montag</value></data>
   <data name="FindReplaceAllToolTip" xml:space="preserve"><value>Ersetzt alle Treffer auf einmal, Strg+Z macht alle rückgängig</value></data>
   <data name="FindReplacedFormat" xml:space="preserve"><value>{0} ersetzt</value></data>
   <data name="LineNumbersTooltip" xml:space="preserve"><value>Zeilennummern anzeigen</value></data>
+  <data name="EditorMenuCut" xml:space="preserve"><value>Ausschneiden (Strg+X)</value></data>
+  <data name="EditorMenuCopy" xml:space="preserve"><value>Kopieren (Strg+C)</value></data>
+  <data name="EditorMenuPaste" xml:space="preserve"><value>Einfügen (Strg+V)</value></data>
+  <data name="EditorMenuUndo" xml:space="preserve"><value>Rückgängig (Strg+Z)</value></data>
+  <data name="EditorMenuRedo" xml:space="preserve"><value>Wiederholen (Strg+Y)</value></data>
+  <data name="EditorMenuPasteFormatted" xml:space="preserve"><value>Als formatierten Text einfügen</value></data>
+  <data name="EditorMenuPasteFormattedGesture" xml:space="preserve"><value>Strg+Umschalt+V</value></data>
+  <data name="EditorMenuSelectAll" xml:space="preserve"><value>Alles markieren</value></data>
+  <data name="EditorMenuSelectAllGesture" xml:space="preserve"><value>Strg+A</value></data>
+  <data name="EditorMenuFind" xml:space="preserve"><value>Suchen</value></data>
+  <data name="EditorMenuFindGesture" xml:space="preserve"><value>Strg+F</value></data>
+  <data name="EditorMenuReplace" xml:space="preserve"><value>Ersetzen</value></data>
+  <data name="EditorMenuReplaceGesture" xml:space="preserve"><value>Strg+H</value></data>
+  <data name="EditorMenuIndent" xml:space="preserve"><value>Einrückung ordnen</value></data>
+  <data name="EditorMenuIndentSelection" xml:space="preserve"><value>Einrückung der Auswahl ordnen</value></data>
+  <data name="EditorMenuIndentGesture" xml:space="preserve"><value>Strg+Umschalt+F</value></data>
+  <data name="EditorMenuIndentToolTip" xml:space="preserve"><value>Rückt {if}-Blöcke ein, 4 Leerzeichen pro Ebene. Ändert nur das Layout, was getippt wird, bleibt gleich.</value></data>
+  <data name="EditorIndentTidy" xml:space="preserve"><value>Die Einrückung ist schon in Ordnung.</value></data>
+  <data name="EditorIndentNoForm" xml:space="preserve"><value>Einrückung ordnen gilt nur in Bausteinen mit Tags. Ohne Tags werden Leerzeichen getippt, wie sie dastehen.</value></data>
 </root>

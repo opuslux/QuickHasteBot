@@ -368,48 +368,205 @@ public static partial class KeyTags
 
     /// <summary>
     /// Ersetzt die Tags ausserhalb von {{ … }} durch Marker für <paramref name="form"/> und lässt Kommentare {# … } weg.
+    /// In einem Formular fällt ausserdem die Einrückung weg, die nur Layout ist (<see cref="IndentRemovals"/>).
     /// </summary>
     public static string MarkTags(string text, FormBuilder form)
     {
+        var scan = Scan(text, form);
+        if (scan.Edits.Count == 0) return text;
+        var edits = scan.Edits.Select(e => (e.Start, e.End, e.Replacement))
+            .Concat(IndentRemovals(text, scan).Select(r => (r.Start, r.End, Replacement: "")))
+            .OrderBy(e => e.Start)
+            .ToList();
+
         var result = new StringBuilder(text.Length);
+        var pos = 0;
+        foreach (var (start, end, replacement) in edits)
+        {
+            result.Append(text, pos, start - pos).Append(replacement);
+            form.Tags.Replaced(start, end - start, replacement.Length);
+            pos = end;
+        }
+        return result.Append(text, pos, text.Length - pos).ToString();
+    }
+
+    /// <summary>Was <see cref="Scan"/> an einer Stelle gefunden hat.</summary>
+    internal enum EditKind
+    {
+        /// <summary>Ein Kommentar {# … }, fällt weg (allein auf der Zeile samt Zeile).</summary>
+        Note,
+        /// <summary>{cursor}: zählt für die Umbruch-Regel nicht als Tag.</summary>
+        Cursor,
+        HtmlStart,
+        HtmlEnd,
+        /// <summary>Jedes andere Tag, auch {if}, {else} und {/if}.</summary>
+        Tag,
+    }
+
+    /// <param name="Steps">Die Schritte des Tags, für <see cref="EditKind.Note"/> keine.</param>
+    internal readonly record struct TagEdit(int Start, int End, string Replacement, EditKind Kind, IReadOnlyList<FormStep> Steps)
+    {
+        /// <summary>Trennt zwei Textstücke: Umbrüche und Einrückung daneben sind Layout.</summary>
+        public bool IsBoundary => Kind is EditKind.Tag or EditKind.HtmlStart or EditKind.HtmlEnd;
+    }
+
+    /// <param name="Edits">Tags und Kommentare in der Reihenfolge im Text, ohne Überlappung.</param>
+    /// <param name="Blocks">Die {{ … }}-Blöcke, als Start und Ende.</param>
+    internal sealed record TagScan(IReadOnlyList<TagEdit> Edits, IReadOnlyList<(int Start, int End)> Blocks)
+    {
+        /// <summary>Ein Formular: ein Tag ausser {cursor} und {html}. Nur dann ist Einrückung Layout.</summary>
+        public bool IsForm => Edits.Any(e => e.Kind == EditKind.Tag);
+    }
+
+    /// <summary>Findet Tags, Kommentare und Skriptblöcke. Die Marker der Tags kommen dabei in <paramref name="form"/>.</summary>
+    internal static TagScan Scan(string text, FormBuilder form)
+    {
+        var edits = new List<TagEdit>();
+        var blocks = new List<(int, int)>();
         var pos = 0;
         var html = HtmlPairs(text);
         var htmlClose = -1; // im {html}-Block: wo sein {/html} steht. Tags darin sind Teil des HTML.
         foreach (Match match in Candidate().Matches(text))
         {
-            string replacement;
             var (start, end) = (match.Index, match.Index + match.Length);
+            var source = new SourceSpan(match.Index, match.Length);
             if (match.Groups["note"].Success)
             {
                 (start, end) = WholeLine(text, start, end);
                 start = Math.Max(start, pos); // der Umbruch davor gehörte schon zum Kommentar davor
-                replacement = "";
+                edits.Add(new(start, end, "", EditKind.Note, []));
             }
             else if (!match.Groups[1].Success)
-                continue; // Skriptblock
+            {
+                blocks.Add((start, end)); // Skriptblock
+                continue;
+            }
             else if (htmlClose >= 0 && match.Index < htmlClose)
                 continue;
             else if (htmlClose == match.Index)
             {
-                replacement = form.Marker(new HtmlMarkStep(false), new SourceSpan(match.Index, match.Length));
+                IReadOnlyList<FormStep> steps = [new HtmlMarkStep(false)];
+                edits.Add(new(start, end, form.Markers(steps, source), EditKind.HtmlEnd, steps));
                 htmlClose = -1;
             }
             else if (html.TryGetValue(match.Index, out var close))
             {
-                replacement = form.Marker(new HtmlMarkStep(true), new SourceSpan(match.Index, match.Length));
+                IReadOnlyList<FormStep> steps = [new HtmlMarkStep(true)];
+                edits.Add(new(start, end, form.Markers(steps, source), EditKind.HtmlStart, steps));
                 htmlClose = close.CloseStart;
             }
             else if (IsHtmlStart(match.Groups[1].Value) || IsHtmlEnd(match.Groups[1].Value)
                      || !TryParse(match.Groups[1].Value, null, out var steps, out _))
                 continue; // Text in Klammern, auch ein {html} ohne Gegenstück
             else
-                replacement = form.Markers(steps, new SourceSpan(match.Index, match.Length));
-
-            result.Append(text, pos, start - pos).Append(replacement);
-            form.Tags.Replaced(start, end - start, replacement.Length);
+                edits.Add(new(start, end, form.Markers(steps, source),
+                    steps.All(s => s is CursorStep) ? EditKind.Cursor : EditKind.Tag, steps));
             pos = end;
         }
-        return pos == 0 ? text : result.Append(text, pos, text.Length - pos).ToString();
+        return new(edits, blocks);
+    }
+
+    /// <summary>
+    /// Ein Textstück zwischen zwei Tags (bzw. Anfang oder Ende und Tag), das an einem Zeilenanfang beginnt, also nicht
+    /// mitten in der Zeile hinter einem Tag. Nur in solchen ist Einrückung Layout. Ohne die Inhalte von {html}-Blöcken.
+    /// </summary>
+    internal static IEnumerable<(int From, int To)> IndentableSegments(string text, TagScan scan)
+    {
+        if (!scan.IsForm) yield break;
+        var from = 0;
+        var inHtml = false;
+        foreach (var edit in scan.Edits.Where(e => e.IsBoundary).Append(new(text.Length, text.Length, "", EditKind.Tag, [])))
+        {
+            if (!inHtml && StartsLine(from, edit.Start))
+                yield return (from, edit.Start);
+            if (edit.Kind == EditKind.HtmlStart) inHtml = true;
+            else if (edit.Kind == EditKind.HtmlEnd) inHtml = false;
+            from = edit.End;
+        }
+
+        // Am Anfang des Texts, oder hinter dem Tag folgt (nach Leerzeichen und Kommentaren) gleich ein Umbruch
+        bool StartsLine(int from, int to)
+        {
+            if (from == 0) return true;
+            var i = from;
+            while (i < to)
+            {
+                if (text[i] is ' ' or '\t') i++;
+                else if (scan.Edits.FirstOrDefault(e => e.Start == i && e.Kind == EditKind.Note) is { End: > 0 } note) i = note.End;
+                else break;
+            }
+            return i < to && text[i] is '\r' or '\n' || i > 0 && text[i - 1] is '\n';
+        }
+    }
+
+    /// <summary>
+    /// Eine Zeile eines einrückbaren Textstücks (<see cref="IndentableSegments"/>): wo sie beginnt, wie lang ihre
+    /// Einrückung ist und ob danach Text folgt. Zeilen in einem Skriptblock oder Kommentar, der davor begann, und eine
+    /// Zeile, die ein Kommentar ganz einnimmt, fehlen. <paramref name="Blank"/>: nur Leerzeichen, danach ein Umbruch oder
+    /// das Tag am Ende des Stücks.
+    /// </summary>
+    internal readonly record struct IndentLine(int Start, int Indent, bool Blank);
+
+    internal static IEnumerable<IndentLine> IndentLines(string text, TagScan scan, int from, int to)
+    {
+        for (var p = from; p < to; p = NextLine(p))
+        {
+            if (p > 0 && text[p - 1] != '\n') continue; // das Stück beginnt mitten in der Zeile, nach einem Kommentar
+            if (scan.Edits.Any(e => e.Start < p && p < e.End || e.Start == p && WholeLineNote(e))
+                || scan.Blocks.Any(b => b.Start < p && p < b.End))
+                continue;
+            var q = p;
+            while (q < to && text[q] is ' ' or '\t') q++;
+            yield return new(p, q - p, q == to || text[q] is '\r' or '\n');
+        }
+
+        int NextLine(int p)
+        {
+            var next = text.IndexOf('\n', p);
+            return next < 0 || next >= to ? to : next + 1;
+        }
+
+        // Ein Kommentar allein auf der Zeile: samt Umbruch danach, bzw. bis zum Ende des Texts (WholeLine)
+        bool WholeLineNote(TagEdit e) => e.Kind == EditKind.Note && (e.End == text.Length || text[e.End - 1] is '\n' or '\r');
+    }
+
+    /// <summary>
+    /// Die Einrückung, die in einem Formular nur Layout ist: In jedem einrückbaren Textstück die gemeinsame Einrückung
+    /// aller Zeilen mit Text (relative Einrückung bleibt), Leerzeichen auf leeren Zeilen und die Einrückung vor dem Tag am
+    /// Ende des Stücks. So darf man {if}-Blöcke wie Code einrücken. Echte Leerzeichen am Zeilenanfang: {space,4}.
+    /// </summary>
+    internal static IEnumerable<(int Start, int End)> IndentRemovals(string text, TagScan scan)
+    {
+        foreach (var (from, to) in IndentableSegments(text, scan))
+        {
+            var lines = IndentLines(text, scan, from, to).ToList();
+            var common = CommonIndent(text, lines);
+            foreach (var line in lines)
+            {
+                var length = line.Blank ? line.Indent : common;
+                if (length > 0)
+                    yield return (line.Start, line.Start + length);
+            }
+        }
+    }
+
+    /// <summary>Die Länge der Einrückung, mit der alle Zeilen mit Text beginnen (gleiche Zeichen, Tabs zählen einzeln).</summary>
+    internal static int CommonIndent(string text, IReadOnlyList<IndentLine> lines)
+    {
+        int? common = null;
+        IndentLine first = default;
+        foreach (var line in lines.Where(l => !l.Blank))
+        {
+            if (common is null)
+            {
+                (common, first) = (line.Indent, line);
+                continue;
+            }
+            var length = 0;
+            while (length < common && length < line.Indent && text[first.Start + length] == text[line.Start + length]) length++;
+            common = length;
+        }
+        return common ?? 0;
     }
 
     /// <summary>

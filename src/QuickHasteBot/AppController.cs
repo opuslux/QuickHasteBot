@@ -173,13 +173,18 @@ internal sealed class AppController : IDisposable
     }
 
     /// <summary>
-    /// Linksklick aufs Tray-Symbol: Ein offen gelassenes Popup kommt nach vorne. Das Ziel bleibt, die Taskleiste ist
-    /// keines. Ein geschlossenes Popup öffnet es nicht, dafür gibt es den Hotkey.
+    /// Linksklick aufs Tray-Symbol: öffnet das Popup wie der Hotkey. Es fügt in <paramref name="lastWindow"/> ein, das
+    /// Fenster vor dem Klick (die Taskleiste ist keines). Ein offen gelassenes Popup kommt nach vorne, sein Ziel bleibt.
     /// </summary>
-    public void BringKeptOpenPopupToFront()
+    public void ShowSearchFromTray(nint lastWindow)
     {
         if (_popup is { KeepOpen: true, IsVisible: true } keptOpen)
+        {
             keptOpen.Refocus(0);
+            return;
+        }
+        _ = Library.VerifyAsync();
+        _popup?.ShowFor(lastWindow);
     }
 
     public void ShowSettings() => ShowSettings(position: null);

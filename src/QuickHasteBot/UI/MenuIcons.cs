@@ -35,7 +35,18 @@ internal static class MenuIcons
 
     public const string Help = "";
 
-    static readonly FontFamily SymbolFont = new("Segoe Fluent Icons, Segoe MDL2 Assets");
+    // Rechtsklick-Menü im Editor
+    public const string Cut = "";
+    public const string Copy = "";
+    public const string Paste = "";
+    public const string Undo = "";
+    public const string Redo = "";
+    public const string PasteFormatted = "";
+    public const string SelectAll = "";
+    public const string Replace = "";
+    public const string Indent = "";
+
+    static readonly FontFamily SymbolFont =new("Segoe Fluent Icons, Segoe MDL2 Assets");
 
     // Dieselben Formen wie im Editor (SnippetEditorWindow.xaml)
     static readonly Geometry CrosshairShape = Freeze(Geometry.Parse(
