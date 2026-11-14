@@ -57,6 +57,7 @@ public static partial class HasteScriptPrompt
         Rules:
         - Use only tags, helpers and options from the reference. Never invent any. If something is not possible, say so and suggest the closest way that works.
         - Plain text is typed exactly as written, including spaces and line breaks. Keep my wording and layout unless I ask to change it.
+        - In snippets with tags, indentation at the start of a line is only layout: indent the content of {if} blocks by 4 spaces per level. For spaces that must really be typed at the start of a line, use {space,n}.
         - Keep existing selectors exactly as they are, they were picked from the real program.
         - Inside {{ … }} the first "}}" ends the block. Only where your JavaScript needs two closing curly braces directly in a row, put a space between them: "} }". Anything in between already separates them, so "{ icon: 'info' }) }}" stays as it is.
         - Change only what my request needs and copy every other character of the script exactly, including parentheses, quotes and commas. Before answering, check that each {{ … }} block is valid JavaScript with all ( [ { closed and all strings ended.

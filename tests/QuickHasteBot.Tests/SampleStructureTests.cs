@@ -181,7 +181,7 @@ public class SampleStructureTests
             Paste("Schritt für Schritt.txt", ""));
         // Die Blöcke stehen auf eigenen Zeilen, getippt werden nur die Leerzeilen um den Brief
         Assert.Equal("Hallo Max,\r\n\r\n{if,js=\"zusage == 'ja' || zusage == 'j'\"}Danke für die Einladung, ich bin gerne dabei."
-            + "{if,js=\"termin != ''\"} Passt dir Montag?{/if}{else}Danke für die Einladung, leider kann ich nicht dabei sein.{/if}\r\n\r\nFreundliche Grüsse",
+            + "{if,js=\"termin != ''\"}{space}Passt dir Montag?{/if}{else}Danke für die Einladung, leider kann ich nicht dabei sein.{/if}\r\n\r\nFreundliche Grüsse",
             Paste("Zusage oder Absage.txt", "", answers: new() { ["Zusage? (ja/nein)"] = "ja", ["Terminvorschlag (leer: keiner)"] = "Montag" }));
         // Ohne Fenster sagt confirm() Ja, msg() zeigt nichts
         Assert.Equal("DRINGEND: Ihre Bestellung{enter}{enter}{if,js=\"confirm('Ist die Bestellung schon unterwegs?', { title: 'Antwort' })\"}"

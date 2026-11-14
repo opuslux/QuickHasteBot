@@ -174,6 +174,164 @@ internal partial class SnippetEditorWindow : Window
         // Die Vorschau zeigt, was das Skript dort ergibt.
         area.SelectionChanged += (_, _) => OnCaretMoved();
         area.Caret.PositionChanged += (_, _) => OnCaretMoved();
+
+        // {if}-Blöcke rücken beim Tippen ein, Einrückung ist nur Layout
+        area.IndentationStrategy = new ScriptIndentation();
+        area.TextEntered += (_, e) => ScriptIndentation.OnTextEntered(area, e.Text);
+
+        // Rechtsklick: Bearbeiten, Suchen und Einrückung auch per Maus. Ausserhalb der Auswahl setzt er die Schreibmarke.
+        BodyInput.ContextMenu = new ContextMenu();
+        BodyInput.PreviewMouseRightButtonDown += (_, e) =>
+        {
+            if (BodyInput.GetPositionFromPoint(e.GetPosition(BodyInput)) is not { } position) return;
+            var offset = BodyInput.Document.GetOffset(position.Location);
+            if (offset < BodyInput.SelectionStart || offset > BodyInput.SelectionStart + BodyInput.SelectionLength
+                || BodyInput.SelectionLength == 0)
+            {
+                BodyInput.Select(offset, 0);
+                area.Caret.Offset = offset;
+            }
+        };
+        // Frei geöffnet wie die Menüs im Popup: als ContextMenu des Textfelds erbte es dessen Monospace-Schrift
+        BodyInput.ContextMenuOpening += (_, e) =>
+        {
+            e.Handled = true;
+            var menu = EditMenu();
+            if (e.CursorLeft >= 0)
+            {
+                menu.PlacementTarget = BodyInput;
+                menu.Placement = PlacementMode.MousePoint;
+            }
+            else
+            {
+                // Kontextmenü-Taste oder Umschalt+F10: unter der Schreibmarke
+                var view = area.TextView;
+                var caret = area.Caret.CalculateCaretRectangle();
+                caret.Offset(-view.ScrollOffset.X, -view.ScrollOffset.Y);
+                menu.PlacementTarget = view;
+                menu.PlacementRectangle = caret;
+                menu.Placement = PlacementMode.Bottom;
+            }
+            menu.IsOpen = true;
+        };
+    }
+
+    /// <summary>
+    /// Die Symbolleiste oben im Rechtsklick-Menü: ohne die Spalte für Symbole und Kürzel eines Eintrags, bündig mit den
+    /// Symbolen darunter.
+    /// </summary>
+    static readonly ControlTemplate IconRowTemplate = CreateIconRowTemplate();
+
+    static ControlTemplate CreateIconRowTemplate()
+    {
+        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        presenter.SetValue(ContentPresenter.ContentSourceProperty, "Header");
+        var template = new ControlTemplate(typeof(MenuItem)) { VisualTree = presenter };
+        template.Seal();
+        return template;
+    }
+
+    /// <summary>
+    /// Das Rechtsklick-Menü im Text: oben die einfachen Befehle als Symbole wie im Kontextmenü von Windows 11, darunter
+    /// formatiert einfügen, alles markieren, Suchen/Ersetzen und Einrückung ordnen, mit ihren Tastenkürzeln.
+    /// </summary>
+    internal ContextMenu EditMenu()
+    {
+        // Die Schrift des Fensters wie im Popup: Sonst erbt das Menü über PlacementTarget die Monospace-Schrift des Texts
+        var menu = new ContextMenu { FontFamily = FontFamily, FontSize = FontSize };
+        var editable = !BodyInput.IsReadOnly;
+        var selected = BodyInput.SelectionLength > 0;
+        bool HasClipboard(string format)
+        {
+            try { return Clipboard.ContainsData(format); }
+            catch (System.Runtime.InteropServices.ExternalException) { return false; } // gerade von einem anderen Programm belegt
+        }
+
+        // Links Kopieren, Ausschneiden, Einfügen, rechtsbündig Rückgängig und Wiederholen
+        var left = new StackPanel { Orientation = Orientation.Horizontal };
+        var right = new StackPanel { Orientation = Orientation.Horizontal };
+        DockPanel.SetDock(right, Dock.Right);
+        var icons = new DockPanel { LastChildFill = false, Children = { right, left } };
+        void Icon(StackPanel icons, string glyph, string name, bool enabled, Action action)
+        {
+            var button = new Button
+            {
+                Content = glyph, Style = (Style)FindResource("MenuIconButton"), IsEnabled = enabled, ToolTip = name,
+            };
+            System.Windows.Automation.AutomationProperties.SetName(button, name);
+            button.Click += (_, _) =>
+            {
+                menu.IsOpen = false;
+                action();
+                BodyInput.Focus();
+            };
+            icons.Children.Add(button);
+        }
+        Icon(left, MenuIcons.Copy, Strings.EditorMenuCopy, selected, BodyInput.Copy);
+        Icon(left, MenuIcons.Cut, Strings.EditorMenuCut, editable && selected, BodyInput.Cut);
+        Icon(left, MenuIcons.Paste, Strings.EditorMenuPaste, editable && HasClipboard(DataFormats.UnicodeText), BodyInput.Paste);
+        Icon(right, MenuIcons.Undo, Strings.EditorMenuUndo, editable && BodyInput.CanUndo, () => BodyInput.Undo());
+        Icon(right, MenuIcons.Redo, Strings.EditorMenuRedo, editable && BodyInput.CanRedo, () => BodyInput.Redo());
+        icons.Margin = new Thickness(6, 2, 6, 4);
+        menu.Items.Add(new MenuItem { Header = icons, StaysOpenOnClick = true, Focusable = false, Template = IconRowTemplate });
+        menu.Items.Add(new Separator());
+
+        menu.Items.Add(Entry(Strings.EditorMenuPasteFormatted, MenuIcons.PasteFormatted, Strings.EditorMenuPasteFormattedGesture,
+            editable && HasClipboard(DataFormats.Html), PasteFormatted));
+        menu.Items.Add(Entry(Strings.EditorMenuSelectAll, MenuIcons.SelectAll, Strings.EditorMenuSelectAllGesture, true, BodyInput.SelectAll));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Entry(Strings.EditorMenuFind, MenuIcons.Search, Strings.EditorMenuFindGesture, true, () => FindBar.Open(replace: false)));
+        menu.Items.Add(Entry(Strings.EditorMenuReplace, MenuIcons.Replace, Strings.EditorMenuReplaceGesture, editable, () => FindBar.Open(replace: true)));
+        menu.Items.Add(new Separator());
+        var indent = Entry(selected ? Strings.EditorMenuIndentSelection : Strings.EditorMenuIndent, MenuIcons.Indent,
+            Strings.EditorMenuIndentGesture, editable, TidyIndentation);
+        indent.ToolTip = Strings.EditorMenuIndentToolTip;
+        menu.Items.Add(indent);
+        return menu;
+
+        static MenuItem Entry(string header, string glyph, string gesture, bool enabled, Action action)
+        {
+            var item = MenuIcons.Item(header, MenuIcons.Glyph(glyph), action);
+            item.InputGestureText = gesture;
+            item.IsEnabled = enabled;
+            return item;
+        }
+    }
+
+    /// <summary>
+    /// Strg+Umschalt+F: rückt {if}-Blöcke in der Auswahl ein, ohne Auswahl im ganzen Skript (<see cref="ScriptIndent"/>).
+    /// Ein Schritt für Rückgängig, danach sind die geänderten Zeilen markiert, wenn etwas markiert war.
+    /// </summary>
+    internal void TidyIndentation()
+    {
+        if (BodyInput.IsReadOnly) return;
+        var document = BodyInput.Document;
+        var text = document.Text;
+        var selected = BodyInput.SelectionLength > 0;
+        var (start, end) = selected ? (BodyInput.SelectionStart, BodyInput.SelectionStart + BodyInput.SelectionLength) : (0, text.Length);
+        var changes = ScriptIndent.Changes(text, start, end);
+        if (changes.Count == 0)
+        {
+            var form = KeyTags.Scan(text, new FormBuilder()).IsForm;
+            ShowStatus(form ? Strings.EditorIndentTidy : Strings.EditorIndentNoForm, StatusKind.Info);
+            return;
+        }
+
+        var first = document.GetLineByOffset(Math.Min(start, changes[0].Start));
+        var last = document.GetLineByOffset(Math.Max(Math.Max(start, end - (selected ? 1 : 0)), changes[^1].Start));
+        document.BeginUpdate();
+        try
+        {
+            foreach (var change in changes.Reverse())
+                document.Replace(change.Start, change.Length, change.Indent);
+        }
+        finally
+        {
+            document.EndUpdate();
+        }
+        if (selected)
+            BodyInput.Select(first.Offset, last.EndOffset - first.Offset);
+        BodyInput.Focus();
     }
 
     void OnCaretMoved()
@@ -405,19 +563,35 @@ internal partial class SnippetEditorWindow : Window
     internal void InsertTag(string tag, string? select = null)
     {
         var document = BodyInput.Document;
+        var indent = LineIndent();
         var start = BodyInput.SelectionStart;
         var end = start + BodyInput.SelectionLength;
         var startLine = document.GetLineByOffset(start);
         var endLine = document.GetLineByOffset(end);
         var before = !string.IsNullOrWhiteSpace(document.GetText(startLine.Offset, start - startLine.Offset));
         var after = !string.IsNullOrWhiteSpace(document.GetText(end, endLine.EndOffset - end));
+        var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, startLine.LineNumber);
+        var lines = tag.ReplaceLineEndings(newLine + indent);
         if (before && after)
         {
-            Insert(tag, select);
+            Insert(lines, select);
             return;
         }
-        var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, startLine.LineNumber);
-        Insert((before ? newLine : "") + tag.ReplaceLineEndings(newLine) + (after || endLine.NextLine is null ? newLine : ""), select);
+        Insert((before ? newLine + indent : "") + lines + (after || endLine.NextLine is null ? newLine + indent : ""), select);
+    }
+
+    /// <summary>
+    /// Die Einrückung der Zeile an der Schreibmarke, für eingefügte Zeilen in einem eingerückten {if}-Block. Steht die
+    /// Schreibmarke noch in dieser Einrückung, rückt sie ans Ende davon, damit das Eingefügte dort beginnt.
+    /// </summary>
+    string LineIndent()
+    {
+        var document = BodyInput.Document;
+        var line = document.GetLineByOffset(BodyInput.SelectionStart);
+        var whitespace = ICSharpCode.AvalonEdit.Document.TextUtilities.GetWhitespaceAfter(document, line.Offset);
+        if (BodyInput.SelectionLength == 0 && BodyInput.SelectionStart < whitespace.EndOffset)
+            BodyInput.Select(whitespace.EndOffset, 0);
+        return document.GetText(whitespace);
     }
 
     /// <summary>
@@ -520,8 +694,8 @@ internal partial class SnippetEditorWindow : Window
         ]),
     ];
 
-    /// <summary>Ein leerer {if}-Block mit {else}, je eine Leerzeile für die beiden Zweige.</summary>
-    static string IfBlock(string condition) => "{if," + condition + "}\n\n{else}\n\n{/if}";
+    /// <summary>Ein leerer {if}-Block mit {else}, je eine eingerückte Leerzeile für die beiden Zweige.</summary>
+    static string IfBlock(string condition) => "{if," + condition + "}\n" + ScriptIndent.Unit + "\n{else}\n" + ScriptIndent.Unit + "\n{/if}";
 
     /// <summary>Ein Text in der Sprache der Oberfläche.</summary>
     static string Local(string key) => Strings.ResourceManager.GetString(key, Strings.Culture) ?? key;
@@ -1048,11 +1222,12 @@ internal partial class SnippetEditorWindow : Window
     internal void InsertRecorded(string text)
     {
         var document = BodyInput.Document;
+        var indent = LineIndent(); // in einem eingerückten Zweig: jede aufgenommene Zeile ebenso
         var start = BodyInput.SelectionStart;
         var line = document.GetLineByOffset(start);
         var before = !string.IsNullOrWhiteSpace(document.GetText(line.Offset, start - line.Offset));
         var newLine = ICSharpCode.AvalonEdit.Document.TextUtilities.GetNewLineFromDocument(document, line.LineNumber);
-        Insert((before ? newLine : "") + text.ReplaceLineEndings(newLine));
+        Insert((before ? newLine + indent : "") + text.ReplaceLineEndings(newLine + indent));
     }
 
     /// <summary>Den Schritt im Text markieren und hinscrollen. <paramref name="text"/>: der Text, mit dem der Lauf begann.</summary>
@@ -1175,6 +1350,9 @@ internal partial class SnippetEditorWindow : Window
                 break;
             case Key.V when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
                 PasteFormatted();
+                break;
+            case Key.F when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift):
+                TidyIndentation();
                 break;
             case Key.F when ctrl:
                 FindBar.Open(replace: false);

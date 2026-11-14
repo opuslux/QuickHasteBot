@@ -234,6 +234,8 @@ Only a valid combination in brackets counts: `Report [draft].txt` stays a name. 
 - **Insert tag ▾** offers keys, pauses, `{clear}`, the window guard, element, window and start tags, and script helpers like `{{ date() }}`, each with a short explanation. The filter line at the top has the focus right away: typing, e.g. `field` or `wait`, lists every tag whose name, explanation or group matches, in the language of the interface or in English (all words, case and accents don't matter), Enter inserts the first one, ↓ moves into the list. Placeholders are selected after inserting, e.g. `id` in `{focus,#id}`, so you can type over them.
 - **Find and replace:** Ctrl+F opens a small search bar above the text (the text moves down, nothing is hidden), Ctrl+H the same with a line for replacing (the arrow on its left shows or hides it). Selected text on one line becomes the search text. All matches are highlighted and the bar counts them ("2 of 5"); Enter or F3 goes to the next one, Shift+Enter or Shift+F3 to the previous one. **Aa** matches upper and lower case exactly, otherwise case doesn't matter; the search text is plain text, braces and all. **Replace** (or Enter in its field) replaces the selected match and moves on, **Replace all** replaces every match at once, and a single Ctrl+Z undoes it. Esc closes the bar, the next Esc the editor.
 - **Formatted text:** Ctrl+Shift+V inserts formatted text from the clipboard as an [`{html}` block](#formatted-text); Ctrl+V stays plain text.
+- **Indentation:** Enter keeps the indentation of the line above, and after `{if,…}`, `{elseif,…}` or `{else}` it indents one level (4 spaces). Typing `{else}` or `{/if}` on its own line moves it back. **Tidy indentation** (Ctrl+Shift+F) indents all `{if}` blocks, or only the selected lines. It only changes [layout](#forms-key-tags), so what gets typed stays the same. Tags from **Insert tag ▾**, the picker and the recorder take the indentation of the line they go on.
+- **Right-click** in the text opens a menu: cut, copy, paste, undo and redo as icons at the top, below them paste formatted text, select all, find, replace and tidy indentation, with their shortcuts.
 - **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **JavaScript AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **HasteScript AI** puts a complete prompt for any AI on the clipboard, with the whole snippet and this manual, to [fix, improve or extend the snippet](#improving-a-script-with-hastescript-ai).
@@ -466,6 +468,18 @@ Handy combinations: `{shift+tab}` goes back a field, `{alt+down}` opens a dropdo
   ```
 
   types only "Max Muster" between the tags. Line breaks inside the text stay. For a real new line at a tag, write `{shift+enter}` or `{enter}`. "Insert into editor" in the element picker puts each tag on a line of its own.
+- **Indentation is layout too**, so blocks can be indented like code:
+
+  ```
+  {if,name=Send}
+      {ctrl+enter}
+  {else}
+      Please check:
+        - the address
+  {/if}
+  ```
+
+  Spaces and tabs in front of tags are never typed. Text that starts on a line of its own loses the indentation all its lines share, so the example types "Please check:" and "  - the address": deeper indentation within the text stays. Text that starts right after a tag on the same line stays as it is, and so do snippets without key tags. For real spaces at the start, write `{space,4}`. `{tab}` presses the Tab key, which moves to the next field in most forms.
 - **With scripts:** tags and `{{ … }}` blocks can be mixed freely, e.g. `{{ user }}{tab}{{ date() }}{enter}`, and variables carry over as usual. Inside a script, `key()` and `wait()` press keys, e.g. `{{ ['Max', 'Müller'].join(key('tab')) + key('enter') }}`. What a script returns or what comes from the clipboard is never read as a tag, so a copied `{enter}` can't submit anything. A literal tag is written as `{{ '{tab}' }}`.
 - **Comments:** `{# note}` is a note to yourself and is never pasted, in forms and in plain text. It may span several lines and ends at the first `}`. On a line of its own, the whole line goes, so comments leave no empty lines. **Insert tag ▾** → Flow → the first entry puts one on its own line with the note selected. Comments belong to the tags: with key tags turned off (below), they are pasted as is.
 - **Stopping:** holding Esc stops a snippet between two steps.
@@ -619,14 +633,14 @@ With a web address, `{start,…}` opens it in the default browser, and the rest 
 
 ### Conditions: if, elseif, else
 
-`{if,…}` decides while the snippet runs what comes next: if the condition holds, what follows it runs, otherwise what follows `{else}`. Each tag can go on a line of its own like any other tag, and `{/if}` ends the block:
+`{if,…}` decides while the snippet runs what comes next: if the condition holds, what follows it runs, otherwise what follows `{else}`. Each tag can go on a line of its own like any other tag, and `{/if}` ends the block. [Indentation](#forms-key-tags) is only layout, the editor indents as you type:
 
 ```
 {window,process=outlook}
 {if,name=Send}
-{ctrl+enter}
+    {ctrl+enter}
 {else}
-{alt+s}
+    {alt+s}
 {/if}
 ```
 

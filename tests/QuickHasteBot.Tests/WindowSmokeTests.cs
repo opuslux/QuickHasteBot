@@ -1771,6 +1771,47 @@ public class WindowSmokeTests
         editor.InsertTag("{click,name=Zeit}");
         Assert.Equal("{window,process=chrome}{click,name=Zeit}", controller.Preview(body.Text).Text);
 
+        // In einem eingerückten Zweig: die Tags übernehmen die Einrückung, auch die Schreibmarke danach
+        body.Text = "{if,process=x}\r\n    ";
+        body.CaretOffset = body.Text.Length;
+        editor.InsertTag("{tab}");
+        editor.InsertTag("{enter}");
+        Assert.Equal("{if,process=x}\r\n    {tab}\r\n    {enter}\r\n    ", body.Text);
+        // Steht die Schreibmarke am Zeilenanfang, beginnt der Tag hinter der Einrückung
+        body.CaretOffset = "{if,process=x}\r\n".Length;
+        editor.InsertTag("{esc}");
+        Assert.StartsWith("{if,process=x}\r\n    {esc}\r\n    {tab}\r\n", body.Text);
+
+        // Aufnahme in einen eingerückten Zweig: jede Zeile eingerückt
+        body.Text = "{if,process=x}\r\n    ";
+        body.CaretOffset = body.Text.Length;
+        editor.InsertRecorded("{focus,#ort}Bern\n{click,name=OK}\n");
+        Assert.Equal("{if,process=x}\r\n    {focus,#ort}Bern\r\n    {click,name=OK}\r\n    ", body.Text);
+
+        // Strg+Umschalt+F ordnet die Einrückung, Strg+Z macht es in einem Schritt rückgängig
+        body.Text = "{if,process=x}\r\n{tab}\r\n  Hallo\r\n{/if}";
+        body.CaretOffset = 0;
+        editor.TidyIndentation();
+        Assert.Equal("{if,process=x}\r\n    {tab}\r\n    Hallo\r\n{/if}", body.Text);
+        body.Undo();
+        Assert.Equal("{if,process=x}\r\n{tab}\r\n  Hallo\r\n{/if}", body.Text);
+
+        // Das Rechtsklick-Menü: oben die Symbole, darunter die Befehle; mit Auswahl heisst das Ordnen anders
+        var menu = editor.EditMenu();
+        var icons = Assert.IsType<System.Windows.Controls.DockPanel>(Assert.IsType<System.Windows.Controls.MenuItem>(menu.Items[0]).Header);
+        Assert.Equal(5, icons.Children.OfType<System.Windows.Controls.StackPanel>().Sum(p => p.Children.Count));
+        Assert.NotEqual(editor.BodyInput.FontFamily, menu.FontFamily); // nicht die Monospace-Schrift des Texts
+        menu.PlacementTarget = editor.BodyInput;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+        SnapshotElement(menu, "editor-context-menu.png");
+        menu.IsOpen = false;
+        var headers = menu.Items.OfType<System.Windows.Controls.MenuItem>().Skip(1).Select(i => i.Header as string).ToList();
+        Assert.Contains(Strings.EditorMenuIndent, headers);
+        Assert.Contains(Strings.EditorMenuReplace, headers);
+        body.Select(0, 5);
+        Assert.Contains(Strings.EditorMenuIndentSelection, editor.EditMenu().Items.OfType<System.Windows.Controls.MenuItem>().Select(i => i.Header as string));
+
         body.Text = "";
         editor.Close();
     }

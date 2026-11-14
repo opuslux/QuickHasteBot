@@ -584,4 +584,23 @@ The date of next Monday</value></data>
   <data name="FindReplaceAllToolTip" xml:space="preserve"><value>Replaces every match at once, Ctrl+Z undoes all of them</value></data>
   <data name="FindReplacedFormat" xml:space="preserve"><value>{0} replaced</value></data>
   <data name="LineNumbersTooltip" xml:space="preserve"><value>Show line numbers</value></data>
+  <data name="EditorMenuCut" xml:space="preserve"><value>Cut (Ctrl+X)</value></data>
+  <data name="EditorMenuCopy" xml:space="preserve"><value>Copy (Ctrl+C)</value></data>
+  <data name="EditorMenuPaste" xml:space="preserve"><value>Paste (Ctrl+V)</value></data>
+  <data name="EditorMenuUndo" xml:space="preserve"><value>Undo (Ctrl+Z)</value></data>
+  <data name="EditorMenuRedo" xml:space="preserve"><value>Redo (Ctrl+Y)</value></data>
+  <data name="EditorMenuPasteFormatted" xml:space="preserve"><value>Paste formatted text</value></data>
+  <data name="EditorMenuPasteFormattedGesture" xml:space="preserve"><value>Ctrl+Shift+V</value></data>
+  <data name="EditorMenuSelectAll" xml:space="preserve"><value>Select all</value></data>
+  <data name="EditorMenuSelectAllGesture" xml:space="preserve"><value>Ctrl+A</value></data>
+  <data name="EditorMenuFind" xml:space="preserve"><value>Find</value></data>
+  <data name="EditorMenuFindGesture" xml:space="preserve"><value>Ctrl+F</value></data>
+  <data name="EditorMenuReplace" xml:space="preserve"><value>Replace</value></data>
+  <data name="EditorMenuReplaceGesture" xml:space="preserve"><value>Ctrl+H</value></data>
+  <data name="EditorMenuIndent" xml:space="preserve"><value>Tidy indentation</value></data>
+  <data name="EditorMenuIndentSelection" xml:space="preserve"><value>Tidy indentation of selection</value></data>
+  <data name="EditorMenuIndentGesture" xml:space="preserve"><value>Ctrl+Shift+F</value></data>
+  <data name="EditorMenuIndentToolTip" xml:space="preserve"><value>Indents {if} blocks by 4 spaces per level. Only changes layout: what gets typed stays the same.</value></data>
+  <data name="EditorIndentTidy" xml:space="preserve"><value>The indentation is already tidy.</value></data>
+  <data name="EditorIndentNoForm" xml:space="preserve"><value>Indentation only matters in snippets with tags. Without tags, spaces are typed as written.</value></data>
 </root>
