@@ -221,7 +221,9 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         if (IsSearching)
         {
             var contentProvider = app.Settings.SearchContent ? library.GetSearchableText : (Func<Snippet, string?>?)null;
-            items = SnippetSearch.Search(library.All, _query, contentProvider).Select(hit => SnippetItem.ForHit(hit, app.FileHotkeys.Problem(hit.Snippet))).ToList();
+            // Einmal pro Suche gebaut, danach nur noch Nachschlagen je Treffer
+            var bonus = app.Settings.RankByUsage ? app.SnippetData.BonusFor(_query) : null;
+            items = SnippetSearch.Search(library.All, _query, contentProvider, bonus: bonus).Select(hit => SnippetItem.ForHit(hit, app.FileHotkeys.Problem(hit.Snippet))).ToList();
             Breadcrumbs = [new(items.Count == 1 ? Strings.MatchesOne : string.Format(Strings.MatchesFormat, items.Count), Target: null, ShowSeparator: false)];
             EmptyText = items.Count == 0 ? Strings.NoMatches : "";
         }
@@ -352,7 +354,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         for (var i = 0; i < parts.Length; i++)
         {
             var isCurrent = i == parts.Length - 1;
-            crumbs.Add(new(FileHotkey.Split(parts[i]).Name, isCurrent ? null : Path.Combine(parts[..(i + 1)]), ShowSeparator: true));
+            crumbs.Add(new(parts[i], isCurrent ? null : Path.Combine(parts[..(i + 1)]), ShowSeparator: true));
         }
         return crumbs;
     }

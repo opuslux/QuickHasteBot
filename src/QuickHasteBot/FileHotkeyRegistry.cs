@@ -6,8 +6,8 @@ using QuickHasteBot.UI;
 namespace QuickHasteBot;
 
 /// <summary>
-/// Die Hotkeys aus Datei- und Ordnernamen (z.B. „Gruss [Ctrl+Alt+G].txt“): registriert sie beim globalen Hotkey, merkt sich
-/// Konflikte und beantwortet, ob ein Hotkey noch frei ist. Ohne <see cref="Attach"/> (vor dem Start, in Tests) gibt es nur
+/// Die Hotkeys der Dateien und Ordner (aus snippets.json, siehe <see cref="SnippetData"/>): registriert sie beim globalen
+/// Hotkey, merkt sich Konflikte und beantwortet, ob ein Hotkey noch frei ist. Ohne <see cref="Attach"/> (vor dem Start, in Tests) gibt es nur
 /// die Liste.
 /// </summary>
 /// <param name="library">Die aktuelle Bibliothek, sie wird beim Wechsel des structure-Ordners ersetzt.</param>
@@ -49,7 +49,7 @@ internal sealed class FileHotkeyRegistry(Func<SnippetLibrary> library, Func<Hotk
     internal string? PathFor(int id) => _registrations.FirstOrDefault(r => r.Value.Id == id).Key;
 
     /// <summary>
-    /// Registriert die Hotkeys aus den Dateinamen neu: nach dem Einlesen, nach einer Änderung im Ordner und wenn sich
+    /// Registriert die Hotkeys der Einträge neu: nach dem Einlesen, nach einer Änderung im Ordner und wenn sich
     /// der Popup-Hotkey ändert. Nur was sich geändert hat, wird frei gegeben oder registriert.
     /// </summary>
     /// <param name="announce">Neu entstandene Konflikte melden, z.B. nach Umbenennen im Explorer.</param>
@@ -131,10 +131,7 @@ internal sealed class FileHotkeyRegistry(Func<SnippetLibrary> library, Func<Hotk
         ? string.Format(Strings.QuotedNameFormat, snippet.Name)
         : string.Format(Strings.QuotedNameWithLocationFormat, snippet.Name, snippet.Location);
 
-    /// <summary>
-    /// Ob ein Eintrag diesen Hotkey bekommen darf, für den Hotkey-Dialog und beim Umbenennen. Null wenn ja,
-    /// sonst der Grund.
-    /// </summary>
+    /// <summary>Ob ein Eintrag diesen Hotkey bekommen darf, für den Hotkey-Dialog. Null wenn ja, sonst der Grund.</summary>
     /// <param name="selfPath">Der Eintrag selbst, sein bisheriger Hotkey ist natürlich kein Konflikt.</param>
     internal string? Conflict(HotkeyGesture gesture, string? selfPath)
     {
@@ -144,15 +141,5 @@ internal sealed class FileHotkeyRegistry(Func<SnippetLibrary> library, Func<Hotk
         // Was wir selbst registriert haben, hält kein anderes Programm
         if (_registrations.Values.Any(r => r.Gesture == gesture)) return null;
         return _hotkey is not null && !_hotkey.IsFree(gesture) ? Strings.FileHotkeyTaken : null;
-    }
-
-    /// <summary>
-    /// Beim Umbenennen: ob der Hotkey im neuen Namen frei ist. Null ohne Tag, mit dem bisherigen Hotkey oder einem freien.
-    /// </summary>
-    /// <param name="selfPath">Bisheriger Pfad des Eintrags, null bei einem neuen.</param>
-    internal string? ConflictForName(string fileName, bool isFolder, string? selfPath, HotkeyGesture? currentHotkey)
-    {
-        if (FileHotkey.FromFileName(fileName, isFolder) is not { } gesture || gesture == currentHotkey) return null;
-        return Conflict(gesture, selfPath);
     }
 }

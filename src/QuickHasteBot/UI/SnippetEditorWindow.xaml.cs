@@ -35,8 +35,6 @@ internal partial class SnippetEditorWindow : Window
     TextEncoding _encoding = TextEncoding.Utf8;
     string _savedName;
     string _savedText;
-    // Der Hotkey aus dem Dateinamen: Das Namensfeld zeigt den Namen ohne Tag, Speichern hängt es wieder an
-    HotkeyGesture? _hotkey;
     DateTime _savedWriteTime;
     bool _loading = true;
 
@@ -58,7 +56,6 @@ internal partial class SnippetEditorWindow : Window
         _path = path;
         _extension = path is null ? app.NewSnippetExtension : Path.GetExtension(path);
         _encoding = encoding;
-        (name, _hotkey) = FileHotkey.Split(name);
         _savedName = name;
         _savedText = text;
         _savedWriteTime = path is null ? default : File.GetLastWriteTimeUtc(path);
@@ -382,7 +379,7 @@ internal partial class SnippetEditorWindow : Window
     static bool SamePath(string a, string b) =>
         string.Equals(Path.TrimEndingDirectorySeparator(a), Path.TrimEndingDirectorySeparator(b), StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Der gewählte Ordner, z.B. "in Bausteine › 5-SQL", ohne die Hotkey-Tags der Ordner.</summary>
+    /// <summary>Der gewählte Ordner, z.B. "in Bausteine › 5-SQL".</summary>
     void UpdateFolder()
     {
         FolderText.Text = string.Format(Strings.EditorFolderFormat, FolderDisplay(_folder));
@@ -392,7 +389,7 @@ internal partial class SnippetEditorWindow : Window
     string FolderDisplay(string folder)
     {
         var relative = Path.GetRelativePath(_app.StructureRoot, folder);
-        IEnumerable<string> folders = relative == "." ? [] : relative.Split(Path.DirectorySeparatorChar).Select(f => FileHotkey.Split(f).Name);
+        IEnumerable<string> folders = relative == "." ? [] : relative.Split(Path.DirectorySeparatorChar);
         return string.Join(" › ", folders.Prepend(Strings.BreadcrumbRoot));
     }
 
@@ -688,19 +685,11 @@ internal partial class SnippetEditorWindow : Window
     /// <returns>False, wenn nicht gespeichert wurde (Name ungültig, Fehler, abgebrochen).</returns>
     internal bool Save()
     {
-        // Wer ein Tag von Hand ins Namensfeld schreibt, bekommt diesen Hotkey, sonst bleibt der bisherige
-        var (name, typedHotkey) = FileHotkey.Split(NameInput.Text.Trim());
-        var hotkey = typedHotkey ?? _hotkey;
-        var fileName = FileHotkey.Tagged(name, hotkey) + _extension;
+        var name = NameInput.Text.Trim();
+        var fileName = name + _extension;
         var currentName = _path is null ? null : Path.GetFileName(_path);
         // In einen anderen Ordner: Dort zählt jeder gleichnamige Eintrag, auch einer, der sich nur in Gross/Klein unterscheidet
         var moving = _path is not null && !SamePath(_folder, Path.GetDirectoryName(_path) ?? "");
-        if (_app.FileHotkeys.ConflictForName(fileName, isFolder: false, _path, _hotkey) is { } conflict)
-        {
-            ShowStatus(string.Format(Strings.EditorHotkeyConflictFormat, hotkey, conflict), error: true);
-            NameInput.Focus();
-            return false;
-        }
         // Den Namen prüfen, nicht name + Endung: ".txt" allein wäre sonst ein gültiger Dateiname
         var problem = name.Length == 0 ? NameProblem.Empty : SnippetFiles.Check(_folder, fileName, moving ? null : currentName);
         if (problem is not (NameProblem.None or NameProblem.Unchanged))
@@ -730,16 +719,16 @@ internal partial class SnippetEditorWindow : Window
                 path = SnippetFiles.Move(path, _folder, fileName);
             else if (path is not null && currentName != fileName)
                 path = SnippetFiles.Rename(path, fileName);
+            // Hotkey und Nutzung ziehen mit
+            if (_path is not null && path is not null && path != _path)
+                _app.SnippetMoved(_path, path);
             path ??= Path.Combine(_folder, fileName);
 
             var used = TextFile.Write(path, BodyInput.Text, _encoding);
             if (used != _encoding)
                 Log.Info($"Baustein enthält Zeichen, die {_encoding} nicht kann, gespeichert als {used}: {path}");
 
-            (_path, _encoding, _savedName, _savedText, _hotkey, _savedFolder) = (path, used, name, BodyInput.Text, hotkey, _folder);
-            // Ein getipptes Tag steht jetzt im Dateinamen, im Feld wieder nur der Name
-            if (typedHotkey is not null)
-                NameInput.Text = name;
+            (_path, _encoding, _savedName, _savedText, _savedFolder) = (path, used, name, BodyInput.Text, _folder);
             _savedWriteTime = File.GetLastWriteTimeUtc(path);
             UpdateTitle();
             ShowStatus(Strings.EditorSaved, StatusKind.Success);

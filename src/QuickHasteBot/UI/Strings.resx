@@ -62,6 +62,11 @@ Overwriting replaces example files with the same name, all other files stay as t
   <data name="SamplesExportedFormat" xml:space="preserve"><value>Exported {0} example files to {1}.</value></data>
   <data name="SamplesExportErrorFormat" xml:space="preserve"><value>The examples could not be exported: {0}</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Also search the text inside the snippets</value></data>
+  <data name="RankByUsage" xml:space="preserve"><value>Frequently chosen snippets first</value></data>
+  <data name="RankByUsageToolTip" xml:space="preserve"><value>Search results you often choose move up, and what you chose after the same search text comes first. Stored next to the exe in snippets.json, only for you.</value></data>
+  <data name="ClearUsage" xml:space="preserve"><value>Clear history</value></data>
+  <data name="ClearUsageToolTip" xml:space="preserve"><value>Forget how often snippets were used and what was chosen after which search text. Hotkeys stay.</value></data>
+  <data name="ClearUsageConfirm" xml:space="preserve"><value>Forget how often snippets were used and the learned search texts? The hotkeys stay.</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>Run {{ … }} in snippets as JavaScript</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>When pasting, e.g. {{ date() }} becomes today's date. Off: {{ … }} is pasted as is.</value></data>
   <data name="EvaluateKeyTags" xml:space="preserve"><value>Press key tags like {tab} and {enter} (fill in forms)</value></data>
@@ -440,19 +445,17 @@ The date of next Monday</value></data>
   <data name="FileHotkeyFolderPromptFormat" xml:space="preserve"><value>Key combination that opens the popup in the folder "{0}", from any program:</value></data>
   <data name="FileHotkeyConfirm" xml:space="preserve"><value>Apply</value></data>
   <data name="FileHotkeyRemove" xml:space="preserve"><value>Remove hotkey</value></data>
-  <data name="FileHotkeyFileNameFormat" xml:space="preserve"><value>File name: {0}</value></data>
   <data name="FileHotkeyGlobalHint" xml:space="preserve"><value>Without Ctrl, Alt or Win, this key is no longer available in other programs while QuickHasteBot is running.</value></data>
   <data name="FileHotkeyUsedByFormat" xml:space="preserve"><value>Already used by {0}.</value></data>
   <data name="FileHotkeyIsMain" xml:space="preserve"><value>This is the hotkey that opens the popup.</value></data>
   <data name="FileHotkeyTaken" xml:space="preserve"><value>Another program is already using this key combination.</value></data>
-  <data name="FileHotkeyConflictsFound" xml:space="preserve"><value>Some hotkeys in file names don't work:</value></data>
+  <data name="FileHotkeyConflictsFound" xml:space="preserve"><value>Some file and folder hotkeys don't work:</value></data>
   <data name="FileHotkeyConflictLineFormat" xml:space="preserve"><value>{0} for {1}: {2}</value></data>
   <data name="FileHotkeyBadgeTooltipFormat" xml:space="preserve"><value>Hotkey {0}, works in every program</value></data>
-  <data name="EditorHotkeyConflictFormat" xml:space="preserve"><value>Hotkey {0}: {1}</value></data>
   <data name="QuotedNameFormat" xml:space="preserve"><value>"{0}"</value></data>
   <data name="QuotedNameWithLocationFormat" xml:space="preserve"><value>"{0}" ({1})</value></data>
   <data name="FileHotkeysTab" xml:space="preserve"><value>Hotkeys</value></data>
-  <data name="FileHotkeysIntro" xml:space="preserve"><value>Every file and folder can have a hotkey of its own, written in its name: "Kind regards [Ctrl+Alt+G].txt" pastes the snippet from any program, "3 - SQL [Ctrl+Alt+S]" opens the popup in that folder. Set it with "Set hotkey…" in the popup's right-click menu, by renaming, or here with a double-click.</value></data>
+  <data name="FileHotkeysIntro" xml:space="preserve"><value>Every file and folder can have a hotkey of its own: on a snippet it pastes from any program, on a folder it opens the popup there. Set it with "Set hotkey…" in the popup's right-click menu, or here with a double-click; Del removes it. Hotkeys are stored in snippets.json next to the exe and follow renames done in QuickHasteBot or in Explorer while it is running.</value></data>
   <data name="FileHotkeysNone" xml:space="preserve"><value>No file or folder has a hotkey yet.</value></data>
   <data name="FileHotkeysSummaryFormat" xml:space="preserve"><value>{0} active</value></data>
   <data name="FileHotkeysProblemsFormat" xml:space="preserve"><value>{0} active, {1} not working</value></data>
@@ -461,6 +464,8 @@ The date of next Monday</value></data>
   <data name="FileHotkeyColumnFolder" xml:space="preserve"><value>Folder</value></data>
   <data name="FileHotkeyColumnStatus" xml:space="preserve"><value>Status</value></data>
   <data name="FileHotkeyStatusOk" xml:space="preserve"><value>Active</value></data>
+  <data name="FileHotkeyOrphan" xml:space="preserve"><value>Entry not found</value></data>
+  <data name="FileHotkeysOrphansFormat" xml:space="preserve"><value>, {0} without entry (renamed or moved while QuickHasteBot was not running?)</value></data>
   <!-- Neuer Ordner -->
   <data name="MenuNewFolder" xml:space="preserve"><value>New folder…</value></data>
   <data name="NewFolderTitle" xml:space="preserve"><value>New folder</value></data>

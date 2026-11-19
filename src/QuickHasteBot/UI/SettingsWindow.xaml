@@ -138,6 +138,13 @@
                         </DockPanel>
                         <CheckBox x:Name="SearchContentInput" Content="{x:Static ui:Strings.SearchContent}" Margin="0,8,0,0"
                                   Click="OnSearchContentChanged" />
+                        <DockPanel Margin="0,4,0,0">
+                            <TextBlock DockPanel.Dock="Right" Text="{x:Static ui:Strings.ClearUsage}" Style="{StaticResource LinkText}"
+                                       FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center"
+                                       ToolTip="{x:Static ui:Strings.ClearUsageToolTip}" MouseLeftButtonUp="OnClearUsage" />
+                            <CheckBox x:Name="RankByUsageInput" Content="{x:Static ui:Strings.RankByUsage}"
+                                      ToolTip="{x:Static ui:Strings.RankByUsageToolTip}" Click="OnRankByUsageChanged" />
+                        </DockPanel>
                         <CheckBox x:Name="BuiltInEditorInput" Content="{x:Static ui:Strings.UseBuiltInEditor}" Margin="0,4,0,0"
                                   ToolTip="{x:Static ui:Strings.UseBuiltInEditorToolTip}" Click="OnBuiltInEditorChanged" />
                         <CheckBox x:Name="ScriptsInput" Content="{x:Static ui:Strings.EvaluateScripts}" Margin="0,4,0,0"
@@ -208,7 +215,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- Hotkeys aus den Dateinamen: Übersicht, Konflikte rot, Doppelklick ändert -->
+            <!-- Hotkeys der Dateien und Ordner: Übersicht, Konflikte rot, verwaiste grau, Doppelklick ändert, Entf entfernt -->
             <TabItem x:Name="FileHotkeysTab" Header="{x:Static ui:Strings.FileHotkeysTab}">
                 <StackPanel Margin="0,16,0,0">
                     <TextBlock Text="{x:Static ui:Strings.FileHotkeysIntro}" TextWrapping="Wrap" FontSize="12"
@@ -228,10 +235,28 @@
                         <TextBlock Grid.Column="3" Text="{x:Static ui:Strings.FileHotkeyColumnStatus}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </Grid>
                     <ListBox x:Name="FileHotkeysList" Height="190" MouseDoubleClick="OnFileHotkeyDoubleClick" KeyDown="OnFileHotkeyKeyDown"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ContextMenuOpening="OnFileHotkeyContextMenuOpening">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem x:Name="FileHotkeyEditMenu" Header="{x:Static ui:Strings.MenuSetHotkey}" Click="OnFileHotkeyEditMenu" />
+                                <MenuItem Header="{x:Static ui:Strings.FileHotkeyRemove}" Click="OnFileHotkeyRemoveMenu" />
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid ToolTip="{Binding Status}">
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="ToolTip" Value="{Binding Status}" />
+                                            <Style.Triggers>
+                                                <!-- Verwaist: wirkt nicht, der Pfad steht im Tooltip -->
+                                                <DataTrigger Binding="{Binding IsOrphan}" Value="True">
+                                                    <Setter Property="Opacity" Value="0.55" />
+                                                    <Setter Property="ToolTip" Value="{Binding RelativePath}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="140" />
                                         <ColumnDefinition Width="200" />

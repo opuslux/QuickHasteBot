@@ -101,7 +101,7 @@ Thank you for your order.
 
 | Key | Action |
 |---|---|
-| Typing | From the second character on, searches all folders (a single character keeps the current folder). With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Optionally the text inside the snippets is searched as well. A folder name only narrows the search: `grusse` finds the folder `Grüsse`, not everything in it, while `grusse mfg` finds the `MfG` snippets in that folder. |
+| Typing | From the second character on, searches all folders (a single character keeps the current folder). With several words, all of them must match. Case and accents don't matter (`grusse` finds `Grüsse`). Optionally the text inside the snippets is searched as well. A folder name only narrows the search: `grusse` finds the folder `Grüsse`, not everything in it, while `grusse mfg` finds the `MfG` snippets in that folder. See [Order of the results](#order-of-the-results). |
 | ↑ ↓ / Page Up, Page Down | Move the selection |
 | Ctrl+Home / Ctrl+End | First / last entry |
 | Enter | Paste (or open the folder) |
@@ -117,6 +117,17 @@ Thank you for your order.
 | Ctrl+, | Settings |
 | Ctrl+T | [Keep the popup open](#keeping-it-open) to paste several snippets one after another |
 | Esc | Close |
+
+### Order of the results
+
+The best match comes first: a name that starts with the search text, then a word in the name that starts with it, then a name that contains it, then a match in the folder or in the text. Equally good matches keep the order of the folders.
+
+On top of that, QuickHasteBot learns what you use:
+
+- **Frequently chosen** snippets move up a little among similar matches. Recent uses count more than old ones, so something you stopped using drops back over time. Usage alone never puts a match in the text above a match in the name.
+- **Chosen after the same search text:** if you typed `mfg` and picked the third result, it moves up the next time you type `mfg`; picked twice, it comes first. While you type, a search text you used before counts half (`mf` on the way to `mfg`).
+
+Pastes, opened files and folders count, from the search, while browsing and by [hotkey](#hotkeys-for-files-and-folders). Everything is stored only for you in `snippets.json` next to the exe; renaming or moving a snippet keeps its history. To turn it off, untick "Frequently chosen snippets first" under **General** in the settings (`RankByUsage`); nothing is recorded then. "Clear history" next to it forgets all usage and learned search texts, the hotkeys stay.
 
 ### Mouse
 
@@ -203,27 +214,19 @@ thank you for your message.
 
 ## Hotkeys for files and folders
 
-Besides the popup hotkey, every snippet, file or folder can have a global hotkey of its own. It is part of the name, in square brackets at the end:
-
-```
-structure\
-  3 - SQL [Ctrl+Alt+S]\
-    Audit insert [Ctrl+Alt+A].txt
-  Kind regards [Ctrl+Alt+G].txt
-  Intranet [Ctrl+Alt+I].url
-```
+Besides the popup hotkey, every snippet, file or folder can have a global hotkey of its own:
 
 - **A text snippet** is pasted right away into the window in front, without the popup, just like Enter in the popup (key tags and scripts included).
 - **Any other file** opens with its associated application.
 - **A folder** opens the popup in that folder.
 
-Since the hotkey lives in the name, there is nothing else to maintain: it moves along when a file is copied, zipped, synced or put under version control, and renaming the file changes it. The popup shows the name without the brackets, with the hotkey as a small badge on the right, and the search ignores it.
+**Setting a hotkey:** right-click an entry, choose **Set hotkey…** and press the combination. The dialog says right away if it is already used by another entry, is the popup hotkey, or belongs to another program, and only applies a free one. "Remove hotkey" takes it away again. The popup shows the hotkey as a small badge on the right. The key names are the same as for the popup hotkey (`Ctrl`, `Shift`, `Alt`, `Win`). A single function key like F9 works too, but is then missing in every other program.
 
-Only a valid combination in brackets counts: `Report [draft].txt` stays a name. The key names are the same as for the popup hotkey (`Ctrl`, `Shift`, `Alt`, `Win`, also `Strg`). A single function key like `[F9]` works too, but is then missing in every other program.
+**Where it is stored:** in `snippets.json` next to the exe, not in the `structure` folder. The file names stay as they are, and in a `structure` folder shared with others, everyone has their own hotkeys. The hotkey follows its entry when it is renamed or moved in QuickHasteBot (F2, the name or folder in the editor), and in Explorer while QuickHasteBot is running. Renamed while QuickHasteBot was not running, the hotkey stays with the old name: the **Hotkeys** tab in the settings shows it greyed out as "Entry not found", Del removes it. If an entry with that name turns up again, the hotkey works again. A clone gets no hotkey, a deleted entry takes its hotkey with it.
 
-**Setting a hotkey:** right-click an entry, choose **Set hotkey…** and press the combination. The dialog says right away if it is already used by another entry, is the popup hotkey, or belongs to another program, and only applies a free one. "Remove hotkey" takes it out of the name again. Renaming (F2, the name field in the editor, or Explorer) works as well; QuickHasteBot checks the hotkey there too, and the editor keeps it when the name changes. A clone gets no hotkey.
+> **Changed in 3.0:** up to version 2.16, hotkeys were part of the name, in square brackets at the end (`Kind regards [Ctrl+Alt+G].txt`). Such names are now just names: the brackets show up in the popup and set no hotkey. Rename the file to remove them, and set the hotkey again with **Set hotkey…**.
 
-**Conflicts** that come in from outside, e.g. a file renamed in Explorer, are reported once with a message. The entry then shows a warning sign next to its badge, with the reason in the tooltip. If two entries have the same hotkey, the one further up in the popup gets it. The settings list every hotkey under **Hotkeys**, conflicts in red; a double-click changes one. If there are conflicts at startup, the settings open on that tab.
+**Conflicts** that come in from outside, e.g. a hand-edited `snippets.json` or another program taking the combination, are reported once with a message. The entry then shows a warning sign next to its badge, with the reason in the tooltip. If two entries have the same hotkey, the one further up in the popup gets it. The settings list every hotkey under **Hotkeys**, conflicts in red; a double-click or right-click changes one, Del removes it. If there are conflicts at startup, the settings open on that tab.
 
 ## Editor
 
@@ -674,9 +677,9 @@ The settings open with a double-click on the tray icon, "Settings" in the tray m
 
 | Tab | Contains |
 |---|---|
-| **General** | The popup hotkey; "Start with Windows", tray icon, log file, the hint on new versions, language and theme; the `structure` folder, content search, the built-in editor, script and key tag options, the AI service |
+| **General** | The popup hotkey; "Start with Windows", tray icon, log file, the hint on new versions, language and theme; the `structure` folder, content search, frequently chosen first and clearing that history, the built-in editor, script and key tag options, the AI service |
 | **Popup** | Paste method, mouse behavior, and "When opening": pin, filter and where the popup opens |
-| **Hotkeys** | Every [file and folder hotkey](#hotkeys-for-files-and-folders), with conflicts |
+| **Hotkeys** | Every [file and folder hotkey](#hotkeys-for-files-and-folders), with conflicts and hotkeys whose entry is missing |
 
 **New versions:** once a day QuickHasteBot asks GitHub for the newest release. If there is a newer one, the tray menu and the settings (next to the version) offer "Download version x.y.z", and Windows shows a notification once. Only the request itself is sent, nothing about you. To turn it off, untick "Tell me about new versions" under **General** (`CheckForUpdates`).
 
@@ -690,6 +693,7 @@ Everything lives next to `QuickHasteBot.exe`:
 
 - `structure\` with your snippets. The path can be changed in the settings (relative, absolute, or with `%USERPROFILE%`).
 - `settings.json` with the settings. It can also be edited by hand, e.g. `"Hotkey": "Ctrl+Alt+Space"`, `"Language": "en"`, `"de"` or empty for the Windows language, `"Theme": "System"`, `"Light"` or `"Dark"`.
+- `snippets.json` with the [file and folder hotkeys](#hotkeys-for-files-and-folders), how often each snippet was used and what was chosen after which search text ([order of the results](#order-of-the-results)). Written a few seconds after a change. Keys are paths relative to `structure`; a file that can't be read is kept as `snippets.json.bad`.
 - `ai-prompt.txt` (optional) with your own [prompt template for the AI](#writing-a-block-with-ai).
 - `hastescript-prompt.txt` (optional) with your own [prompt template for HasteScript AI](#improving-a-script-with-hastescript-ai).
 - `QuickHasteBot.log` with errors, startup information and every program and script a snippet starts. Only written when "Write log file" is on in the settings (`"WriteLog": true`), off by default. Over 1 MB it is renamed to `QuickHasteBot.log.old`.

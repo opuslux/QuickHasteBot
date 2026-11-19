@@ -63,6 +63,12 @@ public sealed class AppSettings
     /// <summary>Suche auch im Inhalt der Textbausteine, nicht nur im Namen.</summary>
     public bool SearchContent { get; set; } = true;
 
+    /// <summary>
+    /// Häufig und nach demselben Suchtext gewählte Einträge stehen in der Suche weiter oben. Aus: Es wird auch nichts
+    /// mehr aufgezeichnet, die Reihenfolge ist nur die Trefferqualität.
+    /// </summary>
+    public bool RankByUsage { get; set; } = true;
+
     /// <summary>{{ … }} in Textbausteinen beim Einfügen als JavaScript auswerten. Aus: wird wörtlich eingefügt (z.B. Mustache-Vorlagen).</summary>
     public bool EvaluateScripts { get; set; } = true;
 

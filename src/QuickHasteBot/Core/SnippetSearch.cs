@@ -3,7 +3,8 @@ using System.Globalization;
 namespace QuickHasteBot.Core;
 
 /// <param name="MatchStart">Treffer des ersten Suchworts im Namen, für die Hervorhebung. -1 ohne Treffer im Namen.</param>
-public sealed record SearchHit(Snippet Snippet, int Score, int MatchStart, int MatchLength);
+/// <param name="Bonus">Aus der Nutzung, siehe <see cref="UsageRanking"/>. Sortiert wird nach Score + Bonus.</param>
+public sealed record SearchHit(Snippet Snippet, int Score, int MatchStart, int MatchLength, int Bonus = 0);
 
 /// <summary>
 /// Alle Suchwörter müssen passen (UND). Groß/Klein und Akzente werden ignoriert, "grusse" findet "Grüsse".
@@ -21,11 +22,13 @@ public static class SnippetSearch
     const int LocationScore = 25;
     const int ContentScore = 10;
 
+    /// <param name="bonus">Zusatzpunkte je Treffer aus der Nutzung, nur für Treffer abgefragt. Null: nur die Trefferqualität.</param>
     public static IReadOnlyList<SearchHit> Search(
         IEnumerable<Snippet> snippets,
         string query,
         Func<Snippet, string?>? contentProvider = null,
-        int maxResults = 100)
+        int maxResults = 100,
+        Func<Snippet, int>? bonus = null)
     {
         var tokens = query.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (tokens.Length == 0) return [];
@@ -73,7 +76,7 @@ public static class SnippetSearch
                 anchored = locationOnly!.Any(ContentContains);
 
             if (total > 0 && anchored)
-                hits.Add(new SearchHit(snippet, total, matchStart, matchLength));
+                hits.Add(new SearchHit(snippet, total, matchStart, matchLength, bonus?.Invoke(snippet) ?? 0));
 
             // Inhalt erst laden, wenn Name und Ort nicht gereicht haben
             bool ContentContains(string token)
@@ -87,9 +90,10 @@ public static class SnippetSearch
             }
         }
 
-        // Stabil sortiert: bei gleichem Score bleibt die Baum-Reihenfolge (Nummern-Präfixe) erhalten
+        // Stabil sortiert: bei gleichem Score bleibt die Baum-Reihenfolge (Nummern-Präfixe) erhalten.
+        // Der Bonus zählt vor dem Abschneiden, sonst fiele ein oft gewählter Treffer jenseits der ersten 100 weg.
         return hits
-            .OrderByDescending(h => h.Score)
+            .OrderByDescending(h => h.Score + h.Bonus)
             .Take(maxResults)
             .ToList();
     }

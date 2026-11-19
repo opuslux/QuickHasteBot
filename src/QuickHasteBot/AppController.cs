@@ -32,8 +32,13 @@ internal sealed class AppController : IDisposable
         Settings = LoadSettings();
         Log.Enabled = Settings.WriteLog;
         UiLanguage.Apply(Settings.Language);
+        var loading = Stopwatch.StartNew();
+        SnippetData = SnippetData.Load(paths.SnippetDataFile);
+        Log.Info($"snippets.json in {loading.ElapsedMilliseconds} ms gelesen");
         // Die Bibliothek meldet Änderungen erst später über den Dispatcher, die Datei-Hotkeys gibt es dann schon
         Library = CreateLibrary();
+        if (Directory.Exists(Library.RootPath))
+            SnippetData.Prune(Library.All.Select(s => s.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase));
         Runner = new SnippetRunner(Settings, () => Library);
         FileHotkeys = new FileHotkeyRegistry(() => Library, () => ConfiguredHotkey);
         Updates = new UpdateNotifier(Settings, SaveSettings);
@@ -52,10 +57,13 @@ internal sealed class AppController : IDisposable
 
     public SnippetLibrary Library { get; private set; }
 
+    /// <summary>snippets.json: Datei-Hotkeys, Nutzung und gelernte Suchtexte.</summary>
+    internal SnippetData SnippetData { get; }
+
     /// <summary>Bausteine einfügen oder tippen, Vorschau und Test.</summary>
     internal SnippetRunner Runner { get; }
 
-    /// <summary>Die Hotkeys aus den Datei- und Ordnernamen.</summary>
+    /// <summary>Die Hotkeys der Dateien und Ordner.</summary>
     internal FileHotkeyRegistry FileHotkeys { get; }
 
     /// <summary>Der Hinweis auf neue Versionen.</summary>
@@ -218,11 +226,14 @@ internal sealed class AppController : IDisposable
         Log.Info($"Baustein gespeichert: {path}");
     }
 
-    public async Task ActivateAsync(Snippet snippet, bool alternate, nint targetWindow)
+    /// <param name="source">Woher die Wahl kam, für Statistik und Reihenfolge.</param>
+    /// <param name="query">Der Suchtext, aus dessen Treffern gewählt wurde, sonst null.</param>
+    public async Task ActivateAsync(Snippet snippet, bool alternate, nint targetWindow, UseSource source, string? query = null)
     {
         if (snippet.Kind != SnippetKind.Text)
         {
             Shell.Open(snippet.FullPath);
+            RecordUse(snippet, source, query);
             return;
         }
 
@@ -238,8 +249,52 @@ internal sealed class AppController : IDisposable
             return;
         }
 
-        if (await Runner.RunTextAsync(text, snippet.Name, alternate, targetWindow, snippet.FullPath) is { } problem)
+        var result = await Runner.RunTextAsync(text, snippet.Name, alternate, targetWindow, snippet.FullPath);
+        // Erst nach dem Einfügen, es soll nicht warten. Nur im Speicher, geschrieben wird später im Hintergrund.
+        RecordUse(snippet, source, query);
+        if (result is { } problem)
             MessageDialog.Show(problem.Message, MessageBoxButton.OK, problem.Icon);
+    }
+
+    /// <summary>Eine Verwendung merken, sofern die Reihenfolge nach Nutzung eingeschaltet ist.</summary>
+    internal void RecordUse(Snippet snippet, UseSource source, string? query = null)
+    {
+        if (Settings.RankByUsage && snippet.RelativePath.Length > 0)
+            SnippetData.RecordUse(snippet.RelativePath, source, query);
+    }
+
+    /// <summary>
+    /// Hotkey einer Datei oder eines Ordners festlegen oder entfernen (null). Steht in snippets.json, der Name bleibt.
+    /// Danach gleich neu einlesen und registrieren, damit Popup und Einstellungen ihn sofort zeigen.
+    /// </summary>
+    public void SetFileHotkey(string relativePath, HotkeyGesture? gesture)
+    {
+        SnippetData.SetHotkey(relativePath, gesture);
+        Library.Reload();
+        FileHotkeys.Sync();
+        Log.Info(gesture is null ? $"Datei-Hotkey entfernt: {relativePath}" : $"Datei-Hotkey {gesture}: {relativePath}");
+    }
+
+    /// <summary>Im Programm umbenannt oder verschoben: Hotkey und Nutzung ziehen mit, bevor neu eingelesen wird.</summary>
+    internal void SnippetMoved(string oldFullPath, string newFullPath)
+    {
+        if (Library.RelativeOf(oldFullPath) is { } oldPath && Library.RelativeOf(newFullPath) is { } newPath)
+            SnippetData.Rename(oldPath, newPath);
+    }
+
+    /// <summary>Im Programm gelöscht: auch Hotkey und Nutzung weg, eine neue Datei gleichen Namens erbt sie nicht.</summary>
+    internal void SnippetDeleted(Snippet snippet)
+    {
+        if (snippet.RelativePath.Length > 0)
+            SnippetData.Remove(snippet.RelativePath);
+    }
+
+    /// <summary>"Verlauf löschen" in den Einstellungen: Nutzung und gelernte Suchtexte, nicht die Hotkeys.</summary>
+    public void ClearUsage()
+    {
+        SnippetData.ClearUsage();
+        _popup?.OnLibraryChanged();
+        Log.Info("Verlauf der Nutzung gelöscht");
     }
 
     /// <summary>
@@ -367,11 +422,14 @@ internal sealed class AppController : IDisposable
         try
         {
             if (snippet.IsFolder)
+            {
                 _popup?.ShowFor(target, snippet);
+                RecordUse(snippet, UseSource.Hotkey);
+            }
             else if (keptOpen is not null)
-                await keptOpen.RunHiddenAsync(() => ActivateAsync(snippet, alternate: false, target));
+                await keptOpen.RunHiddenAsync(() => ActivateAsync(snippet, alternate: false, target, UseSource.Hotkey));
             else
-                await ActivateAsync(snippet, alternate: false, target);
+                await ActivateAsync(snippet, alternate: false, target, UseSource.Hotkey);
         }
         catch (Exception ex)
         {
@@ -509,6 +567,7 @@ internal sealed class AppController : IDisposable
         _hotkey?.Dispose();
         _tray?.Dispose();
         Library.Dispose();
+        SnippetData.Dispose();
         _hotkey = null;
         _tray = null;
     }
@@ -531,7 +590,13 @@ internal sealed class AppController : IDisposable
         var root = _paths.ResolveStructure(Settings.StructurePath);
         EnsureStructureFolder(root);
 
-        var library = new SnippetLibrary(root, Settings.TextExtensions);
+        var library = new SnippetLibrary(root, Settings.TextExtensions, SnippetData.HotkeyFor);
+        // Im Explorer umbenannt: Hotkey und Nutzung ziehen mit, noch bevor der neue Baum steht (Threadpool)
+        library.Renamed += (oldPath, newPath) =>
+        {
+            if (SnippetData.Rename(oldPath, newPath))
+                Log.Info($"Umbenannt, Hotkey und Nutzung übernommen: {oldPath} → {newPath}");
+        };
         library.Changed += (_, _) => Application.Current.Dispatcher.BeginInvoke(() =>
         {
             if (!ReferenceEquals(library, Library)) return;

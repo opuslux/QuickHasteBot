@@ -11,6 +11,9 @@ public sealed class AppPaths(string baseDirectory)
 
     public string SettingsFile => Path.Combine(BaseDirectory, "settings.json");
 
+    /// <summary>Hotkeys der Dateien und Ordner, Nutzung und gelernte Suchtexte, siehe <see cref="SnippetData"/>.</summary>
+    public string SnippetDataFile => Path.Combine(BaseDirectory, "snippets.json");
+
     /// <summary>settings.xml der alten QuickPasteBot-Version, wird beim ersten Start übernommen.</summary>
     public string LegacySettingsFile => Path.Combine(BaseDirectory, "settings.xml");
 
