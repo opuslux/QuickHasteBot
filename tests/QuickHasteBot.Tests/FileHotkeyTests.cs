@@ -3,136 +3,79 @@ using QuickHasteBot.Core;
 
 namespace QuickHasteBot.Tests;
 
+/// <summary>Datei-Hotkeys kommen aus snippets.json, nicht mehr aus dem Namen.</summary>
 public class FileHotkeyTests
 {
     static readonly HotkeyGesture CtrlAltG = new(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.G);
-
-    [Theory]
-    [InlineData("Gruss [Ctrl+Alt+G]", "Gruss")]
-    [InlineData("Gruss[Ctrl+Alt+G]", "Gruss")]
-    [InlineData("Gruss [ctrl+alt+g]", "Gruss")]
-    [InlineData("Gruss [Strg+Alt+G]", "Gruss")]
-    [InlineData("Gruss [Alt+Ctrl+G]", "Gruss")]
-    public void Tag_at_the_end_is_the_hotkey(string stem, string name)
-    {
-        var (parsed, hotkey) = FileHotkey.Split(stem);
-        Assert.Equal(name, parsed);
-        Assert.Equal(CtrlAltG, hotkey);
-    }
-
-    [Theory]
-    [InlineData("Bericht [Entwurf]")]
-    [InlineData("Bericht [G]")] // ohne Modifier nur Funktionstasten
-    [InlineData("[Ctrl+Alt+G] Gruss")] // nur am Ende
-    [InlineData("Gruss [Ctrl+Alt+G] alt")]
-    [InlineData("Gruss (Ctrl+Alt+G)")]
-    [InlineData("Gruss")]
-    public void Anything_else_stays_part_of_the_name(string stem)
-    {
-        var (name, hotkey) = FileHotkey.Split(stem);
-        Assert.Equal(stem, name);
-        Assert.Null(hotkey);
-    }
+    static readonly HotkeyGesture CtrlAltS = new(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.S);
 
     [Fact]
-    public void Function_key_alone_is_allowed()
+    public void Library_reads_hotkeys_from_the_data()
     {
-        Assert.Equal(new HotkeyGesture(HotkeyModifiers.None, Key.F9), FileHotkey.Split("Abwesenheit [F9]").Hotkey);
+        using var dir = new TempDirectory();
+        using var dataDir = new TempDirectory();
+        dir.File(@"3-SQL\Audit.txt", "insert");
+        dir.File("Notiz.txt", "x");
+        using var data = SnippetData.Load(Path.Combine(dataDir.Path, "snippets.json"));
+        data.SetHotkey("3-SQL", CtrlAltS);
+        data.SetHotkey(@"3-sql\audit.txt", CtrlAltG); // Gross/Klein egal
+
+        using var library = new SnippetLibrary(dir.Path, [".txt"], data.HotkeyFor);
+
+        Assert.Equal(CtrlAltS, library.All.Single(s => s.Name == "3-SQL").Hotkey);
+        Assert.Equal(CtrlAltG, library.All.Single(s => s.Name == "Audit").Hotkey);
+        Assert.Null(library.All.Single(s => s.Name == "Notiz").Hotkey);
     }
 
+    /// <summary>Ein altes Tag im Namen ist nur noch Teil des Namens: kein Hotkey, und die Suche findet es wie jeden Text.</summary>
     [Fact]
-    public void Name_that_is_only_the_tag_keeps_the_tag_as_name()
-    {
-        var (name, hotkey) = FileHotkey.Split("[Ctrl+Alt+G]");
-        Assert.Equal("[Ctrl+Alt+G]", name);
-        Assert.Equal(CtrlAltG, hotkey);
-    }
-
-    [Theory]
-    [InlineData("Gruss.txt", false, "Gruss [Ctrl+Alt+G].txt")]
-    [InlineData("Gruss [Ctrl+Shift+F5].txt", false, "Gruss [Ctrl+Alt+G].txt")]
-    [InlineData("Bericht [Entwurf].txt", false, "Bericht [Entwurf] [Ctrl+Alt+G].txt")]
-    [InlineData("v1.2 Notizen", true, "v1.2 Notizen [Ctrl+Alt+G]")] // Ordner: der Punkt ist keine Endung
-    [InlineData("Intranet.url", false, "Intranet [Ctrl+Alt+G].url")]
-    [InlineData("Notiz", false, "Notiz [Ctrl+Alt+G]")]
-    [InlineData("[Ctrl+Shift+F5].txt", false, "[Ctrl+Alt+G].txt")]
-    public void Sets_or_replaces_the_tag(string fileName, bool isFolder, string expected)
-    {
-        Assert.Equal(expected, FileHotkey.WithHotkey(fileName, CtrlAltG, isFolder));
-    }
-
-    [Theory]
-    [InlineData("Gruss [Ctrl+Alt+G].txt", false, "Gruss.txt")]
-    [InlineData("3-SQL [Ctrl+Alt+G]", true, "3-SQL")]
-    [InlineData("Gruss.txt", false, "Gruss.txt")]
-    [InlineData("[Ctrl+Alt+G].txt", false, "Ctrl+Alt+G.txt")] // nicht ".txt"
-    public void Removes_the_tag(string fileName, bool isFolder, string expected)
-    {
-        Assert.Equal(expected, FileHotkey.WithoutHotkey(fileName, isFolder));
-    }
-
-    [Fact]
-    public void Written_tag_parses_back()
-    {
-        var gesture = new HotkeyGesture(HotkeyModifiers.Ctrl | HotkeyModifiers.Shift | HotkeyModifiers.Win, Key.D7);
-        var name = FileHotkey.WithHotkey("Gruss.txt", gesture, isFolder: false);
-        Assert.Equal("Gruss [Ctrl+Shift+Win+7].txt", name);
-        Assert.Equal(gesture, FileHotkey.FromFileName(name, isFolder: false));
-        Assert.Equal(-1, name.IndexOfAny(Path.GetInvalidFileNameChars()));
-    }
-
-    [Fact]
-    public void Library_shows_names_without_tags_and_reads_hotkeys()
+    public void Old_tag_in_the_name_is_just_part_of_the_name()
     {
         using var dir = new TempDirectory();
         dir.File(@"3-SQL [Ctrl+Alt+S]\Audit [Ctrl+Alt+A].txt", "insert");
-        dir.File("Bericht [Entwurf].txt", "x");
 
         using var library = new SnippetLibrary(dir.Path, [".txt"]);
 
-        var folder = library.All.Single(s => s.IsFolder);
-        var audit = library.All.Single(s => s.Kind == SnippetKind.Text && s.Hotkey is not null);
-        Assert.Equal("3-SQL", folder.Name);
-        Assert.Equal(new HotkeyGesture(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.S), folder.Hotkey);
-        Assert.Equal("Audit", audit.Name);
-        Assert.Equal("3-SQL", audit.Location);
-        Assert.Null(library.All.Single(s => s.Name == "Bericht [Entwurf]").Hotkey);
+        var audit = library.All.Single(s => !s.IsFolder);
+        Assert.Equal("Audit [Ctrl+Alt+A]", audit.Name);
+        Assert.Equal("3-SQL [Ctrl+Alt+S]", audit.Location);
+        Assert.All(library.All, s => Assert.Null(s.Hotkey));
+        Assert.Single(SnippetSearch.Search(library.All, "audit ctrl", null));
     }
 
     [Fact]
-    public void Search_does_not_find_the_tag()
+    public void Copy_name_keeps_the_name()
     {
         using var dir = new TempDirectory();
-        dir.File("Gruss [Ctrl+Alt+G].txt", "Hallo");
-
-        using var library = new SnippetLibrary(dir.Path, [".txt"]);
-
-        Assert.Single(SnippetSearch.Search(library.All, "gruss", null));
-        Assert.Empty(SnippetSearch.Search(library.All, "ctrl", null));
-    }
-
-    [Fact]
-    public void Copy_name_drops_the_hotkey()
-    {
-        using var dir = new TempDirectory();
-        var source = dir.File("Gruss [Ctrl+Alt+G].txt", "Gruss");
-        Assert.Equal("Gruss - Kopie.txt", SnippetFiles.SuggestCopyName(source, " - Kopie"));
+        var source = dir.File("Gruss [Entwurf].txt", "Gruss");
+        Assert.Equal("Gruss [Entwurf] - Kopie.txt", SnippetFiles.SuggestCopyName(source, " - Kopie"));
     }
 }
 
 public class FileHotkeyMapTests
 {
     static readonly HotkeyGesture Main = HotkeyGesture.Default;
+    static readonly HotkeyGesture CtrlAltG = new(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.G);
+    static readonly HotkeyGesture CtrlAltI = new(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.I);
+
+    static SnippetLibrary Library(TempDirectory dir, SnippetData data) => new(dir.Path, [".txt"], data.HotkeyFor);
+
+    static SnippetData Data(TempDirectory dataDir) => SnippetData.Load(Path.Combine(dataDir.Path, "snippets.json"));
 
     [Fact]
     public void First_in_tree_order_wins_a_duplicate()
     {
         using var dir = new TempDirectory();
-        dir.File(@"1-Grüsse\Gruss [Ctrl+Alt+G].txt");
-        dir.File("Gutschein [Ctrl+Alt+G].txt");
-        dir.File("Intranet [Ctrl+Alt+I].url");
+        using var dataDir = new TempDirectory();
+        dir.File(@"1-Grüsse\Gruss.txt");
+        dir.File("Gutschein.txt");
+        dir.File("Intranet.url");
+        using var data = Data(dataDir);
+        data.SetHotkey(@"1-Grüsse\Gruss.txt", CtrlAltG);
+        data.SetHotkey("Gutschein.txt", CtrlAltG);
+        data.SetHotkey("Intranet.url", CtrlAltI);
 
-        using var library = new SnippetLibrary(dir.Path, [".txt"]);
+        using var library = Library(dir, data);
         var entries = FileHotkeyMap.Build(library.All, Main);
 
         Assert.Equal(3, entries.Count);
@@ -148,9 +91,12 @@ public class FileHotkeyMapTests
     public void Popup_hotkey_is_a_conflict()
     {
         using var dir = new TempDirectory();
-        dir.File("Gruss [Ctrl+Shift+Y].txt");
+        using var dataDir = new TempDirectory();
+        dir.File("Gruss.txt");
+        using var data = Data(dataDir);
+        data.SetHotkey("Gruss.txt", Main);
 
-        using var library = new SnippetLibrary(dir.Path, [".txt"]);
+        using var library = Library(dir, data);
 
         Assert.Equal(FileHotkeyStatus.MainHotkey, FileHotkeyMap.Build(library.All, Main).Single().Status);
     }
@@ -159,12 +105,33 @@ public class FileHotkeyMapTests
     public void Owner_ignores_the_entry_itself()
     {
         using var dir = new TempDirectory();
-        var path = dir.File("Gruss [Ctrl+Alt+G].txt");
+        using var dataDir = new TempDirectory();
+        var path = dir.File("Gruss.txt");
+        using var data = Data(dataDir);
+        data.SetHotkey("Gruss.txt", CtrlAltG);
 
-        using var library = new SnippetLibrary(dir.Path, [".txt"]);
-        var gesture = library.All.Single().Hotkey!.Value;
+        using var library = Library(dir, data);
 
-        Assert.Null(FileHotkeyMap.FindOwner(library.All, gesture, path));
-        Assert.Same(library.All.Single(), FileHotkeyMap.FindOwner(library.All, gesture, exceptPath: null));
+        Assert.Null(FileHotkeyMap.FindOwner(library.All, CtrlAltG, path));
+        Assert.Same(library.All.Single(), FileHotkeyMap.FindOwner(library.All, CtrlAltG, exceptPath: null));
+    }
+
+    [Fact]
+    public void Hotkeys_without_entry_are_orphans()
+    {
+        using var dir = new TempDirectory();
+        using var dataDir = new TempDirectory();
+        dir.File("Gruss.txt");
+        using var data = Data(dataDir);
+        data.SetHotkey("Gruss.txt", CtrlAltG);
+        data.SetHotkey(@"Alt\Weg.txt", CtrlAltI);
+
+        using var library = Library(dir, data);
+
+        var orphan = Assert.Single(FileHotkeyMap.Orphans(data.Hotkeys(), library.All));
+        Assert.Equal(@"Alt\Weg.txt", orphan.RelativePath);
+        Assert.Equal(CtrlAltI, orphan.Gesture);
+        // Verwaiste wirken nicht und blockieren nichts
+        Assert.Single(FileHotkeyMap.Build(library.All, Main));
     }
 }

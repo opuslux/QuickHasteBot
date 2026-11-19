@@ -62,6 +62,11 @@ Beim Überschreiben werden gleichnamige Beispieldateien ersetzt, alle anderen Da
   <data name="SamplesExportedFormat" xml:space="preserve"><value>{0} Beispieldateien nach {1} exportiert.</value></data>
   <data name="SamplesExportErrorFormat" xml:space="preserve"><value>Die Beispiele konnten nicht exportiert werden: {0}</value></data>
   <data name="SearchContent" xml:space="preserve"><value>Auch im Inhalt der Textbausteine suchen</value></data>
+  <data name="RankByUsage" xml:space="preserve"><value>Häufig Gewähltes zuerst</value></data>
+  <data name="RankByUsageToolTip" xml:space="preserve"><value>Suchtreffer, die du oft wählst, rutschen nach oben, und was du nach demselben Suchtext gewählt hast, steht zuerst. Gespeichert neben der exe in snippets.json, nur für dich.</value></data>
+  <data name="ClearUsage" xml:space="preserve"><value>Verlauf löschen</value></data>
+  <data name="ClearUsageToolTip" xml:space="preserve"><value>Vergessen, wie oft Bausteine benutzt und was nach welchem Suchtext gewählt wurde. Die Hotkeys bleiben.</value></data>
+  <data name="ClearUsageConfirm" xml:space="preserve"><value>Vergessen, wie oft Bausteine benutzt wurden, und die gelernten Suchtexte? Die Hotkeys bleiben.</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>{{ … }} in Textbausteinen als JavaScript ausführen</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>Beim Einfügen wird z.B. {{ date() }} zum heutigen Datum. Aus: {{ … }} wird unverändert eingefügt.</value></data>
   <data name="EvaluateKeyTags" xml:space="preserve"><value>Tasten-Tags wie {tab} und {enter} drücken (Formulare ausfüllen)</value></data>
@@ -440,19 +445,17 @@ Das Datum vom nächsten Montag</value></data>
   <data name="FileHotkeyFolderPromptFormat" xml:space="preserve"><value>Tastenkombination, die das Popup im Ordner «{0}» öffnet, aus jedem Programm:</value></data>
   <data name="FileHotkeyConfirm" xml:space="preserve"><value>Übernehmen</value></data>
   <data name="FileHotkeyRemove" xml:space="preserve"><value>Hotkey entfernen</value></data>
-  <data name="FileHotkeyFileNameFormat" xml:space="preserve"><value>Dateiname: {0}</value></data>
   <data name="FileHotkeyGlobalHint" xml:space="preserve"><value>Ohne Ctrl, Alt oder Win fehlt diese Taste in allen anderen Programmen, solange QuickHasteBot läuft.</value></data>
   <data name="FileHotkeyUsedByFormat" xml:space="preserve"><value>Schon vergeben an {0}.</value></data>
   <data name="FileHotkeyIsMain" xml:space="preserve"><value>Das ist der Hotkey, der das Popup öffnet.</value></data>
   <data name="FileHotkeyTaken" xml:space="preserve"><value>Ein anderes Programm verwendet diese Tastenkombination schon.</value></data>
-  <data name="FileHotkeyConflictsFound" xml:space="preserve"><value>Einige Hotkeys in Dateinamen wirken nicht:</value></data>
+  <data name="FileHotkeyConflictsFound" xml:space="preserve"><value>Einige Hotkeys von Dateien und Ordnern wirken nicht:</value></data>
   <data name="FileHotkeyConflictLineFormat" xml:space="preserve"><value>{0} für {1}: {2}</value></data>
   <data name="FileHotkeyBadgeTooltipFormat" xml:space="preserve"><value>Hotkey {0}, gilt in jedem Programm</value></data>
-  <data name="EditorHotkeyConflictFormat" xml:space="preserve"><value>Hotkey {0}: {1}</value></data>
   <data name="QuotedNameFormat" xml:space="preserve"><value>«{0}»</value></data>
   <data name="QuotedNameWithLocationFormat" xml:space="preserve"><value>«{0}» ({1})</value></data>
   <data name="FileHotkeysTab" xml:space="preserve"><value>Hotkeys</value></data>
-  <data name="FileHotkeysIntro" xml:space="preserve"><value>Jede Datei und jeder Ordner kann einen eigenen Hotkey haben, er steht im Namen: «Freundliche Grüsse [Ctrl+Alt+G].txt» fügt den Baustein aus jedem Programm ein, «3 - SQL [Ctrl+Alt+S]» öffnet das Popup in diesem Ordner. Festlegen mit «Hotkey festlegen…» im Rechtsklick-Menü des Popups, durch Umbenennen oder hier per Doppelklick.</value></data>
+  <data name="FileHotkeysIntro" xml:space="preserve"><value>Jede Datei und jeder Ordner kann einen eigenen Hotkey haben: bei einem Baustein fügt er aus jedem Programm ein, bei einem Ordner öffnet er das Popup dort. Festlegen mit «Hotkey festlegen…» im Rechtsklick-Menü des Popups oder hier per Doppelklick, Entf entfernt ihn. Gespeichert in snippets.json neben der exe, er wandert mit beim Umbenennen in QuickHasteBot oder im Explorer, solange es läuft.</value></data>
   <data name="FileHotkeysNone" xml:space="preserve"><value>Noch keine Datei und kein Ordner hat einen Hotkey.</value></data>
   <data name="FileHotkeysSummaryFormat" xml:space="preserve"><value>{0} aktiv</value></data>
   <data name="FileHotkeysProblemsFormat" xml:space="preserve"><value>{0} aktiv, {1} wirken nicht</value></data>
@@ -461,6 +464,8 @@ Das Datum vom nächsten Montag</value></data>
   <data name="FileHotkeyColumnFolder" xml:space="preserve"><value>Ordner</value></data>
   <data name="FileHotkeyColumnStatus" xml:space="preserve"><value>Status</value></data>
   <data name="FileHotkeyStatusOk" xml:space="preserve"><value>Aktiv</value></data>
+  <data name="FileHotkeyOrphan" xml:space="preserve"><value>Eintrag nicht gefunden</value></data>
+  <data name="FileHotkeysOrphansFormat" xml:space="preserve"><value>, {0} ohne Eintrag (umbenannt oder verschoben, während QuickHasteBot nicht lief?)</value></data>
   <!-- Neuer Ordner -->
   <data name="MenuNewFolder" xml:space="preserve"><value>Neuer Ordner…</value></data>
   <data name="NewFolderTitle" xml:space="preserve"><value>Neuer Ordner</value></data>

@@ -751,10 +751,8 @@ internal partial class SearchPopup : Window
     {
         var parent = _viewModel.CurrentFolder;
         var display = string.Join(" › ", new[] { Strings.BreadcrumbRoot }
-            .Concat(parent.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)
-                .Select(folder => FileHotkey.Split(folder).Name)));
-        var dialog = NameDialog.ForNewFolder(parent.FullPath, display,
-            name => _app.FileHotkeys.ConflictForName(name, isFolder: true, selfPath: null, currentHotkey: null));
+            .Concat(parent.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)));
+        var dialog = NameDialog.ForNewFolder(parent.FullPath, display);
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(parent, Strings.NewFolderErrorFormat, () => SnippetFiles.CreateFolder(parent.FullPath, dialog.FileName));
@@ -770,8 +768,8 @@ internal partial class SearchPopup : Window
 
     void Clone(Snippet snippet)
     {
-        var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix),
-            name => _app.FileHotkeys.ConflictForName(name, isFolder: false, selfPath: null, currentHotkey: null));
+        // Die Kopie bekommt keinen Hotkey: Er steht beim Pfad des Originals
+        var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(snippet, Strings.CloneErrorFormat, () => SnippetFiles.Clone(snippet.FullPath, dialog.FileName));
@@ -779,19 +777,24 @@ internal partial class SearchPopup : Window
 
     void Rename(Snippet snippet)
     {
-        var dialog = NameDialog.ForRename(snippet,
-            name => _app.FileHotkeys.ConflictForName(name, snippet.IsFolder, snippet.FullPath, snippet.Hotkey));
+        var dialog = NameDialog.ForRename(snippet);
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
-            ChangeFile(snippet, Strings.RenameErrorFormat, () => SnippetFiles.Rename(snippet.FullPath, dialog.FileName));
+            ChangeFile(snippet, Strings.RenameErrorFormat, () =>
+            {
+                var path = SnippetFiles.Rename(snippet.FullPath, dialog.FileName);
+                _app.SnippetMoved(snippet.FullPath, path);
+                return path;
+            });
     }
 
-    /// <summary>Der Hotkey steht im Namen, festlegen heisst also umbenennen.</summary>
+    /// <summary>Der Hotkey steht in snippets.json, der Name bleibt.</summary>
     void SetHotkey(Snippet snippet)
     {
         var dialog = new HotkeyDialog(_app, snippet) { Owner = this };
-        if (WithDialog(dialog.ShowDialog) == true)
-            ChangeFile(snippet, Strings.RenameErrorFormat, () => SnippetFiles.Rename(snippet.FullPath, dialog.NewFileName));
+        if (WithDialog(dialog.ShowDialog) != true) return;
+        _app.SetFileHotkey(snippet.RelativePath, dialog.NewGesture);
+        _viewModel.RefreshSelecting(snippet.RelativePath);
     }
 
     /// <summary>Kopie anlegen oder umbenennen, danach ist das Ergebnis markiert, sofern es in der Liste steht.</summary>
@@ -822,6 +825,7 @@ internal partial class SearchPopup : Window
         try
         {
             if (!WithDialog(() => RecycleBin.Delete(snippet.FullPath, new WindowInteropHelper(this).Handle))) return;
+            _app.SnippetDeleted(snippet);
             _app.Library.Reload();
             _viewModel.Refresh(nextSelection);
         }
@@ -951,25 +955,32 @@ internal partial class SearchPopup : Window
         var snippet = _viewModel.Selected?.Snippet;
         if (snippet is null) return;
 
+        // Aus den Suchergebnissen gewählt: zählt auch für diesen Suchtext. Ordner nur dann, Durchklicken zählt nicht.
+        var query = _viewModel.IsSearching ? _viewModel.Query : null;
         if (snippet.IsFolder)
+        {
+            if (query is not null)
+                _app.RecordUse(snippet, UseSource.Search, query);
             _viewModel.EnterFolder(snippet);
+        }
         else
-            Paste(snippet, alternate);
+            Paste(snippet, alternate, query is null ? UseSource.Browse : UseSource.Search, query);
     }
 
+    // Rechte Spalte: der Inhalt eines Ordners, auch bei einer Suche nur durchgeblättert
     void ActivateDetail(Snippet snippet, bool alternate)
     {
         if (snippet.IsFolder)
             _viewModel.EnterFolder(snippet);
         else
-            Paste(snippet, alternate);
+            Paste(snippet, alternate, UseSource.Browse, query: null);
     }
 
-    async void Paste(Snippet snippet, bool alternate)
+    async void Paste(Snippet snippet, bool alternate, UseSource source, string? query)
     {
         try
         {
-            await RunHiddenAsync(() => _app.ActivateAsync(snippet, alternate, _targetWindow));
+            await RunHiddenAsync(() => _app.ActivateAsync(snippet, alternate, _targetWindow, source, query));
         }
         catch (Exception ex)
         {

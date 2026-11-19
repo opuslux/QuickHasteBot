@@ -20,14 +20,12 @@ public static class SnippetFiles
 {
     /// <summary>
     /// Wie im Explorer: "Gruss.txt" wird zu "Gruss - Kopie.txt", gibt es die schon, zu "Gruss - Kopie (2).txt" usw.
-    /// Ein Hotkey-Tag wird nicht mitkopiert.
     /// </summary>
     /// <param name="copySuffix">" - Kopie" bzw. " - Copy", je nach Sprache.</param>
     public static string SuggestCopyName(string path, string copySuffix)
     {
         var folder = Path.GetDirectoryName(path) ?? "";
-        // Ohne den Hotkey: zwei Dateien mit demselben wären ein Konflikt
-        var stem = FileHotkey.Split(Path.GetFileNameWithoutExtension(path)).Name;
+        var stem = Path.GetFileNameWithoutExtension(path);
         var extension = Path.GetExtension(path);
 
         var name = stem + copySuffix + extension;

@@ -102,6 +102,107 @@ public class SnippetLibraryTests
         Assert.Contains(library.All, s => s.Name == "b");
     }
 
+    static readonly HotkeyGesture CtrlAltG = new(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, System.Windows.Input.Key.G);
+
+    /// <summary>Bibliothek mit Hotkeys aus snippets.json (in einem eigenen Ordner), Umbenennungen ziehen sie mit.</summary>
+    static (SnippetLibrary Library, SnippetData Data) CreateWithData(TempDirectory dir, TempDirectory dataDir)
+    {
+        var data = SnippetData.Load(Path.Combine(dataDir.Path, "snippets.json"));
+        var library = new SnippetLibrary(dir.Path, [".txt"], data.HotkeyFor);
+        library.Renamed += (oldPath, newPath) => data.Rename(oldPath, newPath);
+        return (library, data);
+    }
+
+    /// <summary>Wartet, bis nach einer Änderung im Ordner der Baum <paramref name="done"/> erfüllt.</summary>
+    static void WaitFor(SnippetLibrary library, Func<bool> done)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (!done() && watch.Elapsed < TimeSpan.FromSeconds(5))
+            Thread.Sleep(50);
+        Assert.True(done(), "Der Baum hat sich nicht wie erwartet geändert");
+    }
+
+    [Fact]
+    public void Hotkey_follows_a_rename_in_explorer()
+    {
+        using var dir = new TempDirectory();
+        using var dataDir = new TempDirectory();
+        var path = dir.File("Gruss.txt", "Hallo");
+        var (library, data) = CreateWithData(dir, dataDir);
+        using var _ = library;
+        using var __ = data;
+        data.SetHotkey("Gruss.txt", CtrlAltG);
+        library.Reload();
+        library.StartWatching();
+
+        File.Move(path, Path.Combine(dir.Path, "Grüsse.txt"));
+
+        WaitFor(library, () => library.All.Any(s => s.Name == "Grüsse" && s.Hotkey == CtrlAltG));
+        Assert.Null(data.HotkeyFor("Gruss.txt"));
+    }
+
+    [Fact]
+    public void Hotkey_follows_a_move_inside_the_folder()
+    {
+        using var dir = new TempDirectory();
+        using var dataDir = new TempDirectory();
+        dir.File(@"SQL\Audit.txt", "insert");
+        Directory.CreateDirectory(Path.Combine(dir.Path, "Archiv"));
+        var (library, data) = CreateWithData(dir, dataDir);
+        using var _ = library;
+        using var __ = data;
+        data.SetHotkey(@"SQL\Audit.txt", CtrlAltG);
+        library.StartWatching();
+
+        // Ordner samt Inhalt verschoben, wie Ziehen im Explorer
+        Directory.Move(Path.Combine(dir.Path, "SQL"), Path.Combine(dir.Path, @"Archiv\SQL"));
+
+        WaitFor(library, () => library.All.Any(s => s.RelativePath == @"Archiv\SQL\Audit.txt" && s.Hotkey == CtrlAltG));
+    }
+
+    /// <summary>Manche Editoren benennen beim Speichern das Original in ein Backup um und schreiben es neu.</summary>
+    [Fact]
+    public void Hotkey_stays_with_the_original_when_an_editor_renames_it_to_a_backup()
+    {
+        using var dir = new TempDirectory();
+        using var dataDir = new TempDirectory();
+        var path = dir.File("Gruss.txt", "Hallo");
+        var (library, data) = CreateWithData(dir, dataDir);
+        using var _ = library;
+        using var __ = data;
+        data.SetHotkey("Gruss.txt", CtrlAltG);
+        library.StartWatching();
+
+        File.Move(path, path + ".bak");
+        File.WriteAllText(path, "Hallo neu");
+
+        WaitFor(library, () => library.All.Any(s => s.Name == "Gruss.txt"));
+        Assert.Equal(CtrlAltG, library.All.Single(s => s.Name == "Gruss").Hotkey);
+        Assert.Null(library.All.Single(s => s.Name == "Gruss.txt").Hotkey);
+    }
+
+    [Fact]
+    public void Moves_pair_only_unique_names_in_another_folder()
+    {
+        var moves = SnippetLibrary.Moves(
+            ["SQL", "a.txt", @"x\b.txt", @"y\b.txt"],
+            [@"Archiv\SQL", "a.txt", @"z\b.txt"]).ToList();
+
+        // a.txt: im selben Ordner neu (Editor), b.txt: zwei gelöschte, welcher wäre es?
+        Assert.Equal([("SQL", @"Archiv\SQL")], moves);
+    }
+
+    [Fact]
+    public void Relative_paths_only_inside_the_folder()
+    {
+        using var dir = new TempDirectory();
+        using var library = Create(dir);
+
+        Assert.Equal(@"SQL\Audit.txt", library.RelativeOf(Path.Combine(dir.Path, @"SQL\Audit.txt")));
+        Assert.Null(library.RelativeOf(dir.Path));
+        Assert.Null(library.RelativeOf(dir.Path + "-anders\\a.txt"));
+    }
+
     [Fact]
     public void Verify_picks_up_what_the_watcher_missed_and_stays_quiet_otherwise()
     {

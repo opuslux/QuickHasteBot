@@ -98,8 +98,8 @@ public class SnippetIncludesTests
     public void Library_finds_snippets_by_folder_and_name()
     {
         using var dir = new TempDirectory();
-        dir.File(@"3-Grüsse [Ctrl+Alt+G]\1-Freundliche Grüsse.txt", "MfG");
-        dir.File(@"3-Grüsse [Ctrl+Alt+G]\Archiv\Alt.txt", "alt");
+        dir.File(@"3-Grüsse\1-Freundliche Grüsse.txt", "MfG");
+        dir.File(@"3-Grüsse\Archiv\Alt.txt", "alt");
         dir.File(@"Notiz.txt", "notiz");
         dir.File(@"Bild.png", "");
         using var library = new SnippetLibrary(dir.Path, [".txt"]);

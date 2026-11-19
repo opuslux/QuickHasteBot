@@ -16,36 +16,50 @@ namespace QuickHasteBot.Tests;
 /// <summary>Popup: Datei-Hotkeys, Höhe, offen lassen, Vorschaufarben, ask()-Fenster und Update-Link.</summary>
 public partial class WindowSmokeTests
 {
-    /// <summary>Hotkeys im Dateinamen: Badge im Popup, Konflikte im Dialog, beim Umbenennen und in den Einstellungen.</summary>
+    /// <summary>Hotkeys aus snippets.json: Badge im Popup, Konflikte im Dialog und in den Einstellungen, verwaiste grau.</summary>
     static void FileHotkeys()
     {
         using var dir = new TempDirectory();
         dir.File("settings.json", """{ "Language": "de" }""");
-        dir.File(@"structure\3-SQL [Ctrl+Alt+S]\Audit [Ctrl+Alt+A].txt", "insert");
-        dir.File(@"structure\Gruss [Ctrl+Alt+G].txt", "Gruss");
-        dir.File(@"structure\Gutschein [Ctrl+Alt+G].txt", "Gutschein");
-        dir.File(@"structure\Popup [Ctrl+Shift+Y].txt", "Popup");
+        dir.File(@"structure\3-SQL\Audit.txt", "insert");
+        dir.File(@"structure\Gruss.txt", "Gruss");
+        dir.File(@"structure\Gutschein.txt", "Gutschein");
+        dir.File(@"structure\Popup.txt", "Popup");
         dir.File(@"structure\Notiz.txt", "Notiz");
+        // Ein altes Tag im Namen gilt nicht mehr
+        dir.File(@"structure\Alt [Ctrl+Alt+L].txt", "Alt");
+        dir.File("snippets.json", """
+            {
+              "Entries": {
+                "3-SQL": { "Hotkey": "Ctrl+Alt+S" },
+                "3-SQL\\Audit.txt": { "Hotkey": "Ctrl+Alt+A" },
+                "Gruss.txt": { "Hotkey": "Ctrl+Alt+G" },
+                "Gutschein.txt": { "Hotkey": "Ctrl+Alt+G" },
+                "Popup.txt": { "Hotkey": "Ctrl+Shift+Y" },
+                "Weg\\Umbenannt.txt": { "Hotkey": "Ctrl+Alt+W" }
+              }
+            }
+            """);
         using var controller = new AppController(new AppPaths(dir.Path));
         controller.FileHotkeys.Sync(announce: false);
 
         var popup = new SearchPopup(controller);
         var viewModel = (SearchPopupViewModel)popup.DataContext;
         viewModel.Reset();
-        Assert.Equal(["3-SQL", "Gruss", "Gutschein", "Notiz", "Popup"], viewModel.Items.Select(i => i.Snippet.Name));
-        Assert.Equal(["Ctrl+Alt+S", "Ctrl+Alt+G", "Ctrl+Alt+G", null, "Ctrl+Shift+Y"], viewModel.Items.Select(i => i.HotkeyText));
-        Assert.Equal([false, false, true, false, true], viewModel.Items.Select(i => i.HasHotkeyProblem));
-        Assert.Equal("Schon vergeben an «Gruss».", viewModel.Items[2].HotkeyTooltip);
+        Assert.Equal(["3-SQL", "Alt [Ctrl+Alt+L]", "Gruss", "Gutschein", "Notiz", "Popup"], viewModel.Items.Select(i => i.Snippet.Name));
+        Assert.Equal(["Ctrl+Alt+S", null, "Ctrl+Alt+G", "Ctrl+Alt+G", null, "Ctrl+Shift+Y"], viewModel.Items.Select(i => i.HotkeyText));
+        Assert.Equal([false, false, false, true, false, true], viewModel.Items.Select(i => i.HasHotkeyProblem));
+        Assert.Equal("Schon vergeben an «Gruss».", viewModel.Items[3].HotkeyTooltip);
         Assert.Equal("Hotkey Ctrl+Alt+S, gilt in jedem Programm", viewModel.Items[0].HotkeyTooltip);
         Snapshot(popup, "popup-hotkeys.png");
 
-        // Hotkey eines Ordners: das Popup beginnt dort, die Kopfzeile ohne Tag
+        // Hotkey eines Ordners: das Popup beginnt dort
         viewModel.Reset(controller.Library.All.Single(s => s.Name == "3-SQL").RelativePath);
         Assert.Equal(["Bausteine", "3-SQL"], viewModel.Breadcrumbs.Select(c => c.Name));
         Assert.Equal(["Audit"], viewModel.Items.Select(i => i.Snippet.Name));
         popup.Close();
 
-        // Dialog: vergebene Kombinationen sperren, eine freie zeigt den neuen Dateinamen
+        // Dialog: vergebene Kombinationen sperren, eine freie lässt sich übernehmen
         var notiz = controller.Library.All.Single(s => s.Name == "Notiz");
         var dialog = new HotkeyDialog(controller, notiz);
         Assert.False(dialog.RemoveButton.IsEnabled);
@@ -61,45 +75,54 @@ public partial class WindowSmokeTests
         dialog.HotkeyInput.RaiseCaptured();
         Assert.Equal("", dialog.Problem.Text);
         Assert.True(dialog.ConfirmButton.IsEnabled);
-        Assert.Equal("Dateiname: Notiz [Ctrl+Alt+N].txt", dialog.FileNameText.Text);
         Snapshot(dialog, "hotkey-dialog.png");
         dialog.Close();
 
-        // Umbenennen mit einem vergebenen Hotkey im Namen ist gesperrt, mit dem eigenen nicht
-        var gruss = controller.Library.All.Single(s => s.Name == "Gruss");
-        var rename = NameDialog.ForRename(gruss, name => controller.FileHotkeys.ConflictForName(name, false, gruss.FullPath, gruss.Hotkey));
-        rename.NameInput.Text = "Grüsse [Ctrl+Alt+G].txt";
-        Assert.Equal("", rename.Problem.Text);
-        Assert.True(rename.ConfirmButton.IsEnabled);
-        rename.NameInput.Text = "Gruss [Ctrl+Alt+S].txt";
-        Assert.Equal("Schon vergeben an «3-SQL».", rename.Problem.Text);
-        Assert.False(rename.ConfirmButton.IsEnabled);
-        rename.Close();
+        // Übernehmen: steht in snippets.json, der Dateiname bleibt
+        controller.SetFileHotkey(notiz.RelativePath, new HotkeyGesture(HotkeyModifiers.Ctrl | HotkeyModifiers.Alt, Key.N));
+        Assert.True(File.Exists(notiz.FullPath));
+        Assert.Equal("Ctrl+Alt+N", controller.Library.All.Single(s => s.Name == "Notiz").Hotkey.ToString());
+        Assert.Contains("\"Notiz.txt\"", File.ReadAllText(dir.Path + @"\snippets.json"));
 
-        // Neuer Ordner: der Hinweis nennt den offenen Ordner, vergebene Namen und Hotkeys sperren
+        // Umbenennen im Programm: der Hotkey zieht mit
+        var renamed = SnippetFiles.Rename(notiz.FullPath, "Notizen.txt");
+        controller.SnippetMoved(notiz.FullPath, renamed);
+        controller.Library.Reload();
+        Assert.Equal("Ctrl+Alt+N", controller.Library.All.Single(s => s.Name == "Notizen").Hotkey.ToString());
+
+        // Neuer Ordner: der Hinweis nennt den offenen Ordner, vergebene Namen sperren
         var sql = controller.Library.All.Single(s => s.Name == "3-SQL");
-        var newFolder = NameDialog.ForNewFolder(sql.FullPath, "Bausteine › 3-SQL",
-            name => controller.FileHotkeys.ConflictForName(name, true, null, null));
+        var newFolder = NameDialog.ForNewFolder(sql.FullPath, "Bausteine › 3-SQL");
         Assert.Equal("Neuer Ordner", newFolder.FileName);
         Assert.Equal("Neue Ordner entstehen immer im Ordner, der im Popup gerade offen ist: Bausteine › 3-SQL", newFolder.Hint.Text);
         Assert.Equal(Visibility.Visible, newFolder.Hint.Visibility);
         Assert.True(newFolder.ConfirmButton.IsEnabled);
         Snapshot(newFolder, "new-folder.png");
-        newFolder.NameInput.Text = "Audit [Ctrl+Alt+A].txt";
+        newFolder.NameInput.Text = "Audit.txt";
         Assert.Equal(Strings.NameExists, newFolder.Problem.Text);
-        newFolder.NameInput.Text = "Archiv [Ctrl+Alt+G]";
-        Assert.Equal("Schon vergeben an «Gruss».", newFolder.Problem.Text);
         Assert.False(newFolder.ConfirmButton.IsEnabled);
         newFolder.Close();
 
-        // Einstellungen: alle Hotkeys, die zwei Konflikte rot
+        // Einstellungen: alle Hotkeys, die zwei Konflikte rot, der verwaiste grau am Ende
+        controller.FileHotkeys.Sync(announce: false);
         var settings = new SettingsWindow(controller);
         settings.ShowFileHotkeys();
         var rows = settings.FileHotkeysList.Items.Cast<SettingsWindow.FileHotkeyRow>().ToList();
-        Assert.Equal(["Ctrl+Alt+S", "Ctrl+Alt+A", "Ctrl+Alt+G", "Ctrl+Alt+G", "Ctrl+Shift+Y"], rows.Select(r => r.Hotkey));
+        Assert.Equal(["Ctrl+Alt+S", "Ctrl+Alt+A", "Ctrl+Alt+G", "Ctrl+Alt+G", "Ctrl+Alt+N", "Ctrl+Shift+Y", "Ctrl+Alt+W"],
+            rows.Select(r => r.Hotkey));
         Assert.Equal(2, rows.Count(r => r.IsProblem));
-        Assert.Equal("3 aktiv, 2 wirken nicht", settings.FileHotkeysSummary.Text);
+        Assert.Equal([false, false, false, false, false, false, true], rows.Select(r => r.IsOrphan));
+        Assert.Equal(["Umbenannt.txt", "Weg", "Eintrag nicht gefunden"], new[] { rows[^1].Name, rows[^1].Location, rows[^1].Status });
+        Assert.Equal("4 aktiv, 2 wirken nicht, 1 ohne Eintrag (umbenannt oder verschoben, während QuickHasteBot nicht lief?)",
+            settings.FileHotkeysSummary.Text);
         Snapshot(settings, "settings-hotkeys.png");
+
+        // Entfernen (Entf) nimmt den verwaisten aus snippets.json
+        settings.FileHotkeysList.SelectedIndex = rows.Count - 1;
+        settings.FileHotkeysList.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(settings)!, 0, Key.Delete)
+            { RoutedEvent = Keyboard.KeyDownEvent });
+        Assert.Equal(6, settings.FileHotkeysList.Items.Count);
+        Assert.DoesNotContain("Umbenannt", File.ReadAllText(dir.Path + @"\snippets.json"));
         settings.Close();
     }
 

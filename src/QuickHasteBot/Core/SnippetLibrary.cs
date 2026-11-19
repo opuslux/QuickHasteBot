@@ -17,7 +17,13 @@ public sealed class SnippetLibrary : IDisposable
     static readonly HashSet<string> IgnoredFiles = new(StringComparer.OrdinalIgnoreCase) { "desktop.ini", "thumbs.db" };
 
     readonly HashSet<string> _textExtensions;
+    readonly Func<string, HotkeyGesture?>? _hotkeyFor;
     readonly ConcurrentDictionary<string, (DateTime Stamp, string? Text)> _contentCache = new(StringComparer.OrdinalIgnoreCase);
+    // Vom Watcher gemeldete Umbenennungen (relativ), angewendet beim nächsten Einlesen, siehe ApplyRenames.
+    // Verschieben in einen anderen Ordner meldet Windows als gelöscht + neu, darum auch diese.
+    readonly ConcurrentQueue<(string Old, string New)> _renames = new();
+    readonly ConcurrentQueue<string> _deleted = new();
+    readonly ConcurrentQueue<string> _created = new();
     readonly Lock _reloadGate = new();
     readonly Lock _watchGate = new();
     FileSystemWatcher? _watcher;
@@ -27,15 +33,23 @@ public sealed class SnippetLibrary : IDisposable
     // Der Watcher hängt am Ordner, nicht am Pfad: so lässt sich erkennen, ob structure inzwischen ein anderer ist
     DateTime _watchedCreationUtc;
 
-    public SnippetLibrary(string rootPath, IEnumerable<string> textExtensions)
+    /// <param name="hotkeyFor">Der Hotkey zu einem relativen Pfad, siehe <see cref="SnippetData.HotkeyFor"/>. Null: keine Hotkeys.</param>
+    public SnippetLibrary(string rootPath, IEnumerable<string> textExtensions, Func<string, HotkeyGesture?>? hotkeyFor = null)
     {
         RootPath = rootPath;
         _textExtensions = new HashSet<string>(textExtensions.Select(NormalizeExtension), StringComparer.OrdinalIgnoreCase);
+        _hotkeyFor = hotkeyFor;
         Root = Scan();
         All = Flatten(Root);
     }
 
     public event EventHandler? Changed;
+
+    /// <summary>
+    /// Im Explorer umbenannt oder innerhalb des structure-Ordners verschoben, solange das Programm läuft (alter und neuer
+    /// Pfad, relativ). Kommt beim Einlesen vor dem neuen Baum, damit dort schon die umgezogenen Hotkeys stehen.
+    /// </summary>
+    public event Action<string, string>? Renamed;
 
     public string RootPath { get; }
 
@@ -52,6 +66,7 @@ public sealed class SnippetLibrary : IDisposable
     {
         lock (_reloadGate)
         {
+            ApplyRenames();
             var root = Scan();
             var all = Flatten(root);
             if (onlyIfChanged && SameTree(All, all)) return false;
@@ -102,6 +117,74 @@ public sealed class SnippetLibrary : IDisposable
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Meldet die gesammelten Umbenennungen, aber nur, wo der alte Pfad inzwischen fehlt und der neue da ist. Manche
+    /// Editoren benennen beim Speichern das Original in ein Backup um und schreiben es dann neu: Dann ist der alte Pfad
+    /// wieder da, und der Hotkey bleibt beim Original statt mit dem Backup zu wandern.
+    /// </summary>
+    void ApplyRenames()
+    {
+        var pending = new List<(string Old, string New)>();
+        while (_renames.TryDequeue(out var rename))
+            pending.Add(rename);
+        pending.AddRange(Moves(Drain(_deleted), Drain(_created)));
+        if (pending.Count == 0) return;
+
+        for (var i = 0; i < pending.Count; i++)
+        {
+            var (oldPath, newPath) = pending[i];
+            if (Exists(oldPath)) continue;
+            // a → b → c: b gibt es nicht mehr, wurde aber gleich weiter umbenannt
+            if (!Exists(newPath) && !pending.Skip(i + 1).Any(p => string.Equals(p.Old, newPath, StringComparison.OrdinalIgnoreCase))) continue;
+            Renamed?.Invoke(oldPath, newPath);
+        }
+
+        bool Exists(string relative)
+        {
+            var full = Path.Combine(RootPath, relative);
+            return File.Exists(full) || Directory.Exists(full);
+        }
+    }
+
+    static List<string> Drain(ConcurrentQueue<string> queue)
+    {
+        var items = new List<string>();
+        while (queue.TryDequeue(out var item))
+            items.Add(item);
+        return items;
+    }
+
+    /// <summary>
+    /// Verschoben: hier gelöscht und in einem anderen Ordner gleichnamig neu. Nur eindeutige Paare, bei zwei gleichen
+    /// Namen wäre es geraten. Ob es den alten Pfad wirklich nicht mehr gibt, prüft <see cref="ApplyRenames"/>.
+    /// </summary>
+    internal static IEnumerable<(string Old, string New)> Moves(IReadOnlyCollection<string> deleted, IReadOnlyCollection<string> created)
+    {
+        if (deleted.Count == 0 || created.Count == 0) yield break;
+
+        var comparer = StringComparer.OrdinalIgnoreCase;
+        foreach (var group in deleted.Distinct(comparer).GroupBy(Path.GetFileName, comparer))
+        {
+            if (group.Count() != 1) continue;
+            var oldPath = group.Single();
+            var targets = created.Distinct(comparer)
+                .Where(c => comparer.Equals(Path.GetFileName(c), group.Key) && !comparer.Equals(Path.GetDirectoryName(c), Path.GetDirectoryName(oldPath)))
+                .ToList();
+            if (targets.Count == 1)
+                yield return (oldPath, targets[0]);
+        }
+    }
+
+    /// <summary>Der Pfad relativ zum structure-Ordner wie <see cref="Snippet.RelativePath"/>, null wenn er nicht darin liegt.</summary>
+    public string? RelativeOf(string fullPath)
+    {
+        var root = Path.TrimEndingDirectorySeparator(RootPath);
+        if (fullPath.Length <= root.Length + 1 || fullPath[root.Length] != Path.DirectorySeparatorChar
+            || !fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+            return null;
+        return Path.TrimEndingDirectorySeparator(fullPath[(root.Length + 1)..]);
     }
 
     static bool SameTree(IReadOnlyList<Snippet> before, List<Snippet> after) =>
@@ -214,9 +297,9 @@ public sealed class SnippetLibrary : IDisposable
                 IncludeSubdirectories = true,
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size,
             };
-            watcher.Created += OnFileSystemChanged;
-            watcher.Deleted += OnFileSystemChanged;
-            watcher.Renamed += OnFileSystemChanged;
+            watcher.Created += (_, e) => Remember(_created, e.FullPath);
+            watcher.Deleted += (_, e) => Remember(_deleted, e.FullPath);
+            watcher.Renamed += OnRenamed;
             watcher.Changed += OnFileSystemChanged;
             watcher.Error += (_, e) =>
             {
@@ -240,6 +323,20 @@ public sealed class SnippetLibrary : IDisposable
     }
 
     void OnFileSystemChanged(object sender, FileSystemEventArgs e) => ScheduleReload();
+
+    void Remember(ConcurrentQueue<string> queue, string fullPath)
+    {
+        if (RelativeOf(fullPath) is { } relative)
+            queue.Enqueue(relative);
+        ScheduleReload();
+    }
+
+    void OnRenamed(object sender, RenamedEventArgs e)
+    {
+        if (RelativeOf(e.OldFullPath) is { } oldPath && RelativeOf(e.FullPath) is { } newPath)
+            _renames.Enqueue((oldPath, newPath));
+        ScheduleReload();
+    }
 
     // Ein Speichern im Editor löst mehrere Events aus, darum gesammelt neu laden
     void ScheduleReload()
@@ -291,14 +388,14 @@ public sealed class SnippetLibrary : IDisposable
         // Ordinal sortieren: die Nummern-Präfixe ("1-Temp", "2-Adressen") bestimmen die Reihenfolge
         foreach (var sub in subDirectories.Where(IsVisible).OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
         {
-            var (folderName, folderHotkey) = FileHotkey.Split(sub.Name);
+            var relative = Relative(parent, sub.Name);
             var folder = new Snippet
             {
-                Name = folderName,
+                Name = sub.Name,
                 FullPath = sub.FullName,
-                RelativePath = Relative(parent, sub.Name),
+                RelativePath = relative,
                 Kind = SnippetKind.Folder,
-                Hotkey = folderHotkey,
+                Hotkey = _hotkeyFor?.Invoke(relative),
                 Parent = parent,
             };
             parent.Children.Add(folder);
@@ -307,14 +404,14 @@ public sealed class SnippetLibrary : IDisposable
 
         foreach (var file in files.Where(f => IsVisible(f) && !IgnoredFiles.Contains(f.Name)).OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
         {
-            var (name, hotkey) = FileHotkey.Split(Path.GetFileNameWithoutExtension(file.Name));
+            var relative = Relative(parent, file.Name);
             parent.Children.Add(new Snippet
             {
-                Name = name,
+                Name = Path.GetFileNameWithoutExtension(file.Name),
                 FullPath = file.FullName,
-                RelativePath = Relative(parent, file.Name),
+                RelativePath = relative,
                 Kind = _textExtensions.Contains(file.Extension) ? SnippetKind.Text : SnippetKind.File,
-                Hotkey = hotkey,
+                Hotkey = _hotkeyFor?.Invoke(relative),
                 Parent = parent,
             });
         }

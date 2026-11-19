@@ -33,6 +33,7 @@ internal partial class SettingsWindow : Window
         PositionInput.Position = app.Settings.PopupPosition;
         StructureInput.Text = app.Settings.StructurePath;
         SearchContentInput.IsChecked = app.Settings.SearchContent;
+        RankByUsageInput.IsChecked = app.Settings.RankByUsage;
         ScriptsInput.IsChecked = app.Settings.EvaluateScripts;
         BuiltInEditorInput.IsChecked = app.Settings.UseBuiltInEditor;
         KeyTagsInput.IsChecked = app.Settings.EvaluateKeyTags;
@@ -82,8 +83,12 @@ internal partial class SettingsWindow : Window
     /// <summary>Beim Start mit Konflikten: gleich den Tab mit der Übersicht zeigen.</summary>
     public void ShowFileHotkeys() => FileHotkeysTab.IsSelected = true;
 
-    /// <summary>Eine Zeile der Übersicht.</summary>
-    internal sealed record FileHotkeyRow(Snippet Snippet, string Hotkey, string Name, string Location, string Status, bool IsProblem);
+    /// <summary>Eine Zeile der Übersicht. Ohne <paramref name="Snippet"/> ein verwaister Hotkey: Der Eintrag fehlt.</summary>
+    internal sealed record FileHotkeyRow(Snippet? Snippet, string RelativePath, string Hotkey, string Name, string Location,
+        string Status, bool IsProblem)
+    {
+        public bool IsOrphan => Snippet is null;
+    }
 
     void OnFileHotkeysChanged(object? sender, EventArgs e) => UpdateFileHotkeys();
 
@@ -92,15 +97,30 @@ internal partial class SettingsWindow : Window
         var rows = _app.FileHotkeys.Entries.Select(entry =>
         {
             var problem = FileHotkeyRegistry.ConflictReason(entry);
-            return new FileHotkeyRow(entry.Snippet, entry.Gesture.ToString(), entry.Snippet.Name, entry.Snippet.Location,
-                problem ?? Strings.FileHotkeyStatusOk, problem is not null);
+            return new FileHotkeyRow(entry.Snippet, entry.Snippet.RelativePath, entry.Gesture.ToString(), entry.Snippet.Name,
+                entry.Snippet.Location, problem ?? Strings.FileHotkeyStatusOk, problem is not null);
         }).ToList();
+
+        // Fehlt der ganze structure-Ordner (Netzlaufwerk weg), wäre alles verwaist: dann lieber nichts zeigen
+        var orphans = Directory.Exists(_app.Library.RootPath)
+            ? FileHotkeyMap.Orphans(_app.SnippetData.Hotkeys(), _app.Library.All)
+            : [];
+        rows.AddRange(orphans.Select(orphan =>
+        {
+            var folder = Path.GetDirectoryName(orphan.RelativePath);
+            var location = string.IsNullOrEmpty(folder) ? "" : string.Join(" › ", folder.Split(Path.DirectorySeparatorChar));
+            return new FileHotkeyRow(null, orphan.RelativePath, orphan.Gesture.ToString(), Path.GetFileName(orphan.RelativePath),
+                location, Strings.FileHotkeyOrphan, IsProblem: false);
+        }));
         FileHotkeysList.ItemsSource = rows;
 
+        var active = rows.Count - orphans.Count;
         var problems = rows.Count(r => r.IsProblem);
         FileHotkeysSummary.Text = rows.Count == 0 ? Strings.FileHotkeysNone
-            : problems == 0 ? string.Format(Strings.FileHotkeysSummaryFormat, rows.Count)
-            : string.Format(Strings.FileHotkeysProblemsFormat, rows.Count - problems, problems);
+            : problems == 0 ? string.Format(Strings.FileHotkeysSummaryFormat, active)
+            : string.Format(Strings.FileHotkeysProblemsFormat, active - problems, problems);
+        if (orphans.Count > 0)
+            FileHotkeysSummary.Text += string.Format(Strings.FileHotkeysOrphansFormat, orphans.Count);
         FileHotkeysSummary.SetResourceReference(TextBlock.ForegroundProperty,
             problems > 0 ? "SystemFillColorCriticalBrush" : "TextFillColorSecondaryBrush");
     }
@@ -109,28 +129,49 @@ internal partial class SettingsWindow : Window
 
     void OnFileHotkeyKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Enter) return;
-        EditSelectedFileHotkey();
+        switch (e.Key)
+        {
+            case Key.Enter:
+                EditSelectedFileHotkey();
+                break;
+            case Key.Delete:
+                RemoveSelectedFileHotkey();
+                break;
+            default:
+                return;
+        }
         e.Handled = true;
     }
 
-    /// <summary>Wie "Hotkey festlegen…" im Popup: der Dialog liefert den neuen Namen, hier wird umbenannt.</summary>
+    // Rechtsklick: ändern (nur mit Eintrag) und entfernen
+    void OnFileHotkeyContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (FileHotkeysList.SelectedItem is not FileHotkeyRow row)
+        {
+            e.Handled = true;
+            return;
+        }
+        FileHotkeyEditMenu.IsEnabled = !row.IsOrphan;
+    }
+
+    void OnFileHotkeyEditMenu(object sender, RoutedEventArgs e) => EditSelectedFileHotkey();
+
+    void OnFileHotkeyRemoveMenu(object sender, RoutedEventArgs e) => RemoveSelectedFileHotkey();
+
+    /// <summary>Wie "Hotkey festlegen…" im Popup. Ein verwaister lässt sich nur entfernen.</summary>
     void EditSelectedFileHotkey()
     {
-        if (FileHotkeysList.SelectedItem is not FileHotkeyRow row) return;
+        if (FileHotkeysList.SelectedItem is not FileHotkeyRow { Snippet: { } snippet }) return;
 
-        var dialog = new HotkeyDialog(_app, row.Snippet) { Owner = this };
-        if (dialog.ShowDialog() != true) return;
-        try
-        {
-            SnippetFiles.Rename(row.Snippet.FullPath, dialog.NewFileName);
-            _app.Library.Reload();
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Log.Error($"Konnte nicht umbenannt werden: {row.Snippet.FullPath}", ex);
-            MessageDialog.Show(this, string.Format(Strings.RenameErrorFormat, ex.Message), MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
+        var dialog = new HotkeyDialog(_app, snippet) { Owner = this };
+        if (dialog.ShowDialog() == true)
+            _app.SetFileHotkey(snippet.RelativePath, dialog.NewGesture);
+    }
+
+    void RemoveSelectedFileHotkey()
+    {
+        if (FileHotkeysList.SelectedItem is FileHotkeyRow row)
+            _app.SetFileHotkey(row.RelativePath, null);
     }
 
     // Ein Klick auf einen Tab schiebt in WPF die Tastatur ins erste Feld des Tabs. Im ersten Tab ist das der Hotkey,
@@ -239,6 +280,19 @@ internal partial class SettingsWindow : Window
     {
         _app.Settings.SearchContent = SearchContentInput.IsChecked == true;
         _app.SaveSettings();
+    }
+
+    void OnRankByUsageChanged(object sender, RoutedEventArgs e)
+    {
+        _app.Settings.RankByUsage = RankByUsageInput.IsChecked == true;
+        _app.SaveSettings();
+    }
+
+    void OnClearUsage(object sender, MouseButtonEventArgs e)
+    {
+        var answer = MessageDialog.Show(this, Strings.ClearUsageConfirm, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+        if (answer == MessageBoxResult.Yes)
+            _app.ClearUsage();
     }
 
     void OnAiServiceChanged(object sender, SelectionChangedEventArgs e)

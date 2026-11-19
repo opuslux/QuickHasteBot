@@ -12,8 +12,6 @@
         <ui:HotkeyBox x:Name="HotkeyInput" GestureCaptured="OnGestureCaptured" />
         <!-- Konflikt oder Hinweis. Die Höhe bleibt, damit die Knöpfe nicht springen. -->
         <TextBlock x:Name="Problem" FontSize="12" Margin="0,4,0,0" MinHeight="16" TextWrapping="Wrap" />
-        <TextBlock x:Name="FileNameText" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
-                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
         <DockPanel Margin="0,12,0,0" LastChildFill="False">
             <Button x:Name="RemoveButton" DockPanel.Dock="Left" Content="{x:Static ui:Strings.FileHotkeyRemove}" Click="OnRemove" />

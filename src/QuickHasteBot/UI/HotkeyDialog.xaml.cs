@@ -5,16 +5,14 @@ using QuickHasteBot.Core;
 namespace QuickHasteBot.UI;
 
 /// <summary>
-/// Legt den Hotkey einer Datei oder eines Ordners fest. Gespeichert wird er im Namen ("Gruss [Ctrl+Alt+G].txt"),
-/// der Dialog liefert nur den neuen Namen, umbenannt wird danach wie beim Umbenennen. Ein Hotkey, der schon an
+/// Legt den Hotkey einer Datei oder eines Ordners fest. Der Dialog liefert nur die Kombination, gespeichert wird sie
+/// danach in snippets.json (<see cref="AppController.SetFileHotkey"/>), der Name bleibt. Ein Hotkey, der schon an
 /// einen anderen Eintrag vergeben ist, das Popup öffnet oder einem anderen Programm gehört, lässt sich nicht übernehmen.
 /// </summary>
 internal partial class HotkeyDialog : Window
 {
     readonly AppController _app;
     readonly Snippet _snippet;
-    readonly string _currentName;
-    readonly string _folder;
     HotkeyGesture? _gesture;
     bool _suspended;
 
@@ -23,8 +21,6 @@ internal partial class HotkeyDialog : Window
         InitializeComponent();
         _app = app;
         _snippet = snippet;
-        _currentName = Path.GetFileName(snippet.FullPath);
-        _folder = Path.GetDirectoryName(snippet.FullPath) ?? "";
         _gesture = snippet.Hotkey;
 
         Prompt.Text = string.Format(snippet.IsFolder ? Strings.FileHotkeyFolderPromptFormat : Strings.FileHotkeyPromptFormat, snippet.Name);
@@ -41,8 +37,8 @@ internal partial class HotkeyDialog : Window
         Validate();
     }
 
-    /// <summary>Nach "Übernehmen" oder "Hotkey entfernen": der Name, den der Eintrag bekommen soll.</summary>
-    public string NewFileName { get; private set; } = "";
+    /// <summary>Nach "Übernehmen" der neue Hotkey, nach "Hotkey entfernen" null.</summary>
+    public HotkeyGesture? NewGesture { get; private set; }
 
     void Suspend()
     {
@@ -66,14 +62,10 @@ internal partial class HotkeyDialog : Window
 
     void Validate()
     {
-        var name = NameFor(_gesture);
-        FileNameText.Text = _gesture is null ? "" : string.Format(Strings.FileHotkeyFileNameFormat, name);
-
         string? problem = null;
         if (_gesture is { } gesture && gesture != _snippet.Hotkey)
         {
-            problem = _app.FileHotkeys.Conflict(gesture, _snippet.FullPath)
-                ?? NameProblemText(SnippetFiles.Check(_folder, name, _currentName));
+            problem = _app.FileHotkeys.Conflict(gesture, _snippet.FullPath);
             if (problem is null && !gesture.Modifiers.HasFlag(HotkeyModifiers.Ctrl) && !gesture.Modifiers.HasFlag(HotkeyModifiers.Alt)
                 && !gesture.Modifiers.HasFlag(HotkeyModifiers.Win))
             {
@@ -94,30 +86,15 @@ internal partial class HotkeyDialog : Window
         Problem.SetResourceReference(TextBlock.ForegroundProperty, warning ? "SystemFillColorCriticalBrush" : "TextFillColorSecondaryBrush");
     }
 
-    string NameFor(HotkeyGesture? gesture) => FileHotkey.WithHotkey(_currentName, gesture, _snippet.IsFolder);
-
-    static string? NameProblemText(NameProblem problem) => problem switch
-    {
-        NameProblem.Exists => Strings.NameExists,
-        NameProblem.Invalid => Strings.NameInvalid,
-        _ => null,
-    };
-
     void OnConfirm(object sender, RoutedEventArgs e)
     {
-        NewFileName = NameFor(_gesture);
+        NewGesture = _gesture;
         DialogResult = true;
     }
 
     void OnRemove(object sender, RoutedEventArgs e)
     {
-        var name = NameFor(null);
-        if (NameProblemText(SnippetFiles.Check(_folder, name, _currentName)) is { } problem)
-        {
-            ShowHint(problem, warning: true);
-            return;
-        }
-        NewFileName = name;
+        NewGesture = null;
         DialogResult = true;
     }
 }

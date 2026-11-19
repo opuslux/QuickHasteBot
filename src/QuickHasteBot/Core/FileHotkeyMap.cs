@@ -47,7 +47,20 @@ public static class FileHotkeyMap
         return result;
     }
 
-    /// <summary>Wer den Hotkey schon hat, ausser dem Eintrag selbst (beim Umbenennen oder Ändern).</summary>
+    /// <summary>
+    /// Gespeicherte Hotkeys, deren Eintrag es im Baum nicht gibt, z.B. im Explorer umbenannt, während das Programm nicht
+    /// lief. Sie wirken nicht und blockieren nichts, die Einstellungen zeigen sie zum Entfernen.
+    /// </summary>
+    public static List<(string RelativePath, HotkeyGesture Gesture)> Orphans(
+        IEnumerable<(string RelativePath, HotkeyGesture Gesture)> stored, IEnumerable<Snippet> all)
+    {
+        var existing = all.Select(s => s.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return stored.Where(h => !existing.Contains(h.RelativePath))
+            .OrderBy(h => h.RelativePath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>Wer den Hotkey schon hat, ausser dem Eintrag selbst (beim Ändern).</summary>
     /// <param name="exceptPath">Vollständiger Pfad des Eintrags, der den Hotkey bekommen soll.</param>
     public static Snippet? FindOwner(IEnumerable<Snippet> all, HotkeyGesture gesture, string? exceptPath) =>
         all.FirstOrDefault(s => s.Hotkey == gesture && !string.Equals(s.FullPath, exceptPath, StringComparison.OrdinalIgnoreCase));
