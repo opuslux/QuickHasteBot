@@ -747,10 +747,34 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
-    /// <summary>Textbausteine: Bearbeiten. Dateien: Klonen. Beide, auch Ordner: Im Explorer anzeigen, Neuer Baustein, Neuer Ordner, Umbenennen, Hotkey festlegen, Löschen.</summary>
+    /// <summary>
+    /// Oben als Symbole Kopieren, Ausschneiden, Einfügen, Umbenennen, Löschen. Darunter für Textbausteine Bearbeiten,
+    /// für alle Im Explorer anzeigen, Neuer Baustein, Neuer Ordner, Hotkey festlegen. Geklont wird mit Kopieren und
+    /// Einfügen im selben Ordner.
+    /// </summary>
     void ShowItemMenu(Snippet snippet, UIElement target)
     {
-        var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
+        var menu = ItemMenu(snippet);
+        menu.PlacementTarget = target;
+        menu.Placement = PlacementMode.MousePoint;
+        menu.IsOpen = true;
+    }
+
+    internal ContextMenu ItemMenu(Snippet snippet)
+    {
+        var menu = new ContextMenu();
+        // Neuer Baustein, Ordner und Einfügen im Ordner unter der Maus, bei einer Datei daneben
+        var parent = snippet.IsFolder ? snippet : snippet.Parent ?? _viewModel.CurrentFolder;
+        menu.Items.Add(MenuIconRow.Create(menu,
+            [
+                new(MenuIcons.Copy, Strings.MenuCopy, true, () => _viewModel.Copy(snippet)),
+                new(MenuIcons.Cut, Strings.MenuCut, true, () => _viewModel.Cut(snippet)),
+                PasteCommand(parent),
+                new(MenuIcons.Rename, Strings.MenuRename, true, AfterMenu(() => Rename(snippet))),
+                // Ordner mit allem Inhalt, die Rückfrage sagt es
+                new(MenuIcons.Delete, Strings.MenuDelete, true, AfterMenu(() => Delete(snippet))),
+            ]));
+        menu.Items.Add(new Separator());
         // Alles andere öffnet schon per Klick die zugeordnete Anwendung
         if (snippet.Kind == SnippetKind.Text)
         {
@@ -772,21 +796,14 @@ internal partial class SearchPopup : Window
             HideUnlessKeptOpen();
             _app.RevealInExplorer(snippet);
         }));
-        // Neuer Baustein bzw. Ordner im Ordner unter der Maus, bei einer Datei daneben
-        var parent = snippet.IsFolder ? snippet : snippet.Parent ?? _viewModel.CurrentFolder;
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
             HideUnlessKeptOpen();
             _app.NewSnippet(parent);
         }));
         menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, () => NewFolder(parent)));
-        menu.Items.Add(MenuEntry(Strings.MenuRename, MenuIcons.Rename, () => Rename(snippet)));
         menu.Items.Add(MenuEntry(Strings.MenuSetHotkey, MenuIcons.Hotkey, () => SetHotkey(snippet)));
-        if (!snippet.IsFolder)
-            menu.Items.Add(MenuEntry(Strings.MenuClone, MenuIcons.Clone, () => Clone(snippet)));
-        // Ordner mit allem Inhalt, die Rückfrage sagt es
-        menu.Items.Add(MenuEntry(Strings.MenuDelete, MenuIcons.Delete, () => Delete(snippet)));
-        menu.IsOpen = true;
+        return menu;
     }
 
     /// <summary>
@@ -807,6 +824,8 @@ internal partial class SearchPopup : Window
     void ShowFolderMenu(UIElement target, Snippet parent)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
+        menu.Items.Add(MenuIconRow.Create(menu, [PasteCommand(parent)]));
+        menu.Items.Add(new Separator());
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
             HideUnlessKeptOpen();
@@ -831,17 +850,51 @@ internal partial class SearchPopup : Window
     MenuItem MenuEntry(string header, string glyph, Action action)
     {
         var item = new MenuItem { Header = header, Icon = MenuIcons.Glyph(glyph) };
-        item.Click += (_, _) => Dispatcher.BeginInvoke(action, DispatcherPriority.Input);
+        item.Click += (_, _) => AfterMenu(action)();
         return item;
     }
 
-    void Clone(Snippet snippet)
+    Action AfterMenu(Action action) => () => Dispatcher.BeginInvoke(action, DispatcherPriority.Input);
+
+    /// <summary>Einfügen in diesen Ordner, ausgegraut, wenn nichts ausgeschnitten oder kopiert ist oder es dort nicht hingeht. Der Tooltip sagt, was.</summary>
+    MenuIconCommand PasteCommand(Snippet folder)
     {
-        // Die Kopie bekommt keinen Hotkey: Er steht beim Pfad des Originals
-        var dialog = NameDialog.ForClone(snippet, SnippetFiles.SuggestCopyName(snippet.FullPath, Strings.CopySuffix));
-        dialog.Owner = this;
-        if (WithDialog(dialog.ShowDialog) == true)
-            ChangeFile(snippet, Strings.CloneErrorFormat, () => SnippetFiles.Clone(snippet.FullPath, dialog.FileName));
+        var clipped = _viewModel.Clipped;
+        var name = clipped is null ? Strings.MenuPaste : string.Format(Strings.MenuPasteFormat, clipped.Name);
+        return new(MenuIcons.Paste, name, _viewModel.CanPasteInto(folder), AfterMenu(() => Paste(folder)));
+    }
+
+    /// <summary>
+    /// Ausgeschnittenes wird verschoben, mit Hotkey und Nutzung; gibt es den Namen dort schon, bleibt alles, wie es ist.
+    /// Kopiertes bekommt dann wie im Explorer "Name - Kopie", im selben Ordner ist das ein Klon. Die Kopie hat keinen
+    /// Hotkey, der steht beim Pfad des Originals. Danach ist das Eingefügte markiert, wenn es zu sehen ist.
+    /// </summary>
+    void Paste(Snippet folder)
+    {
+        if (_viewModel.Clipped is not { } clipped) return;
+        var name = Path.GetFileName(clipped.FullPath);
+        var exists = SnippetFiles.Check(folder.FullPath, name) == NameProblem.Exists;
+
+        if (!_viewModel.ClippedIsCut)
+        {
+            if (exists)
+                name = SnippetFiles.SuggestCopyName(clipped.FullPath, Strings.CopySuffix, folder.FullPath);
+            ChangeFile(clipped, Strings.CopyErrorFormat, () => SnippetFiles.Copy(clipped.FullPath, folder.FullPath, name));
+            return;
+        }
+
+        if (exists)
+        {
+            WithDialog(() => MessageDialog.Show(this, string.Format(Strings.PasteExistsFormat, name), MessageBoxButton.OK, MessageBoxImage.Warning));
+            return;
+        }
+        ChangeFile(clipped, Strings.MoveErrorFormat, () =>
+        {
+            var path = SnippetFiles.Move(clipped.FullPath, folder.FullPath, name);
+            _app.SnippetMoved(clipped.FullPath, path);
+            _viewModel.ClearClipped();
+            return path;
+        });
     }
 
     void Rename(Snippet snippet)
@@ -853,6 +906,8 @@ internal partial class SearchPopup : Window
             {
                 var path = SnippetFiles.Rename(snippet.FullPath, dialog.FileName);
                 _app.SnippetMoved(snippet.FullPath, path);
+                if (_app.Library.RelativeOf(path) is { } renamed)
+                    _viewModel.PathMoved(snippet.RelativePath, renamed);
                 return path;
             });
     }
@@ -866,7 +921,7 @@ internal partial class SearchPopup : Window
         _viewModel.RefreshSelecting(snippet.RelativePath);
     }
 
-    /// <summary>Kopie anlegen oder umbenennen, danach ist das Ergebnis markiert, sofern es in der Liste steht.</summary>
+    /// <summary>Kopieren, verschieben, umbenennen oder neu anlegen, danach ist das Ergebnis markiert, sofern es in der Liste steht.</summary>
     void ChangeFile(Snippet snippet, string errorFormat, Func<string> change)
     {
         try

@@ -92,6 +92,16 @@
         <!-- Eine Zeile, links in der Liste und rechts im Inhalt eines Ordners -->
         <DataTemplate x:Key="SnippetTemplate" DataType="{x:Type ui:SnippetItem}">
             <Grid>
+                <!-- Ausgeschnitten: blass wie im Explorer, bis es eingefügt ist -->
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsCut}" Value="True">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="26" />
                     <ColumnDefinition Width="*" />
