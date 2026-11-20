@@ -23,6 +23,11 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
 
+        <!-- Markierung links, solange die Tastatur rechts ist: grau statt in Akzentfarbe, wie im Explorer eine Auswahl
+             ohne Fokus. Ersetzt die Pinsel des Fluent-Themes nur in der linken Liste, siehe ShowKeyboardColumn. -->
+        <SolidColorBrush x:Key="InactiveSelectionBrush" Color="{DynamicResource TextFillColorPrimary}" Opacity="0.12" />
+        <SolidColorBrush x:Key="InactiveSelectionPointerOverBrush" Color="{DynamicResource TextFillColorPrimary}" Opacity="0.17" />
+
         <!-- Kleine Knöpfe mit Symbol, grau, beim Darüberfahren heller -->
         <Style x:Key="IconButton" TargetType="ButtonBase">
             <Setter Property="Focusable" Value="False" />

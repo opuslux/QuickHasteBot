@@ -109,6 +109,8 @@ public partial class WindowSmokeTests
         Press(Key.Down);
         Assert.Equal("03-MfG-EN", viewModel.DetailSelected?.Snippet.Name);
         Assert.Same(viewModel.DetailSelected, popup.DetailList.SelectedItem);
+        // Links bleibt der Ordner markiert, aber grau: In Akzentfarbe ist nur die Zeile, wo die Tastatur ist
+        Assert.Same(popup.FindResource("InactiveSelectionBrush"), popup.Results.Resources["ListBoxItemSelectedBackgroundThemeBrush"]);
         Assert.Equal("03-MfG-EN", viewModel.CurrentSnippet?.Name);
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
         Press(Key.Up);
@@ -117,6 +119,7 @@ public partial class WindowSmokeTests
         Press(Key.Left);
         Assert.False(viewModel.InDetail);
         Assert.Null(popup.DetailList.SelectedItem);
+        Assert.False(popup.Results.Resources.Contains("ListBoxItemSelectedBackgroundThemeBrush"));
         Assert.Equal("4-Grüsse", viewModel.CurrentSnippet?.Name);
         // Alt+Ziffer bzw. ein Klick links, auch auf denselben Eintrag, holt die Tastatur zurück nach links
         Press(Key.Right);
@@ -160,6 +163,9 @@ public partial class WindowSmokeTests
         popup.SearchBox.Select(3, 0);
         Press(Key.Right);
         Assert.False(viewModel.InDetail);
+        // Escape löscht erst den Suchtext, geschlossen wird erst beim zweiten
+        Press(Key.Escape);
+        Assert.Equal("", viewModel.Query);
 
         viewModel.Query = "";
         viewModel.EnterFolder(viewModel.Items.Single(i => i.Snippet.Name == "6-Weblinks").Snippet);
@@ -224,6 +230,16 @@ public partial class WindowSmokeTests
         viewModel.Refresh(next);
         Assert.Equal("03-MfG-EN", viewModel.Selected?.Snippet.Name);
         Assert.Equal(@"4-Grüsse\01-MfG-DE.txt", viewModel.SelectionAfterRemoving(viewModel.Selected!.Snippet));
+        // Rechts geklont: links bleibt der Ordner, rechts ist die Kopie markiert
+        viewModel.GoTo("");
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        copy = SnippetFiles.Clone(mfg.FullPath, "02-MfG-CH.txt");
+        controller.Library.Reload();
+        viewModel.RefreshSelecting(Path.GetRelativePath(controller.Library.RootPath, copy));
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+        Assert.Equal("02-MfG-CH", viewModel.DetailSelected?.Snippet.Name);
+        File.Delete(copy);
+        controller.Library.Reload();
         // Ein umbenannter Ordner bleibt markiert
         viewModel.GoTo("");
         var renamed = SnippetFiles.Rename(controller.Library.Find("1-Temp")!.FullPath, "2-Temp");

@@ -63,6 +63,8 @@ internal partial class SearchPopup : Window
         // Neuer Inhalt rechts beginnt oben links
         _viewModel.PropertyChanged += (_, e) =>
         {
+            if (e.PropertyName == nameof(SearchPopupViewModel.InDetail))
+                ShowKeyboardColumn();
             if (e.PropertyName != nameof(SearchPopupViewModel.ShowDetailItems)) return;
             DetailScroll.ScrollToHome();
             if (_viewModel.DetailItems.Count > 0)
@@ -510,6 +512,26 @@ internal partial class SearchPopup : Window
             Results.ScrollIntoView(Results.SelectedItem);
     }
 
+    /// <summary>
+    /// Links und rechts kann je eine Zeile markiert sein. In Akzentfarbe nur die, wo die Tastatur ist (Pfeile, Enter,
+    /// F2 …), die andere grau. Rechts ist ohne Tastatur nichts markiert, deshalb betrifft es nur die linke Liste.
+    /// </summary>
+    void ShowKeyboardColumn()
+    {
+        const string selected = "ListBoxItemSelectedBackgroundThemeBrush";
+        const string selectedPointerOver = "ListBoxItemSelectedBackgroundPointerOverThemeBrush";
+        if (_viewModel.InDetail)
+        {
+            Results.Resources[selected] = FindResource("InactiveSelectionBrush");
+            Results.Resources[selectedPointerOver] = FindResource("InactiveSelectionPointerOverBrush");
+        }
+        else
+        {
+            Results.Resources.Remove(selected);
+            Results.Resources.Remove(selectedPointerOver);
+        }
+    }
+
     void OnDetailSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (DetailList.SelectedItem is not null)
@@ -593,6 +615,15 @@ internal partial class SearchPopup : Window
         _pressedItem = e.ClickCount == 1 ? ItemAt(Results, e.OriginalSource) : null;
         if (_pressedItem is not null)
             _viewModel.Selected = _pressedItem;
+        else
+            LeaveDetailOnEmptyClick(e);
+    }
+
+    // Ein Klick neben die Einträge hebt die Markierung rechts auf (etwa die vom Rechtsklick), wie die Pfeiltaste nach links
+    void LeaveDetailOnEmptyClick(MouseButtonEventArgs e)
+    {
+        if (!IsInside<ScrollBar>(e.OriginalSource))
+            _viewModel.LeaveDetail();
     }
 
     void OnResultsMouseUp(object sender, MouseButtonEventArgs e) =>
@@ -601,9 +632,17 @@ internal partial class SearchPopup : Window
     void OnResultsDoubleClick(object sender, MouseButtonEventArgs e) =>
         OnListDoubleClick(Results, e, _ => ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)));
 
-    // Rechts bleibt die Auswahl links, wie sie ist: Ein Klick fügt direkt ein bzw. öffnet den Ordner
-    void OnDetailMouseDown(object sender, MouseButtonEventArgs e) =>
-        _pressedItem = e.ClickCount == 1 ? ItemAt(DetailList, e.OriginalSource) : null;
+    // Rechts wird der Eintrag markiert wie links, die Auswahl links bleibt, wie sie ist. Mit Einzelklick fügt
+    // das Loslassen ihn dann direkt ein bzw. öffnet den Ordner.
+    void OnDetailMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        var item = ItemAt(DetailList, e.OriginalSource);
+        _pressedItem = e.ClickCount == 1 ? item : null;
+        if (item is null)
+            LeaveDetailOnEmptyClick(e);
+        else
+            _viewModel.DetailSelected = item;
+    }
 
     void OnDetailMouseUp(object sender, MouseButtonEventArgs e) =>
         OnListMouseUp(DetailList, e, item => ActivateDetail(item.Snippet, alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)));
@@ -684,7 +723,8 @@ internal partial class SearchPopup : Window
         _app.ShowSettings();
     }
 
-    // Rechtsklick auf einen Eintrag, links wie rechts. Links wird er dabei markiert, rechts bleibt der Ordner markiert.
+    // Rechtsklick auf einen Eintrag, links wie rechts: Er wird markiert, damit man sieht, wofür das Menü gilt. Rechts
+    // wie mit der Pfeiltaste nach rechts, der Ordner links bleibt markiert.
     // Auf die freie Fläche: neuer Baustein oder Ordner in dem Ordner, den die Spalte zeigt, sonst käme man in einem leeren Ordner nicht dazu.
     void OnListRightButtonUp(object sender, MouseButtonEventArgs e)
     {
@@ -692,6 +732,8 @@ internal partial class SearchPopup : Window
         _hoverTimer.Stop();
         if (ItemAt(list, e.OriginalSource) is not { } item)
         {
+            // Das Menü gilt dem Ordner, keinem Eintrag
+            _viewModel.LeaveDetail();
             ShowFolderMenu(list);
             e.Handled = true;
             return;
@@ -699,6 +741,8 @@ internal partial class SearchPopup : Window
 
         if (list == Results)
             _viewModel.Selected = item;
+        else
+            _viewModel.DetailSelected = item;
         ShowItemMenu(item.Snippet, list);
         e.Handled = true;
     }
@@ -773,7 +817,7 @@ internal partial class SearchPopup : Window
         menu.IsOpen = true;
     }
 
-    /// <summary>Neuer Ordner in diesem Ordner, danach markiert, wenn er links steht.</summary>
+    /// <summary>Neuer Ordner in diesem Ordner, danach markiert, links oder rechts.</summary>
     void NewFolder(Snippet parent)
     {
         var display = string.Join(" › ", new[] { Strings.BreadcrumbRoot }
@@ -894,6 +938,10 @@ internal partial class SearchPopup : Window
         e.Handled = true;
         switch (e.Key)
         {
+            // Erst den Suchtext löschen (etwa einen gemerkten), das zweite Escape schliesst
+            case Key.Escape when _viewModel.Query.Length > 0:
+                SearchBox.Text = "";
+                break;
             case Key.Escape:
                 Hide();
                 break;

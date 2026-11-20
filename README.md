@@ -116,7 +116,7 @@ Thank you for your order.
 | F2 | Rename the selected file or folder |
 | Ctrl+, | Settings |
 | Ctrl+T | [Keep the popup open](#keeping-it-open) to paste several snippets one after another |
-| Esc | Close |
+| Esc | Clear the search text; with an empty search box: close |
 
 ### Order of the results
 
@@ -141,7 +141,7 @@ Pastes, opened files and folders count, from the search, while browsing and by [
 
 ### Right-click menu
 
-Right-clicking an entry, in either column, offers:
+Right-clicking an entry, in either column, selects it so you can see what the menu applies to, and offers:
 
 | Command | Does |
 |---|---|
