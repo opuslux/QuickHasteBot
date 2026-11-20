@@ -21,7 +21,6 @@ internal static class MenuIcons
     public const string NewFolder = "";
     public const string Rename = "";
     public const string Hotkey = "";
-    public const string Clone = "";
     public const string Download = "";
     public const string Delete = "";
     public const string Settings = "";

@@ -421,18 +421,22 @@ The date of next Monday</value></data>
   <data name="RenameConfirm" xml:space="preserve"><value>Rename</value></data>
   <data name="RenameErrorFormat" xml:space="preserve"><value>Could not rename:
 {0}</value></data>
-  <data name="MenuClone" xml:space="preserve"><value>Clone…</value></data>
   <data name="MenuDelete" xml:space="preserve"><value>Delete…</value></data>
-  <data name="CloneTitle" xml:space="preserve"><value>Clone</value></data>
-  <data name="ClonePromptFormat" xml:space="preserve"><value>Name of the copy of "{0}":</value></data>
-  <data name="CloneConfirm" xml:space="preserve"><value>Clone</value></data>
+  <data name="MenuCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="MenuCut" xml:space="preserve"><value>Cut</value></data>
+  <data name="MenuPaste" xml:space="preserve"><value>Paste</value></data>
+  <data name="MenuPasteFormat" xml:space="preserve"><value>Paste "{0}" here</value></data>
+  <data name="PasteExistsFormat" xml:space="preserve"><value>There already is a file or folder named "{0}" there.</value></data>
+  <data name="MoveErrorFormat" xml:space="preserve"><value>Could not move:
+{0}</value></data>
   <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="CopySuffix" xml:space="preserve"><value> - Copy</value></data>
   <data name="NameInvalid" xml:space="preserve"><value>A name cannot contain \ / : * ? " &lt; &gt; | or end with a dot.</value></data>
   <data name="NameExists" xml:space="preserve"><value>A file or folder with this name already exists.</value></data>
-  <data name="CloneErrorFormat" xml:space="preserve"><value>The copy could not be created:
+  <data name="CopyErrorFormat" xml:space="preserve"><value>The copy could not be created:
 {0}</value></data>
   <data name="DeleteConfirmFormat" xml:space="preserve"><value>Move "{0}" to the Recycle Bin?</value></data>
+  <data name="DeleteFolderConfirmFormat" xml:space="preserve"><value>Move the folder "{0}" with everything in it to the Recycle Bin?</value></data>
   <data name="DeleteErrorFormat" xml:space="preserve"><value>"{0}" could not be deleted:
 {1}</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>The snippet could not be read:

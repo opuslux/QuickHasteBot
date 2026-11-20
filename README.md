@@ -79,7 +79,7 @@ In the popup this shows up as five folders followed by `Phone numbers`. Opening 
 
 **Examples:** on first start, QuickHasteBot puts examples in the language of the interface into `structure\Demo`, in eight folders by topic: simple texts (greetings, emails with a date that moves along, SQL), text and selection (asking before pasting, `{cursor}`, `{include}`), formatting, forms (key tags and the element tags with a test form to try them on), programs and windows (media keys, one to try **Step by step** on), scripts (calculating, `run()`, and `JavaScript blocks {{ }}` with 16 script blocks: dates, the clipboard, random values and more), [conditions](#conditions-if-elseif-else) and [messages](#messages-msg-and-confirm) (with dice, an oracle for yes-or-no questions and a tea timer). Each example has a [comment](#forms-key-tags) at the top that explains it. They are only examples: keep your own snippets next to `Demo`, not in it, and delete `Demo` when you no longer need it. Since they are built into the exe, unpacking an update over an existing installation never overwrites your snippets. To get them back, or to try the ones a newer version brings, click **Export examples…** under the snippets folder in the settings: it proposes `structure\Demo` and, if that already exists, moves it to the Recycle Bin and builds it anew. **Other folder…** puts the examples straight into a folder of your choice instead, replacing only example files with the same name.
 
-Snippets can be created, renamed, cloned and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
+Snippets and folders can be created, renamed, copied, moved and deleted right in the popup (see [Right-click menu](#right-click-menu)) and edited in the built-in [editor](#editor).
 
 ### Snippets in snippets
 
@@ -116,7 +116,7 @@ Thank you for your order.
 | F2 | Rename the selected file or folder |
 | Ctrl+, | Settings |
 | Ctrl+T | [Keep the popup open](#keeping-it-open) to paste several snippets one after another |
-| Esc | Close |
+| Esc | Clear the search text; with an empty search box: close |
 
 ### Order of the results
 
@@ -141,21 +141,23 @@ Pastes, opened files and folders count, from the search, while browsing and by [
 
 ### Right-click menu
 
-Right-clicking an entry, in either column, offers:
+Right-clicking an entry, in either column, selects it so you can see what the menu applies to, and offers:
 
 | Command | Does |
 |---|---|
+| **Copy** (icon at the top) | Marks the file or folder for copying; it can be pasted as often as you like |
+| **Cut** (icon at the top) | Marks the file or folder for moving; it is shown faded until it is pasted somewhere else |
+| **Paste** (icon at the top) | Into that folder, or next to that file. What was cut is moved, with its hotkey and usage; greyed out where it already is. A copy gets no hotkey, and if the name is taken it is named like Explorer does (`Name - Copy.txt`), so pasting it in the same folder clones it. A folder can't go into itself. Ctrl+X, Ctrl+C and Ctrl+V stay with the search box |
+| **Rename** (icon at the top) | Also for folders; F2 does the same for the selected entry |
+| **Delete** (icon at the top) | Also for folders, with everything in them. Asks first, then moves the file or folder to the Recycle Bin. Where there is none, e.g. on a network drive, Windows asks whether to delete it permanently |
 | **Edit** | Opens a text snippet in the [editor](#editor), like Ctrl+O |
 | **Open with default program** | Opens it with the program Windows uses for the file type, e.g. Notepad++ |
-| **Show in Explorer** | Like Ctrl+E for the entry under the pointer: a file is selected in its folder, a folder opens |
+| **Show in Explorer** | Like Ctrl+E for the entry under the pointer: a file or folder is selected in the folder that contains it |
 | **New snippet…** | In that folder, or next to that file |
 | **New folder…** | Likewise: in that folder, or next to that file; the dialog says where |
-| **Rename…** | Also for folders; F2 does the same for the selected entry |
 | **Set hotkey…** | See [Hotkeys for files and folders](#hotkeys-for-files-and-folders) |
-| **Clone…** | A copy in the same folder, with a name suggested like Explorer does (`Name - Copy.txt`) |
-| **Delete…** | Asks first, then moves the file to the Recycle Bin. Where there is none, e.g. on a network drive, Windows asks whether to delete it permanently |
 
-Right-clicking the empty space next to the entries offers **New snippet…** and **New folder…** for the folder that column shows: on the left the open folder, on the right the folder selected on the left. This also works in an empty folder.
+Right-clicking the empty space next to the entries offers **Paste**, **New snippet…** and **New folder…** for the folder that column shows: on the left the open folder, on the right the folder selected on the left. This also works in an empty folder.
 
 ### Preview and layout
 
@@ -224,7 +226,7 @@ Besides the popup hotkey, every snippet, file or folder can have a global hotkey
 
 **Setting a hotkey:** right-click an entry, choose **Set hotkey…** and press the combination. The dialog says right away if it is already used by another entry, is the popup hotkey, or belongs to another program, and only applies a free one. "Remove hotkey" takes it away again. The popup shows the hotkey as a small badge on the right. The key names are the same as for the popup hotkey (`Ctrl`, `Shift`, `Alt`, `Win`). A single function key like F9 works too, but is then missing in every other program.
 
-**Where it is stored:** in `snippets.json` next to the exe, not in the `structure` folder. The file names stay as they are, and in a `structure` folder shared with others, everyone has their own hotkeys. The hotkey follows its entry when it is renamed or moved in QuickHasteBot (F2, the name or folder in the editor), and in Explorer while QuickHasteBot is running. Renamed while QuickHasteBot was not running, the hotkey stays with the old name: the **Hotkeys** tab in the settings shows it greyed out as "Entry not found", Del removes it. If an entry with that name turns up again, the hotkey works again. A clone gets no hotkey, a deleted entry takes its hotkey with it.
+**Where it is stored:** in `snippets.json` next to the exe, not in the `structure` folder. The file names stay as they are, and in a `structure` folder shared with others, everyone has their own hotkeys. The hotkey follows its entry when it is renamed or moved in QuickHasteBot (F2, cut and paste, the name or folder in the editor), and in Explorer while QuickHasteBot is running. Renamed while QuickHasteBot was not running, the hotkey stays with the old name: the **Hotkeys** tab in the settings shows it greyed out as "Entry not found", Del removes it. If an entry with that name turns up again, the hotkey works again. A copy gets no hotkey, a deleted entry takes its hotkey with it.
 
 > **Changed in 3.0:** up to version 2.16, hotkeys were part of the name, in square brackets at the end (`Kind regards [Ctrl+Alt+G].txt`). Such names are now just names: the brackets show up in the popup and set no hotkey. Rename the file to remove them, and set the hotkey again with **Set hotkey…**.
 

@@ -12,6 +12,8 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     string _folderPath = ""; // relativ zum structure-Ordner, überlebt ein Neuladen der Bibliothek
     SnippetItem? _selected;
     SnippetItem? _detailSelected;
+    string? _clippedPath; // ausgeschnitten oder kopiert, relativ wie _folderPath
+    bool _clippedIsCut;
     IReadOnlyList<Breadcrumb> _breadcrumbs = [];
     string _detailText = "";
     string _emptyText = "";
@@ -196,7 +198,14 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     public void Refresh(string? selectRelativePath = null) => Refresh([selectRelativePath ?? _selected?.Snippet.RelativePath]);
 
     /// <summary>Nach dem Klonen: die Kopie markieren, falls sie in der Liste steht, sonst bleibt die Auswahl.</summary>
-    public void RefreshSelecting(string relativePath) => Refresh([relativePath, _selected?.Snippet.RelativePath]);
+    public void RefreshSelecting(string relativePath)
+    {
+        Refresh([relativePath, _selected?.Snippet.RelativePath]);
+        // Steht er nicht links, sondern rechts im markierten Ordner (umbenannt, geklont, neu), wird er dort markiert
+        if (_selected is not null && !SamePath(_selected.Snippet.RelativePath, relativePath)
+            && DetailItems.FirstOrDefault(item => SamePath(item.Snippet.RelativePath, relativePath)) is { } detail)
+            DetailSelected = detail;
+    }
 
     /// <summary>
     /// Was nach dem Löschen markiert sein soll: War es die Auswahl links, der nächste Eintrag (am Ende der vorige),
@@ -223,7 +232,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
             var contentProvider = app.Settings.SearchContent ? library.GetSearchableText : (Func<Snippet, string?>?)null;
             // Einmal pro Suche gebaut, danach nur noch Nachschlagen je Treffer
             var bonus = app.Settings.RankByUsage ? app.SnippetData.BonusFor(_query) : null;
-            items = SnippetSearch.Search(library.All, _query, contentProvider, bonus: bonus).Select(hit => SnippetItem.ForHit(hit, app.FileHotkeys.Problem(hit.Snippet))).ToList();
+            items = SnippetSearch.Search(library.All, _query, contentProvider, bonus: bonus).Select(hit => MarkCut(SnippetItem.ForHit(hit, app.FileHotkeys.Problem(hit.Snippet)))).ToList();
             Breadcrumbs = [new(items.Count == 1 ? Strings.MatchesOne : string.Format(Strings.MatchesFormat, items.Count), Target: null, ShowSeparator: false)];
             EmptyText = items.Count == 0 ? Strings.NoMatches : "";
         }
@@ -236,7 +245,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
                 _folderPath = "";
             }
 
-            items = folder.Children.Select(child => SnippetItem.ForBrowsing(child, app.FileHotkeys.Problem(child))).ToList();
+            items = folder.Children.Select(child => MarkCut(SnippetItem.ForBrowsing(child, app.FileHotkeys.Problem(child)))).ToList();
             Breadcrumbs = BuildBreadcrumbs(folder.RelativePath);
             EmptyText = items.Count > 0 ? ""
                 : !Directory.Exists(library.RootPath) ? string.Format(Strings.FolderNotFoundFormat, library.RootPath)
@@ -377,6 +386,56 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
 
     static bool SamePath(string? a, string? b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
+    static bool IsSameOrInside(string path, string folder) =>
+        SamePath(path, folder) || path.StartsWith(folder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+    // --- Ausschneiden, Kopieren, Einfügen ---
+
+    /// <summary>
+    /// Was zuletzt ausgeschnitten oder kopiert wurde, solange es das noch gibt. Bleibt, auch wenn das Popup zugeht:
+    /// Ausgeschnittenes bis es eingefügt ist, Kopiertes lässt sich mehrmals einfügen.
+    /// </summary>
+    public Snippet? Clipped => _clippedPath is null ? null : app.Library.Find(_clippedPath);
+
+    /// <summary>Ausgeschnitten statt kopiert: Einfügen verschiebt es.</summary>
+    public bool ClippedIsCut => _clippedIsCut;
+
+    public void Cut(Snippet snippet) => Clip(snippet.RelativePath, cut: true);
+
+    public void Copy(Snippet snippet) => Clip(snippet.RelativePath, cut: false);
+
+    public void ClearClipped() => Clip(null, cut: false);
+
+    /// <summary>Umbenannt (oder ein Ordner, in dem es liegt): Das Ausgeschnittene oder Kopierte bleibt es.</summary>
+    public void PathMoved(string oldPath, string newPath)
+    {
+        if (_clippedPath is not null && IsSameOrInside(_clippedPath, oldPath))
+            _clippedPath = newPath + _clippedPath[oldPath.Length..];
+    }
+
+    /// <summary>
+    /// Lässt es sich in diesen Ordner einfügen? Ein Ordner nicht in sich selbst oder einen seiner Unterordner, und
+    /// Ausgeschnittenes nicht dorthin, wo es schon liegt. Eine Kopie dort ist ein Klon.
+    /// </summary>
+    public bool CanPasteInto(Snippet folder) =>
+        Clipped is { } clipped && !IsSameOrInside(folder.RelativePath, clipped.RelativePath)
+        && !(_clippedIsCut && SamePath(clipped.Parent?.RelativePath, folder.RelativePath));
+
+    void Clip(string? path, bool cut)
+    {
+        _clippedPath = path;
+        _clippedIsCut = cut;
+        foreach (var item in Items.Concat(DetailItems))
+            MarkCut(item);
+    }
+
+    /// <summary>Nur Ausgeschnittenes ist blass, Kopiertes bleibt, wie es ist.</summary>
+    SnippetItem MarkCut(SnippetItem item)
+    {
+        item.IsCut = _clippedIsCut && _clippedPath is not null && SamePath(item.Snippet.RelativePath, _clippedPath);
+        return item;
+    }
+
     static string[] SplitPath(string relativePath) =>
         relativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
@@ -388,7 +447,7 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         if (snippet is { IsFolder: true })
         {
             foreach (var child in snippet.Children)
-                DetailItems.Add(SnippetItem.ForBrowsing(child, app.FileHotkeys.Problem(child)));
+                DetailItems.Add(MarkCut(SnippetItem.ForBrowsing(child, app.FileHotkeys.Problem(child))));
         }
         OnPropertyChanged(nameof(ShowDetailItems));
 

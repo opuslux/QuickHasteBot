@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows.Media;
 using QuickHasteBot.Core;
 using QuickHasteBot.Interop;
@@ -5,10 +6,11 @@ using QuickHasteBot.Interop;
 namespace QuickHasteBot.UI;
 
 /// <summary>Eine Zeile im Such-Popup. Der Name ist für die Hervorhebung des Treffers dreigeteilt.</summary>
-internal sealed class SnippetItem
+internal sealed class SnippetItem : INotifyPropertyChanged
 {
     ImageSource? _icon;
     bool _iconLoaded;
+    bool _isCut;
 
     SnippetItem(Snippet snippet, bool showLocation, int matchStart, int matchLength, string? hotkeyProblem)
     {
@@ -71,6 +73,20 @@ internal sealed class SnippetItem
 
     /// <summary>Hover-Text über der Nummer, ohne Nummer keiner.</summary>
     public string? ShortcutTooltip => string.IsNullOrEmpty(Shortcut) ? null : string.Format(Strings.ShortcutTooltipFormat, Shortcut);
+
+    /// <summary>Ausgeschnitten und noch nicht eingefügt: blass wie im Explorer.</summary>
+    public bool IsCut
+    {
+        get => _isCut;
+        set
+        {
+            if (_isCut == value) return;
+            _isCut = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsCut)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public ImageSource? Icon
     {

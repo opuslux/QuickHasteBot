@@ -421,18 +421,22 @@ Das Datum vom nächsten Montag</value></data>
   <data name="RenameConfirm" xml:space="preserve"><value>Umbenennen</value></data>
   <data name="RenameErrorFormat" xml:space="preserve"><value>Konnte nicht umbenannt werden:
 {0}</value></data>
-  <data name="MenuClone" xml:space="preserve"><value>Klonen…</value></data>
   <data name="MenuDelete" xml:space="preserve"><value>Löschen…</value></data>
-  <data name="CloneTitle" xml:space="preserve"><value>Klonen</value></data>
-  <data name="ClonePromptFormat" xml:space="preserve"><value>Name der Kopie von «{0}»:</value></data>
-  <data name="CloneConfirm" xml:space="preserve"><value>Klonen</value></data>
+  <data name="MenuCopy" xml:space="preserve"><value>Kopieren</value></data>
+  <data name="MenuCut" xml:space="preserve"><value>Ausschneiden</value></data>
+  <data name="MenuPaste" xml:space="preserve"><value>Einfügen</value></data>
+  <data name="MenuPasteFormat" xml:space="preserve"><value>«{0}» hier einfügen</value></data>
+  <data name="PasteExistsFormat" xml:space="preserve"><value>Dort gibt es schon eine Datei oder einen Ordner «{0}».</value></data>
+  <data name="MoveErrorFormat" xml:space="preserve"><value>Konnte nicht verschoben werden:
+{0}</value></data>
   <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="CopySuffix" xml:space="preserve"><value> - Kopie</value></data>
   <data name="NameInvalid" xml:space="preserve"><value>Ein Name darf kein \ / : * ? " &lt; &gt; | enthalten und nicht mit einem Punkt enden.</value></data>
   <data name="NameExists" xml:space="preserve"><value>Eine Datei oder ein Ordner mit diesem Namen existiert schon.</value></data>
-  <data name="CloneErrorFormat" xml:space="preserve"><value>Die Kopie konnte nicht erstellt werden:
+  <data name="CopyErrorFormat" xml:space="preserve"><value>Die Kopie konnte nicht erstellt werden:
 {0}</value></data>
   <data name="DeleteConfirmFormat" xml:space="preserve"><value>«{0}» in den Papierkorb verschieben?</value></data>
+  <data name="DeleteFolderConfirmFormat" xml:space="preserve"><value>Den Ordner «{0}» mit allem Inhalt in den Papierkorb verschieben?</value></data>
   <data name="DeleteErrorFormat" xml:space="preserve"><value>«{0}» konnte nicht gelöscht werden:
 {1}</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>Der Textbaustein konnte nicht gelesen werden:

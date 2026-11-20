@@ -214,21 +214,6 @@ internal partial class SnippetEditorWindow : Window
     }
 
     /// <summary>
-    /// Die Symbolleiste oben im Rechtsklick-Menü: ohne die Spalte für Symbole und Kürzel eines Eintrags, bündig mit den
-    /// Symbolen darunter.
-    /// </summary>
-    static readonly ControlTemplate IconRowTemplate = CreateIconRowTemplate();
-
-    static ControlTemplate CreateIconRowTemplate()
-    {
-        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
-        presenter.SetValue(ContentPresenter.ContentSourceProperty, "Header");
-        var template = new ControlTemplate(typeof(MenuItem)) { VisualTree = presenter };
-        template.Seal();
-        return template;
-    }
-
-    /// <summary>
     /// Das Rechtsklick-Menü im Text: oben die einfachen Befehle als Symbole wie im Kontextmenü von Windows 11, darunter
     /// formatiert einfügen, alles markieren, Suchen/Ersetzen und Einrückung ordnen, mit ihren Tastenkürzeln.
     /// </summary>
@@ -245,32 +230,21 @@ internal partial class SnippetEditorWindow : Window
         }
 
         // Links Kopieren, Ausschneiden, Einfügen, rechtsbündig Rückgängig und Wiederholen
-        var left = new StackPanel { Orientation = Orientation.Horizontal };
-        var right = new StackPanel { Orientation = Orientation.Horizontal };
-        DockPanel.SetDock(right, Dock.Right);
-        var icons = new DockPanel { LastChildFill = false, Children = { right, left } };
-        void Icon(StackPanel icons, string glyph, string name, bool enabled, Action action)
+        MenuIconCommand Icon(string glyph, string name, bool enabled, Action action) => new(glyph, name, enabled, () =>
         {
-            var button = new Button
-            {
-                Content = glyph, Style = (Style)FindResource("MenuIconButton"), IsEnabled = enabled, ToolTip = name,
-            };
-            System.Windows.Automation.AutomationProperties.SetName(button, name);
-            button.Click += (_, _) =>
-            {
-                menu.IsOpen = false;
-                action();
-                BodyInput.Focus();
-            };
-            icons.Children.Add(button);
-        }
-        Icon(left, MenuIcons.Copy, Strings.EditorMenuCopy, selected, BodyInput.Copy);
-        Icon(left, MenuIcons.Cut, Strings.EditorMenuCut, editable && selected, BodyInput.Cut);
-        Icon(left, MenuIcons.Paste, Strings.EditorMenuPaste, editable && HasClipboard(DataFormats.UnicodeText), BodyInput.Paste);
-        Icon(right, MenuIcons.Undo, Strings.EditorMenuUndo, editable && BodyInput.CanUndo, () => BodyInput.Undo());
-        Icon(right, MenuIcons.Redo, Strings.EditorMenuRedo, editable && BodyInput.CanRedo, () => BodyInput.Redo());
-        icons.Margin = new Thickness(6, 2, 6, 4);
-        menu.Items.Add(new MenuItem { Header = icons, StaysOpenOnClick = true, Focusable = false, Template = IconRowTemplate });
+            action();
+            BodyInput.Focus();
+        });
+        menu.Items.Add(MenuIconRow.Create(menu,
+            [
+                Icon(MenuIcons.Copy, Strings.EditorMenuCopy, selected, BodyInput.Copy),
+                Icon(MenuIcons.Cut, Strings.EditorMenuCut, editable && selected, BodyInput.Cut),
+                Icon(MenuIcons.Paste, Strings.EditorMenuPaste, editable && HasClipboard(DataFormats.UnicodeText), BodyInput.Paste),
+            ],
+            [
+                Icon(MenuIcons.Undo, Strings.EditorMenuUndo, editable && BodyInput.CanUndo, () => BodyInput.Undo()),
+                Icon(MenuIcons.Redo, Strings.EditorMenuRedo, editable && BodyInput.CanRedo, () => BodyInput.Redo()),
+            ]));
         menu.Items.Add(new Separator());
 
         menu.Items.Add(Entry(Strings.EditorMenuPasteFormatted, MenuIcons.PasteFormatted, Strings.EditorMenuPasteFormattedGesture,

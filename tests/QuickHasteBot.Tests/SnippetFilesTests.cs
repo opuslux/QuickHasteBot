@@ -135,6 +135,32 @@ public class SnippetFilesTests
     }
 
     [Fact]
+    public void Move_a_folder_with_everything_in_it()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"Mails\Intern\Gruss.txt", "Hallo");
+        var archive = Directory.CreateDirectory(Path.Combine(dir.Path, "Archiv")).FullName;
+
+        var target = SnippetFiles.Move(Path.Combine(dir.Path, @"Mails\Intern"), archive, "Intern");
+
+        Assert.Equal(Path.Combine(archive, "Intern"), target);
+        Assert.False(Directory.Exists(Path.Combine(dir.Path, @"Mails\Intern")));
+        Assert.Equal("Hallo", File.ReadAllText(Path.Combine(target, "Gruss.txt")));
+    }
+
+    [Fact]
+    public void Move_a_folder_never_merges_into_an_existing_one()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"Mails\Intern\Gruss.txt", "neu");
+        var existing = dir.File(@"Archiv\Intern\Alt.txt", "alt");
+
+        Assert.Throws<IOException>(() => SnippetFiles.Move(Path.Combine(dir.Path, @"Mails\Intern"), Path.Combine(dir.Path, "Archiv"), "Intern"));
+        Assert.True(File.Exists(Path.Combine(dir.Path, @"Mails\Intern\Gruss.txt")));
+        Assert.Equal(["Alt.txt"], Directory.GetFiles(Path.GetDirectoryName(existing)!).Select(Path.GetFileName));
+    }
+
+    [Fact]
     public void Move_never_overwrites()
     {
         using var dir = new TempDirectory();
@@ -147,12 +173,12 @@ public class SnippetFilesTests
     }
 
     [Fact]
-    public void Clone_copies_into_the_same_folder()
+    public void Copy_into_the_same_folder()
     {
         using var dir = new TempDirectory();
         var source = dir.File(@"Mails\Gruss.txt", "Freundliche Grüsse");
 
-        var copy = SnippetFiles.Clone(source, "Gruss CH.txt");
+        var copy = SnippetFiles.Copy(source, Path.GetDirectoryName(source)!, "Gruss CH.txt");
 
         Assert.Equal(Path.Combine(dir.Path, "Mails", "Gruss CH.txt"), copy);
         Assert.Equal("Freundliche Grüsse", File.ReadAllText(copy));
@@ -160,13 +186,44 @@ public class SnippetFilesTests
     }
 
     [Fact]
-    public void Clone_never_overwrites()
+    public void Copy_never_overwrites()
     {
         using var dir = new TempDirectory();
         var source = dir.File("Gruss.txt", "neu");
         var existing = dir.File("Alt.txt", "alt");
 
-        Assert.Throws<IOException>(() => SnippetFiles.Clone(source, "Alt.txt"));
+        Assert.Throws<IOException>(() => SnippetFiles.Copy(source, dir.Path, "Alt.txt"));
         Assert.Equal("alt", File.ReadAllText(existing));
+    }
+
+    [Fact]
+    public void Copy_a_folder_with_everything_in_it()
+    {
+        using var dir = new TempDirectory();
+        dir.File(@"Mails\Intern\Gruss.txt", "Hallo");
+        dir.File(@"Mails\Intern\Alt\Mfg.txt", "Mfg");
+        var source = Path.Combine(dir.Path, @"Mails\Intern");
+
+        var copy = SnippetFiles.Copy(source, Path.Combine(dir.Path, "Mails"), "Intern - Kopie");
+
+        Assert.Equal("Hallo", File.ReadAllText(Path.Combine(copy, "Gruss.txt")));
+        Assert.Equal("Mfg", File.ReadAllText(Path.Combine(copy, @"Alt\Mfg.txt")));
+        Assert.True(File.Exists(Path.Combine(source, "Gruss.txt")));
+        Assert.Throws<IOException>(() => SnippetFiles.Copy(source, Path.Combine(dir.Path, "Mails"), "Intern - Kopie"));
+        // In sich selbst ginge es endlos weiter
+        Assert.Throws<IOException>(() => SnippetFiles.Copy(source, source, "Intern"));
+    }
+
+    [Fact]
+    public void Copy_name_for_another_folder_and_for_folders()
+    {
+        using var dir = new TempDirectory();
+        var source = dir.File(@"Mails\Gruss.txt", "");
+        dir.File(@"Archiv\Gruss - Kopie.txt", "");
+        var folder = Directory.CreateDirectory(Path.Combine(dir.Path, "Version 1.2")).FullName;
+
+        Assert.Equal("Gruss - Kopie (2).txt", SnippetFiles.SuggestCopyName(source, " - Kopie", Path.Combine(dir.Path, "Archiv")));
+        // Bei Ordnern ist ".2" keine Endung
+        Assert.Equal("Version 1.2 - Kopie", SnippetFiles.SuggestCopyName(folder, " - Kopie"));
     }
 }
