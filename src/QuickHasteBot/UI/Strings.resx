@@ -541,7 +541,10 @@ Everything learned for this snippet is deleted: how often it was used and all it
   <data name="StepBarError" xml:space="preserve"><value>Didn't run</value></data>
   <!-- Aufnahme -->
   <data name="EditorRecord" xml:space="preserve"><value>Record</value></data>
-  <data name="EditorRecordToolTip" xml:space="preserve"><value>Then click into the target window and fill in the form once yourself: fields, choices, checkboxes and clicks become tags at the cursor. Single keys like Tab or Enter are not recorded, only what they do.</value></data>
+  <data name="EditorRecordToolTipTitle" xml:space="preserve"><value>Experimental: check the result</value></data>
+  <data name="EditorRecordToolTip" xml:space="preserve"><value>Then click into the target window and fill in the form once yourself: fields, choices, checkboxes and clicks become tags at the cursor.
+
+By design, recording uses no keyboard or mouse hook and only sees what UI Automation shows. So keys like Tab, Enter or shortcuts are missing (only what they did is recorded), programs without UI Automation or running as administrator stay invisible, and some web forms give incomplete steps. Test the recording and add what is missing by hand.</value></data>
   <data name="EditorRecordStop" xml:space="preserve"><value>Stop recording</value></data>
   <data name="EditorRecordClickTarget" xml:space="preserve"><value>Now click into the target window</value></data>
   <data name="EditorRecordWaiting" xml:space="preserve"><value>Recording runs there until you press Done in the bar. </value></data>

@@ -541,7 +541,10 @@ Alles für diesen Baustein Gelernte wird gelöscht: wie oft er benutzt wurde und
   <data name="StepBarError" xml:space="preserve"><value>Nicht gelaufen</value></data>
   <!-- Aufnahme -->
   <data name="EditorRecord" xml:space="preserve"><value>Aufnehmen</value></data>
-  <data name="EditorRecordToolTip" xml:space="preserve"><value>Danach ins Zielfenster klicken und das Formular einmal selbst ausfüllen: Felder, Auswahl, Checkboxen und Klicks werden zu Tags an der Schreibmarke. Einzelne Tasten wie Tab oder Enter werden nicht aufgenommen, nur was sie bewirken.</value></data>
+  <data name="EditorRecordToolTipTitle" xml:space="preserve"><value>Experimentell: Ergebnis prüfen</value></data>
+  <data name="EditorRecordToolTip" xml:space="preserve"><value>Danach ins Zielfenster klicken und das Formular einmal selbst ausfüllen: Felder, Auswahl, Checkboxen und Klicks werden zu Tags an der Schreibmarke.
+
+Die Aufnahme arbeitet bewusst ohne Tastatur- und Maus-Hook und sieht nur, was UI Automation zeigt. Darum fehlen Tasten wie Tab, Enter oder Tastenkürzel (aufgenommen wird nur, was sie bewirkt haben), Programme ohne UI Automation oder mit Administratorrechten bleiben unsichtbar, und manche Web-Formulare liefern unvollständige Schritte. Die Aufnahme testen und Fehlendes von Hand ergänzen.</value></data>
   <data name="EditorRecordStop" xml:space="preserve"><value>Aufnahme beenden</value></data>
   <data name="EditorRecordClickTarget" xml:space="preserve"><value>Jetzt ins Zielfenster klicken</value></data>
   <data name="EditorRecordWaiting" xml:space="preserve"><value>Dort wird aufgenommen, bis du in der Leiste «Fertig» drückst. </value></data>
