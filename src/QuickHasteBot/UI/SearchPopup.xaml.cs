@@ -685,7 +685,7 @@ internal partial class SearchPopup : Window
     }
 
     // Rechtsklick auf einen Eintrag, links wie rechts. Links wird er dabei markiert, rechts bleibt der Ordner markiert.
-    // Auf die freie Fläche: neuer Baustein oder Ordner im offenen Ordner, sonst käme man in einem leeren Ordner nicht dazu.
+    // Auf die freie Fläche: neuer Baustein oder Ordner in dem Ordner, den die Spalte zeigt, sonst käme man in einem leeren Ordner nicht dazu.
     void OnListRightButtonUp(object sender, MouseButtonEventArgs e)
     {
         var list = (ListBox)sender;
@@ -728,14 +728,14 @@ internal partial class SearchPopup : Window
             HideUnlessKeptOpen();
             _app.RevealInExplorer(snippet);
         }));
-        // Neuer Baustein im Ordner bzw. neben der Datei
+        // Neuer Baustein bzw. Ordner im Ordner unter der Maus, bei einer Datei daneben
+        var parent = snippet.IsFolder ? snippet : snippet.Parent ?? _viewModel.CurrentFolder;
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
             HideUnlessKeptOpen();
-            _app.NewSnippet(snippet);
+            _app.NewSnippet(parent);
         }));
-        // Immer im offenen Ordner, nicht im Ordner unter der Maus: der Dialog sagt das
-        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, NewFolder));
+        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, () => NewFolder(parent)));
         menu.Items.Add(MenuEntry(Strings.MenuRename, MenuIcons.Rename, () => Rename(snippet)));
         menu.Items.Add(MenuEntry(Strings.MenuSetHotkey, MenuIcons.Hotkey, () => SetHotkey(snippet)));
         if (!snippet.IsFolder)
@@ -746,23 +746,36 @@ internal partial class SearchPopup : Window
         menu.IsOpen = true;
     }
 
-    /// <summary>Rechtsklick neben die Einträge: was im offenen Ordner neu entstehen kann.</summary>
-    void ShowFolderMenu(UIElement target)
+    /// <summary>
+    /// Rechtsklick neben die Einträge: was in dem Ordner neu entstehen kann, dessen Inhalt die Spalte zeigt. Links der
+    /// offene Ordner, rechts der links markierte.
+    /// </summary>
+    void ShowFolderMenu(ListBox list) =>
+        ShowFolderMenu(list, list == DetailList && _viewModel.Selected?.Snippet is { IsFolder: true } shown ? shown : _viewModel.CurrentFolder);
+
+    // Rechts bei einem leeren Ordner steht statt der Liste nur der Hinweis: auch dort neu anlegen können
+    void OnDetailTextRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_viewModel.Selected?.Snippet is not { IsFolder: true } folder) return;
+        ShowFolderMenu((UIElement)sender, folder);
+        e.Handled = true;
+    }
+
+    void ShowFolderMenu(UIElement target, Snippet parent)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
         {
             HideUnlessKeptOpen();
-            _app.NewSnippet(_viewModel.CurrentFolder);
+            _app.NewSnippet(parent);
         }));
-        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, NewFolder));
+        menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, () => NewFolder(parent)));
         menu.IsOpen = true;
     }
 
-    /// <summary>Neuer Ordner im Ordner, der im Popup offen ist, danach markiert.</summary>
-    void NewFolder()
+    /// <summary>Neuer Ordner in diesem Ordner, danach markiert, wenn er links steht.</summary>
+    void NewFolder(Snippet parent)
     {
-        var parent = _viewModel.CurrentFolder;
         var display = string.Join(" › ", new[] { Strings.BreadcrumbRoot }
             .Concat(parent.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)));
         var dialog = NameDialog.ForNewFolder(parent.FullPath, display);
