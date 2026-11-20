@@ -31,6 +31,8 @@ internal partial class SearchPopup : Window
     readonly DispatcherTimer _hoverTimer;
     nint _targetWindow;
     SnippetItem? _pressedItem;
+    DependencyObject? _pressedLocation; // Ordner im Pfad unter einem Treffer, gedrückt und noch nicht losgelassen
+    bool _afterLocationClick;
     SnippetItem? _hoverItem;
     Point _lastMouse;
     readonly Queue<Point> _recentMoves = new();
@@ -473,6 +475,7 @@ internal partial class SearchPopup : Window
 
         _dragStart = null;
         _pressedItem = null;
+        _pressedLocation = null;
         Mouse.Capture(null);
 
         // Während des Ziehens nicht zurückspringen, auch wenn ein Monitorwechsel die Größe ändert
@@ -590,16 +593,49 @@ internal partial class SearchPopup : Window
     void OnResultsMouseDown(object sender, MouseButtonEventArgs e)
     {
         _hoverTimer.Stop();
+        if (e.ClickCount == 1)
+            _afterLocationClick = false;
+
+        // Ein Ordner im Pfad unter einem Treffer: erst beim Loslassen dorthin, wie die Kopfzeile
+        _pressedLocation = e.ClickCount == 1 && LocationLinks.TargetAt(e.OriginalSource) is not null ? (DependencyObject)e.OriginalSource : null;
+        if (_pressedLocation is not null)
+        {
+            _pressedItem = null;
+            return;
+        }
+
         _pressedItem = e.ClickCount == 1 ? ItemAt(Results, e.OriginalSource) : null;
         if (_pressedItem is not null)
             _viewModel.Selected = _pressedItem;
     }
 
-    void OnResultsMouseUp(object sender, MouseButtonEventArgs e) =>
-        OnListMouseUp(Results, e, _ => ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)));
+    void OnResultsMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        var pressedLocation = _pressedLocation;
+        _pressedLocation = null;
+        if (pressedLocation is not null)
+        {
+            // Nur wenn die Maus noch auf demselben Ordner ist. Das Loslassen am Ende des Verschiebens ist kein Klick.
+            if (!_moving && e.OriginalSource == pressedLocation && LocationLinks.TargetAt(pressedLocation) is { } target
+                && ItemAt(Results, pressedLocation) is { } item)
+            {
+                _viewModel.OpenLocation(item.Snippet, target);
+                // Ein Doppelklick darauf soll nicht den Eintrag starten, der danach unter der Maus steht
+                _afterLocationClick = true;
+                Keyboard.Focus(SearchBox);
+            }
+            e.Handled = true;
+            return;
+        }
 
-    void OnResultsDoubleClick(object sender, MouseButtonEventArgs e) =>
+        OnListMouseUp(Results, e, _ => ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)));
+    }
+
+    void OnResultsDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (_afterLocationClick) return;
         OnListDoubleClick(Results, e, _ => ActivateSelected(alternate: Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)));
+    }
 
     // Rechts bleibt die Auswahl links, wie sie ist: Ein Klick fügt direkt ein bzw. öffnet den Ordner
     void OnDetailMouseDown(object sender, MouseButtonEventArgs e) =>

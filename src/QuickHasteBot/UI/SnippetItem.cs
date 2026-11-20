@@ -41,6 +41,16 @@ internal sealed class SnippetItem
 
     public bool ShowLocation { get; }
 
+    /// <summary>Die Ordner von <see cref="Location"/> einzeln, jeder mit seinem Pfad als Ziel zum Hinspringen.</summary>
+    public IReadOnlyList<Breadcrumb> LocationCrumbs
+    {
+        get
+        {
+            var parts = (Path.GetDirectoryName(Snippet.RelativePath) ?? "").Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+            return parts.Select((name, i) => new Breadcrumb(name, Path.Combine(parts[..(i + 1)]), ShowSeparator: i > 0)).ToList();
+        }
+    }
+
     public bool IsFolder => Snippet.IsFolder;
 
     /// <summary>Der Hotkey aus dem Dateinamen als Badge, z.B. "Ctrl+Alt+G". Null ohne Hotkey.</summary>

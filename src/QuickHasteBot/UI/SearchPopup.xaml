@@ -105,7 +105,8 @@
                     <TextBlock TextTrimming="CharacterEllipsis" FontSize="12.5">
                         <Run Text="{Binding NameBefore, Mode=OneWay}" /><Run Text="{Binding NameMatch, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" /><Run Text="{Binding NameAfter, Mode=OneWay}" />
                     </TextBlock>
-                    <TextBlock Text="{Binding Location}" FontSize="10.5" TextTrimming="CharacterEllipsis"
+                    <!-- Ordnerpfad eines Treffers, jeder Ordner springt dorthin (LocationLinks, OnResultsMouseUp) -->
+                    <TextBlock ui:LocationLinks.Crumbs="{Binding LocationCrumbs, Mode=OneTime}" FontSize="10.5" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                Visibility="{Binding ShowLocation, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
