@@ -195,6 +195,10 @@ internal partial class SettingsWindow
     void OnStatsResetMenu(object sender, RoutedEventArgs e)
     {
         if (StatsList.SelectedItem is not UsageRow row) return;
+        // Löscht alles für diesen Baustein Gelernte, darum vorher fragen
+        var answer = MessageDialog.Show(this, string.Format(Strings.StatsResetConfirmFormat, row.Name),
+            MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+        if (answer != MessageBoxResult.Yes) return;
         _app.ResetUsage(row.Snippet);
         UpdateStats();
     }

@@ -293,7 +293,7 @@ internal partial class SettingsWindow : Window
 
     void OnClearUsage(object sender, MouseButtonEventArgs e)
     {
-        var answer = MessageDialog.Show(this, Strings.ClearUsageConfirm, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+        var answer = MessageDialog.Show(this, Strings.ClearUsageConfirm, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (answer != MessageBoxResult.Yes) return;
         _app.ClearUsage();
         if (_statsLoaded)
