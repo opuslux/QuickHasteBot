@@ -186,6 +186,27 @@ public partial class WindowSmokeTests
         viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
 
+        // Ordnerpfad unter einem Treffer: jeder Ordner springt dorthin, markiert ist der Weg zum Treffer
+        viewModel.Query = "01-Gruss";
+        var hit = viewModel.Items.Single(i => i.Snippet.Name == "01-Gruss");
+        Assert.Equal(["4-Grüsse", "Intern"], hit.LocationCrumbs.Select(c => c.Name));
+        Assert.Equal(["4-Grüsse", @"4-Grüsse\Intern"], hit.LocationCrumbs.Select(c => c.Target));
+        popup.UpdateLayout();
+        var location = Descendants<System.Windows.Controls.TextBlock>(popup.Results)
+            .Single(t => t.Inlines.Any(r => LocationLinks.TargetAt(r) is not null));
+        Assert.Equal(["4-Grüsse", @"4-Grüsse\Intern"], location.Inlines.Select(LocationLinks.TargetAt).OfType<string>());
+        Assert.Equal("4-Grüsse › Intern", string.Concat(location.Inlines.OfType<System.Windows.Documents.Run>().Select(r => r.Text)));
+        viewModel.OpenLocation(hit.Snippet, hit.LocationCrumbs[0].Target!);
+        Assert.Equal("", viewModel.Query);
+        Assert.Equal(["Bausteine", "4-Grüsse"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("Intern", viewModel.Selected?.Snippet.Name);
+        viewModel.Query = "01-Gruss";
+        viewModel.OpenLocation(hit.Snippet, hit.LocationCrumbs[1].Target!);
+        Assert.Equal(["Bausteine", "4-Grüsse", "Intern"], viewModel.Breadcrumbs.Select(c => c.Name));
+        Assert.Equal("01-Gruss", viewModel.Selected?.Snippet.Name);
+        viewModel.GoTo("");
+        Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
+
         var mfg = controller.Library.Find(@"4-Grüsse\01-MfG-DE.txt")!;
 
         // Umbenennen: unverändert gesperrt, nur Gross/Klein zu ändern erlaubt

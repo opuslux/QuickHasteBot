@@ -337,6 +337,22 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
         Refresh(selectRelativePath: "");
     }
 
+    /// <summary>
+    /// Klick auf einen Ordner im Pfad unter einem Treffer: Die Suche endet, das Popup blättert in diesen Ordner.
+    /// Markiert ist, was dort auf dem Weg zum Treffer liegt, im letzten Ordner der Treffer selbst.
+    /// </summary>
+    public void OpenLocation(Snippet snippet, string folderPath)
+    {
+        var parts = SplitPath(snippet.RelativePath);
+        var depth = Math.Min(SplitPath(folderPath).Length, parts.Length - 1);
+
+        _folderPath = folderPath;
+        _query = "";
+        OnPropertyChanged(nameof(Query));
+        OnPropertyChanged(nameof(ShowPlaceholder));
+        Refresh(selectRelativePath: Path.Combine(parts[..(depth + 1)]));
+    }
+
     /// <summary>Eine Ebene hoch, der Ordner, aus dem man kommt, bleibt ausgewählt.</summary>
     public bool GoUp()
     {
