@@ -34,7 +34,13 @@ public static class UsageRanking
         };
     }
 
-    public static int Points(IEnumerable<DateTime> uses, DateTime now) => uses.Sum(use => Points(use, now));
+    public static int Points(IReadOnlyList<DateTime> uses, DateTime now)
+    {
+        var sum = 0;
+        for (var i = 0; i < uses.Count; i++)
+            sum += Points(uses[i], now);
+        return sum;
+    }
 
     public static int UsageBonus(double points) => Scale(points, FullUsagePoints, MaxUsageBonus);
 

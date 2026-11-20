@@ -297,6 +297,20 @@ internal sealed class AppController : IDisposable
         Log.Info("Verlauf der Nutzung gelöscht");
     }
 
+    /// <summary>Statistik eines Eintrags zurücksetzen (Tab "Statistik"), der Hotkey bleibt.</summary>
+    public void ResetUsage(Snippet snippet)
+    {
+        SnippetData.ResetUsage(snippet.RelativePath);
+        _popup?.OnLibraryChanged();
+    }
+
+    /// <summary>Einen gelernten Suchtext eines Eintrags vergessen (Tab "Statistik").</summary>
+    public void ForgetQuery(string query, Snippet snippet)
+    {
+        SnippetData.ForgetQuery(query, snippet.RelativePath);
+        _popup?.OnLibraryChanged();
+    }
+
     /// <summary>
     /// Textbausteine mit dem Programm, das in Windows für die Endung eingestellt ist (z.B. Notepad++). Das Verb "edit"
     /// führt bei .txt fest zum Windows-Editor. Ausführbare Endungen wie .bat würden mit "open" aber laufen, dort und bei

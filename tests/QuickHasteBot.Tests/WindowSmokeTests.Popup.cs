@@ -126,6 +126,80 @@ public partial class WindowSmokeTests
         settings.Close();
     }
 
+    /// <summary>Tooltip am Icon und Tab "Statistik": Zähler nach Quelle, gelernte Suchtexte, sortieren, filtern, vergessen.</summary>
+    static void UsageStatistics()
+    {
+        using var dir = new TempDirectory();
+        dir.File("settings.json", """{ "Language": "de" }""");
+        dir.File(@"structure\1-Grüsse\MfG.txt", "Mit freundlichen Grüssen");
+        dir.File(@"structure\1-Grüsse\Gruss.txt", "Gruss");
+        dir.File(@"structure\Notiz.txt", "Notiz");
+        using var controller = new AppController(new AppPaths(dir.Path));
+        var mfg = controller.Library.All.Single(s => s.Name == "MfG");
+        controller.RecordUse(mfg, UseSource.Search, "mf");
+        controller.RecordUse(mfg, UseSource.Search, "MF");
+        controller.RecordUse(mfg, UseSource.Hotkey);
+        controller.RecordUse(controller.Library.All.Single(s => s.Name == "Gruss"), UseSource.Browse);
+
+        // Tooltip am Icon: bei der Suche auch, warum der Eintrag oben steht; nie Benutztes hat keinen
+        var popup = new SearchPopup(controller);
+        var viewModel = (SearchPopupViewModel)popup.DataContext;
+        viewModel.Reset();
+        viewModel.Query = "mf";
+        Assert.Equal("""
+            3× benutzt (Suche 2 · Blättern 0 · Hotkey 1)
+            Zuletzt heute
+            Gelernt: „mf“ (2×)
+            Weiter oben, weil nach „mf“ 2× gewählt
+            """.ReplaceLineEndings(), popup.UsageTooltip(viewModel.Items.Single(i => i.Snippet.Name == "MfG")));
+        viewModel.Query = "";
+        Assert.Null(popup.UsageTooltip(viewModel.Items.Single(i => i.Snippet.Name == "Notiz")));
+        popup.Close();
+
+        // Tab: die meistbenutzten zuerst, unbenutzte Ordner fehlen
+        var settings = new SettingsWindow(controller);
+        settings.StatsTab.IsSelected = true;
+        List<string> Names() => settings.StatsList.Items.Cast<SettingsWindow.UsageRow>().Select(r => r.Name).ToList();
+        var rows = settings.StatsList.Items.Cast<SettingsWindow.UsageRow>().ToList();
+        Assert.Equal(["MfG", "Gruss", "Notiz"], Names());
+        Assert.Equal(["3", "2", "", "1", "heute", "„mf“ (2×)"],
+            new[] { rows[0].TotalText, rows[0].SearchText, rows[0].BrowseText, rows[0].HotkeyText, rows[0].LastText, rows[0].LearnedText });
+        Assert.Equal(["0", "nie"], new[] { rows[2].TotalText, rows[2].LastText });
+        Assert.Equal($"Seit {UsageText.Date(controller.SnippetData.Since)} · 4× benutzt · 2 von 3 Bausteinen",
+            settings.StatsSummary.Text);
+        var headers = settings.StatsHeader.Children.OfType<System.Windows.Controls.TextBlock>().ToList();
+        Assert.Equal("Gesamt ▾", headers[2].Text);
+        Snapshot(settings, "settings-stats.png");
+
+        // Spaltenkopf sortiert, ein zweiter Klick dreht um
+        void ClickHeader(int column) => headers[column].RaiseEvent(
+            new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left) { RoutedEvent = UIElement.MouseLeftButtonUpEvent });
+        ClickHeader(0);
+        Assert.Equal(["Gruss", "MfG", "Notiz"], Names());
+        Assert.Equal("Name ▴", headers[0].Text);
+        ClickHeader(0);
+        Assert.Equal(["Notiz", "MfG", "Gruss"], Names());
+
+        // Nur nie benutzte, Suchfeld (auch im Ordner)
+        settings.StatsNeverUsedInput.IsChecked = true;
+        settings.StatsNeverUsedInput.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Equal(["Notiz"], Names());
+        settings.StatsNeverUsedInput.IsChecked = false;
+        settings.StatsNeverUsedInput.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        settings.StatsFilterInput.Text = "grüsse";
+        Assert.Equal(["MfG", "Gruss"], Names());
+        settings.StatsFilterInput.Text = "";
+
+        // Gelernten Suchtext vergessen: weg aus Liste und snippets.json, die Zähler bleiben
+        var row = settings.StatsList.Items.Cast<SettingsWindow.UsageRow>().Single(r => r.Name == "MfG");
+        settings.ForgetQuery(row, row.Stats!.Queries[0]);
+        row = settings.StatsList.Items.Cast<SettingsWindow.UsageRow>().Single(r => r.Name == "MfG");
+        Assert.Equal(("3", ""), (row.TotalText, row.LearnedText));
+        controller.SnippetData.Flush();
+        Assert.DoesNotContain("\"mf\"", File.ReadAllText(dir.Path + @"\snippets.json"));
+        settings.Close();
+    }
+
     /// <summary>
     /// Ein langer Ordnerinhalt rechts macht das Popup höher statt zu scrollen. Es schrumpft nicht, solange die linke
     /// Liste bleibt, und hält sich an die maximale Höhe (dann scrollt die rechte Liste doch).

@@ -251,4 +251,78 @@ public class SnippetDataTests
             Thread.Sleep(50);
         Assert.Contains("a.txt", File.ReadAllText(path));
     }
+
+    [Fact]
+    public void Stats_show_counts_by_source_and_learned_queries()
+    {
+        using var dir = new TempDirectory();
+        var clock = new Clock();
+        using var data = Load(dir, clock);
+        data.RecordUse("a.txt", UseSource.Search, "Gruss");
+        clock.Now = Start.AddHours(1);
+        data.RecordUse("a.txt", UseSource.Search, "mf");
+        data.RecordUse("a.txt", UseSource.Search, "MF");
+        data.RecordUse("a.txt", UseSource.Browse);
+        data.RecordUse("a.txt", UseSource.Hotkey);
+        data.SetHotkey("b.txt", CtrlAltG);
+
+        var stats = data.StatsFor("A.TXT")!;
+        Assert.Equal((3, 1, 1, 5), (stats.Search, stats.Browse, stats.Hotkey, stats.Total));
+        Assert.Equal((Start, Start.AddHours(1)), (stats.First!.Value, stats.Last!.Value));
+        // Die häufigsten zuerst, normalisiert
+        Assert.Equal([("mf", 2), ("gruss", 1)], stats.Queries.Select(q => (q.Query, q.Count)));
+        // Nur ein Hotkey ist keine Nutzung
+        Assert.Null(data.StatsFor("b.txt"));
+        Assert.Null(data.StatsFor("c.txt"));
+
+        var all = data.AllStats();
+        Assert.Equal(["a.txt"], all.Keys);
+        Assert.Equal(stats, all["a.txt"] with { Queries = stats.Queries });
+        Assert.Equal(stats.Queries, all["A.txt"].Queries);
+    }
+
+    [Fact]
+    public void Forgetting_a_query_drops_only_its_bonus()
+    {
+        using var dir = new TempDirectory();
+        using (var data = Load(dir))
+        {
+            data.RecordUse("a.txt", UseSource.Search, "mf");
+            data.RecordUse("a.txt", UseSource.Search, "gruss");
+            data.RecordUse("b.txt", UseSource.Search, "mf");
+            var before = data.BonusFor("mf")!(Snippet("a.txt"));
+
+            data.ForgetQuery("MF", "a.txt");
+
+            Assert.True(data.BonusFor("mf")!(Snippet("a.txt")) < before);
+            Assert.Equal(["gruss"], data.StatsFor("a.txt")!.Queries.Select(q => q.Query));
+            Assert.Equal(["mf"], data.StatsFor("b.txt")!.Queries.Select(q => q.Query));
+            Assert.Equal(2, data.StatsFor("a.txt")!.Search);
+        }
+
+        // Sofort gespeichert
+        using var reloaded = Load(dir);
+        Assert.Equal(["gruss"], reloaded.StatsFor("a.txt")!.Queries.Select(q => q.Query));
+    }
+
+    [Fact]
+    public void Resetting_an_entry_keeps_its_hotkey_and_the_others()
+    {
+        using var dir = new TempDirectory();
+        using var data = Load(dir);
+        data.SetHotkey("a.txt", CtrlAltG);
+        data.RecordUse("a.txt", UseSource.Search, "mf");
+        data.RecordUse("b.txt", UseSource.Search, "mf");
+        data.RecordUse("c.txt", UseSource.Browse);
+
+        data.ResetUsage("a.txt");
+        data.ResetUsage("c.txt");
+
+        Assert.Null(data.StatsFor("a.txt"));
+        Assert.Null(data.StatsFor("c.txt"));
+        Assert.Equal(CtrlAltG, data.HotkeyFor("a.txt"));
+        Assert.Equal(1, data.StatsFor("b.txt")!.Total);
+        Assert.Equal(["b.txt"], data.AllStats().Keys);
+        Assert.Equal(0, data.BonusFor("mf")!(Snippet("a.txt")));
+    }
 }

@@ -95,9 +95,11 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
+                <!-- Tooltip mit der Nutzung, erst beim Öffnen berechnet (OnIconToolTipOpening), nie Benutztes hat keinen -->
                 <Image Source="{Binding Icon}" Width="16" Height="16"
                        VerticalAlignment="Center" HorizontalAlignment="Left"
-                       RenderOptions.BitmapScalingMode="HighQuality" />
+                       RenderOptions.BitmapScalingMode="HighQuality"
+                       ToolTip="" ToolTipOpening="OnIconToolTipOpening" />
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock TextTrimming="CharacterEllipsis" FontSize="12.5">
