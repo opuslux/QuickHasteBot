@@ -186,21 +186,7 @@ public partial class WindowSmokeTests
         viewModel.GoTo(viewModel.Breadcrumbs[0].Target!);
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
 
-        // Klonen: Vorschlag wie im Explorer, ungültige oder vergebene Namen sperren den Knopf
         var mfg = controller.Library.Find(@"4-Grüsse\01-MfG-DE.txt")!;
-        var dialog = NameDialog.ForClone(mfg, SnippetFiles.SuggestCopyName(mfg.FullPath, Strings.CopySuffix));
-        Assert.Equal("01-MfG-DE - Kopie.txt", dialog.FileName);
-        Assert.True(dialog.ConfirmButton.IsEnabled);
-        Snapshot(dialog, "clone.png");
-        dialog.NameInput.Text = "03-MfG-EN.txt";
-        Assert.Equal(Strings.NameExists, dialog.Problem.Text);
-        Assert.False(dialog.ConfirmButton.IsEnabled);
-        dialog.NameInput.Text = "MfG: neu.txt";
-        Assert.Equal(Strings.NameInvalid, dialog.Problem.Text);
-        dialog.NameInput.Text = "  02-MfG-CH.txt ";
-        Assert.Equal("", dialog.Problem.Text);
-        Assert.Equal("02-MfG-CH.txt", dialog.FileName);
-        dialog.Close();
 
         // Umbenennen: unverändert gesperrt, nur Gross/Klein zu ändern erlaubt
         var rename = NameDialog.ForRename(mfg);
@@ -218,7 +204,7 @@ public partial class WindowSmokeTests
         // Danach ist die Kopie markiert, nach dem Löschen der nächste Eintrag bzw. am Ende der vorige
         viewModel.EnterFolder(mfg.Parent!);
         viewModel.Selected = viewModel.Items.Single(i => i.Snippet.Name == "01-MfG-DE");
-        var copy = SnippetFiles.Clone(mfg.FullPath, "02-MfG-CH.txt");
+        var copy = SnippetFiles.Copy(mfg.FullPath, mfg.Parent!.FullPath, "02-MfG-CH.txt");
         controller.Library.Reload();
         viewModel.RefreshSelecting(Path.GetRelativePath(controller.Library.RootPath, copy));
         Assert.Equal(["Intern", "01-MfG-DE", "02-MfG-CH", "03-MfG-EN"], viewModel.Items.Select(i => i.Snippet.Name));
@@ -233,13 +219,43 @@ public partial class WindowSmokeTests
         // Rechts geklont: links bleibt der Ordner, rechts ist die Kopie markiert
         viewModel.GoTo("");
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
-        copy = SnippetFiles.Clone(mfg.FullPath, "02-MfG-CH.txt");
+        copy = SnippetFiles.Copy(mfg.FullPath, mfg.Parent!.FullPath, "02-MfG-CH.txt");
         controller.Library.Reload();
         viewModel.RefreshSelecting(Path.GetRelativePath(controller.Library.RootPath, copy));
         Assert.Equal("4-Grüsse", viewModel.Selected?.Snippet.Name);
         Assert.Equal("02-MfG-CH", viewModel.DetailSelected?.Snippet.Name);
         File.Delete(copy);
         controller.Library.Reload();
+        // Ausgeschnitten: blass, bis es eingefügt ist. Nicht dorthin, wo es schon liegt, ein Ordner nicht in sich selbst.
+        viewModel.Refresh("4-Grüsse");
+        var intern = controller.Library.Find(@"4-Grüsse\Intern")!;
+        viewModel.Cut(intern);
+        Assert.True(viewModel.DetailItems.Single(i => i.Snippet.Name == "Intern").IsCut);
+        // Oben die Symbole Kopieren, Ausschneiden, Einfügen, Umbenennen, Löschen; diese und Klonen stehen nicht mehr in der Liste darunter
+        var itemMenu = popup.ItemMenu(controller.Library.Find("4-Grüsse")!);
+        var iconRow = Assert.IsType<System.Windows.Controls.DockPanel>(Assert.IsType<System.Windows.Controls.MenuItem>(itemMenu.Items[0]).Header);
+        var iconButtons = iconRow.Children.OfType<System.Windows.Controls.StackPanel>().SelectMany(p => p.Children.OfType<System.Windows.Controls.Button>()).ToList();
+        Assert.Equal([Strings.MenuCopy, Strings.MenuCut, string.Format(Strings.MenuPasteFormat, "Intern"), Strings.MenuRename, Strings.MenuDelete],
+            iconButtons.Select(b => b.ToolTip as string));
+        Assert.False(iconButtons[2].IsEnabled); // Intern liegt schon in 4-Grüsse
+        Assert.Equal(4, itemMenu.Items.OfType<System.Windows.Controls.MenuItem>().Skip(1).Count()); // Explorer, Neu ×2, Hotkey
+        itemMenu.PlacementTarget = popup.DetailList;
+        itemMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        itemMenu.IsOpen = true;
+        SnapshotElement(itemMenu, "popup-item-menu.png");
+        itemMenu.IsOpen = false;
+        Assert.False(viewModel.DetailItems.Single(i => i.Snippet.Name == "01-MfG-DE").IsCut);
+        Assert.False(viewModel.CanPasteInto(controller.Library.Find("4-Grüsse")!));
+        Assert.False(viewModel.CanPasteInto(intern));
+        Assert.True(viewModel.CanPasteInto(controller.Library.Root));
+        // Kopiert: nicht blass, und im selben Ordner eingefügt ein Klon; in sich selbst aber auch nicht
+        viewModel.Copy(intern);
+        Assert.False(viewModel.DetailItems.Single(i => i.Snippet.Name == "Intern").IsCut);
+        Assert.False(viewModel.ClippedIsCut);
+        Assert.True(viewModel.CanPasteInto(controller.Library.Find("4-Grüsse")!));
+        Assert.False(viewModel.CanPasteInto(intern));
+        viewModel.ClearClipped();
+        Assert.False(viewModel.CanPasteInto(controller.Library.Root));
         // Ein umbenannter Ordner bleibt markiert
         viewModel.GoTo("");
         var renamed = SnippetFiles.Rename(controller.Library.Find("1-Temp")!.FullPath, "2-Temp");

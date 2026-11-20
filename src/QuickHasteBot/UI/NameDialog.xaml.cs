@@ -5,7 +5,7 @@ using QuickHasteBot.Core;
 namespace QuickHasteBot.UI;
 
 /// <summary>
-/// Fragt nach einem Namen, zum Klonen, Umbenennen oder für einen neuen Ordner. Bei Dateien ist der Vorschlag bis auf
+/// Fragt nach einem Namen, zum Umbenennen oder für einen neuen Ordner. Bei Dateien ist der Vorschlag bis auf
 /// die Endung markiert, Tippen ersetzt also nur den Namen; bei Ordnern alles.
 /// </summary>
 internal partial class NameDialog : Window
@@ -13,8 +13,8 @@ internal partial class NameDialog : Window
     readonly string _folder;
     readonly string? _currentName;
 
-    NameDialog(Snippet snippet, string title, string promptFormat, string confirm, string suggestion, bool rename)
-        : this(Path.GetDirectoryName(snippet.FullPath) ?? "", rename ? Path.GetFileName(snippet.FullPath) : null, title,
+    NameDialog(Snippet snippet, string title, string promptFormat, string confirm, string suggestion)
+        : this(Path.GetDirectoryName(snippet.FullPath) ?? "", Path.GetFileName(snippet.FullPath), title,
             string.Format(promptFormat, Path.GetFileName(snippet.FullPath)), confirm, suggestion,
             snippet.IsFolder ? suggestion.Length : Path.GetFileNameWithoutExtension(suggestion).Length, hint: null)
     {
@@ -56,11 +56,8 @@ internal partial class NameDialog : Window
             suggestion.Length, string.Format(Strings.NewFolderHintFormat, parentDisplay));
     }
 
-    public static NameDialog ForClone(Snippet snippet, string suggestion) =>
-        new(snippet, Strings.CloneTitle, Strings.ClonePromptFormat, Strings.CloneConfirm, suggestion, rename: false);
-
     public static NameDialog ForRename(Snippet snippet) =>
-        new(snippet, Strings.RenameTitle, Strings.RenamePromptFormat, Strings.RenameConfirm, Path.GetFileName(snippet.FullPath), rename: true);
+        new(snippet, Strings.RenameTitle, Strings.RenamePromptFormat, Strings.RenameConfirm, Path.GetFileName(snippet.FullPath));
 
     public string FileName => NameInput.Text.Trim();
 
