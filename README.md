@@ -137,6 +137,7 @@ Pastes, opened files and folders count, from the search, while browsing and by [
 - A click pastes the snippet or opens the folder; hold Shift for the other paste method. The settings can switch this to "Click selects, double-click pastes".
 - Entries in the right column can be clicked directly: a snippet is pasted, a folder opens. So hovering over a folder and clicking a snippet next to it pastes with a single click.
 - The folder path above the list and the edit, Explorer and settings commands at the bottom are clickable.
+- While searching, each folder in the grey path under a hit is clickable too: it ends the search and opens that folder, with the way to the hit selected, or the hit itself in its own folder.
 - The popup can be dragged anywhere outside the search box.
 
 ### Right-click menu
