@@ -129,6 +129,8 @@ On top of that, QuickHasteBot learns what you use:
 
 Pastes, opened files and folders count, from the search, while browsing and by [hotkey](#hotkeys-for-files-and-folders). Everything is stored only for you in `snippets.json` next to the exe; renaming or moving a snippet keeps its history. To turn it off, untick "Frequently chosen snippets first" under **General** in the settings (`RankByUsage`); nothing is recorded then. "Clear history" next to it forgets all usage and learned search texts, the hotkeys stay.
 
+**See what was learned:** hover over the icon of an entry in the popup: it shows how often you used it (from the search, while browsing, by hotkey), when last, its learned search texts and, while searching, whether one of them moved it up. The **Statistics** tab in the settings lists every snippet like that. Click a column header to sort, "Never used only" finds snippets you might not need; a double-click shows the entry in Explorer, the right-click menu edits it, forgets a single learned search text or resets its statistics.
+
 ### Mouse
 
 - The selection follows the pointer as soon as it rests on an entry for a moment, like in a menu.
@@ -680,6 +682,7 @@ The settings open with a double-click on the tray icon, "Settings" in the tray m
 | **General** | The popup hotkey; "Start with Windows", tray icon, log file, the hint on new versions, language and theme; the `structure` folder, content search, frequently chosen first and clearing that history, the built-in editor, script and key tag options, the AI service |
 | **Popup** | Paste method, mouse behavior, and "When opening": pin, filter and where the popup opens |
 | **Hotkeys** | Every [file and folder hotkey](#hotkeys-for-files-and-folders), with conflicts and hotkeys whose entry is missing |
+| **Statistics** | How often each snippet was [used](#order-of-the-results), by search, browsing and hotkey, when last, and its learned search texts |
 
 **New versions:** once a day QuickHasteBot asks GitHub for the newest release. If there is a newer one, the tray menu and the settings (next to the version) offer "Download version x.y.z", and Windows shows a notification once. Only the request itself is sent, nothing about you. To turn it off, untick "Tell me about new versions" under **General** (`CheckForUpdates`).
 

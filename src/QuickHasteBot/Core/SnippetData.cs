@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -52,6 +53,16 @@ public sealed class QueryPick
     public List<DateTime> Recent { get; set; } = [];
 }
 
+/// <summary>Ein Suchtext, nach dem ein Eintrag gewählt wurde.</summary>
+/// <param name="Query">Normalisiert: klein, ohne Akzente.</param>
+public sealed record LearnedQuery(string Query, int Count, DateTime? Last);
+
+/// <summary>Was die Statistik zu einem Eintrag zeigt, ein Schnappschuss. Gelernte Suchtexte die häufigsten zuerst.</summary>
+public sealed record UsageStats(int Search, int Browse, int Hotkey, DateTime? First, DateTime? Last, IReadOnlyList<LearnedQuery> Queries)
+{
+    public int Total => Search + Browse + Hotkey;
+}
+
 /// <summary>
 /// Was QuickHasteBot zu den Einträgen im structure-Ordner speichert: Hotkeys, wie oft und wann etwas benutzt wurde und
 /// was nach welchem Suchtext gewählt wurde. Liegt als snippets.json neben settings.json, gehört also dem Benutzer und
@@ -91,9 +102,8 @@ public sealed class SnippetData : IDisposable
     Dictionary<string, SnippetRecord> _entries = new(PathComparer);
     // Normalisierter Suchtext → Eintrag → wie oft gewählt
     Dictionary<string, Dictionary<string, QueryPick>> _queries = new(StringComparer.Ordinal);
-    // Allgemeiner Bonus je Eintrag, wird bei jeder Änderung neu gebaut (nie verändert, Suchen halten ihn fest)
-    Dictionary<string, int>? _usageBonus;
-    DateTime _usageBonusDay;
+    // Vorgerechnete Punkte für die Suche, nach jeder Änderung und jeden Tag neu (nie verändert, Suchen halten sie fest)
+    Ranking? _ranking;
     Timer? _saveTimer;
     bool _dirty;
     bool _disposed;
@@ -307,52 +317,85 @@ public sealed class SnippetData : IDisposable
 
     /// <summary>
     /// Für die Suche: der Bonus je Treffer zu diesem Suchtext, null wenn es nichts gibt (dann sucht die Suche wie ohne).
-    /// Was teuer ist, passiert hier einmal pro Suche, die zurückgegebene Funktion ist nur noch ein Nachschlagen.
+    /// Die Punkte sind vorgerechnet: pro Suche nur noch die passenden Suchtexte zusammenzählen, die zurückgegebene
+    /// Funktion ist ein Nachschlagen. Derselbe Suchtext noch einmal (Popup frisch angezeigt) kostet nichts.
     /// </summary>
     public Func<Snippet, int>? BonusFor(string query)
     {
         lock (_gate)
         {
-            var now = Now;
-            var usage = UsageBonuses(now);
-            var byQuery = QueryBonuses(UsageRanking.NormalizeQuery(query), now);
-            if (usage.Count == 0 && byQuery is null) return null;
-            if (byQuery is null) return snippet => usage.GetValueOrDefault(snippet.RelativePath);
-            return snippet => usage.GetValueOrDefault(snippet.RelativePath) + byQuery.GetValueOrDefault(snippet.RelativePath);
+            var ranking = CurrentRanking();
+            var normalized = UsageRanking.NormalizeQuery(query);
+            if (ranking.LastQuery == normalized) return ranking.LastBonus;
+
+            var usage = ranking.Usage;
+            var byQuery = QueryBonuses(ranking, normalized);
+            var bonus = (usage.Count, byQuery) switch
+            {
+                (0, null) => null,
+                (_, null) => snippet => usage.GetValueOrDefault(snippet.RelativePath),
+                (0, _) => snippet => byQuery.GetValueOrDefault(snippet.RelativePath),
+                _ => (Func<Snippet, int>)(snippet => usage.GetValueOrDefault(snippet.RelativePath) + byQuery.GetValueOrDefault(snippet.RelativePath)),
+            };
+            (ranking.LastQuery, ranking.LastBonus) = (normalized, bonus);
+            return bonus;
         }
     }
 
     // Gilt einen Tag lang, die Altersstufen sind in Tagen
-    Dictionary<string, int> UsageBonuses(DateTime now)
+    Ranking CurrentRanking()
     {
-        if (_usageBonus is not null && _usageBonusDay == now.Date) return _usageBonus;
+        var now = Now;
+        if (_ranking is not null && _ranking.Day == now.Date) return _ranking;
 
-        var bonuses = new Dictionary<string, int>(PathComparer);
+        var usage = new Dictionary<string, int>(PathComparer);
         foreach (var (path, record) in _entries)
         {
             if (record.Recent is not { Count: > 0 } recent) continue;
             var bonus = UsageRanking.UsageBonus(UsageRanking.Points(recent, now));
             if (bonus > 0)
-                bonuses[path] = bonus;
+                usage[path] = bonus;
         }
-        (_usageBonus, _usageBonusDay) = (bonuses, now.Date);
-        return bonuses;
+
+        var queries = _queries
+            .Select(q => (q.Key, q.Value.Select(p => (p.Key, UsageRanking.Points(p.Value.Recent, now))).ToArray()))
+            .ToArray();
+        return _ranking = new Ranking(now.Date, usage, queries);
     }
 
-    Dictionary<string, int>? QueryBonuses(string query, DateTime now)
+    static Dictionary<string, int>? QueryBonuses(Ranking ranking, string query)
     {
-        if (query.Length == 0 || _queries.Count == 0) return null;
+        if (query.Length == 0) return null;
 
         Dictionary<string, double>? points = null;
-        foreach (var (stored, picks) in _queries)
+        foreach (var (stored, picks) in ranking.Queries)
         {
             var weight = UsageRanking.QueryWeight(stored, query);
             if (weight == 0) continue;
             points ??= new(PathComparer);
-            foreach (var (path, pick) in picks)
-                points[path] = points.GetValueOrDefault(path) + weight * UsageRanking.Points(pick.Recent, now);
+            foreach (var (path, pickPoints) in picks)
+                CollectionsMarshal.GetValueRefOrAddDefault(points, path, out _) += weight * pickPoints;
         }
-        return points?.ToDictionary(p => p.Key, p => UsageRanking.QueryBonus(p.Value), PathComparer);
+        if (points is null) return null;
+
+        var bonuses = new Dictionary<string, int>(points.Count, PathComparer);
+        foreach (var (path, value) in points)
+            bonuses[path] = UsageRanking.QueryBonus(value);
+        return bonuses;
+    }
+
+    /// <summary>Punkte je Eintrag und je gespeichertem Suchtext für einen Tag, dazu die letzte Suche.</summary>
+    sealed class Ranking(DateTime day, Dictionary<string, int> usage, (string Query, (string Path, int Points)[] Picks)[] queries)
+    {
+        public DateTime Day { get; } = day;
+
+        public Dictionary<string, int> Usage { get; } = usage;
+
+        public (string Query, (string Path, int Points)[] Picks)[] Queries { get; } = queries;
+
+        public string? LastQuery { get; set; }
+
+        public Func<Snippet, int>? LastBonus { get; set; }
     }
 
     /// <summary>"Verlauf löschen": alle Zähler und gelernten Suchtexte weg, die Hotkeys bleiben. Zählt ab jetzt neu.</summary>
@@ -372,7 +415,111 @@ public sealed class SnippetData : IDisposable
             }
             _queries.Clear();
             _since = Now;
-            _usageBonus = null;
+            _ranking = null;
+            _dirty = true;
+        }
+        Flush();
+    }
+
+    // --- Statistik ---
+
+    /// <summary>Für den Tooltip am Icon: Zähler und gelernte Suchtexte eines Eintrags, null wenn er nie benutzt wurde.</summary>
+    public UsageStats? StatsFor(string relativePath)
+    {
+        lock (_gate)
+        {
+            List<LearnedQuery>? learned = null;
+            foreach (var (query, picks) in _queries)
+            {
+                if (picks.TryGetValue(relativePath, out var pick))
+                    (learned ??= []).Add(Learned(query, pick));
+            }
+            _entries.TryGetValue(relativePath, out var record);
+            if (record is not { Uses: > 0 } && learned is null) return null;
+            return Stats(record, learned);
+        }
+    }
+
+    /// <summary>Für den Tab "Statistik": alle benutzten Einträge auf einmal, einmal über alles statt pro Zeile.</summary>
+    public IReadOnlyDictionary<string, UsageStats> AllStats()
+    {
+        lock (_gate)
+        {
+            var learned = new Dictionary<string, List<LearnedQuery>>(PathComparer);
+            foreach (var (query, picks) in _queries)
+            {
+                foreach (var (path, pick) in picks)
+                {
+                    if (!learned.TryGetValue(path, out var list))
+                        learned[path] = list = [];
+                    list.Add(Learned(query, pick));
+                }
+            }
+
+            var result = new Dictionary<string, UsageStats>(PathComparer);
+            foreach (var (path, record) in _entries)
+            {
+                if (record.Uses > 0 || learned.ContainsKey(path))
+                    result[path] = Stats(record, learned.GetValueOrDefault(path));
+            }
+            foreach (var (path, list) in learned)
+                result.TryAdd(path, Stats(null, list));
+            return result;
+        }
+    }
+
+    static LearnedQuery Learned(string query, QueryPick pick) =>
+        new(query, pick.Count, pick.Recent.Count > 0 ? pick.Recent[^1] : null);
+
+    static UsageStats Stats(SnippetRecord? record, List<LearnedQuery>? learned)
+    {
+        var queries = learned is null ? [] : learned.OrderByDescending(q => q.Count).ThenByDescending(q => q.Last).ToList();
+        return record is null
+            ? new UsageStats(0, 0, 0, null, null, queries)
+            : new UsageStats(record.Search, record.Browse, record.HotkeyUses, record.First, record.Last, queries);
+    }
+
+    /// <summary>Einen gelernten Suchtext für einen Eintrag vergessen: Bei diesem Suchtext zählt er wieder nur nach Treffer.</summary>
+    public void ForgetQuery(string query, string relativePath)
+    {
+        lock (_gate)
+        {
+            var normalized = UsageRanking.NormalizeQuery(query);
+            if (!_queries.TryGetValue(normalized, out var picks) || !picks.Remove(relativePath)) return;
+            if (picks.Count == 0)
+                _queries.Remove(normalized);
+            _ranking = null;
+            _dirty = true;
+        }
+        Flush();
+    }
+
+    /// <summary>Zähler und gelernte Suchtexte eines Eintrags auf null, der Hotkey bleibt.</summary>
+    public void ResetUsage(string relativePath)
+    {
+        lock (_gate)
+        {
+            var changed = false;
+            if (_entries.TryGetValue(relativePath, out var record))
+            {
+                if (record.Hotkey is null)
+                    _entries.Remove(relativePath);
+                else
+                {
+                    record.Search = record.Browse = record.HotkeyUses = 0;
+                    (record.First, record.Last, record.Recent) = (null, null, null);
+                }
+                changed = true;
+            }
+            foreach (var (query, picks) in _queries.ToList())
+            {
+                if (!picks.Remove(relativePath)) continue;
+                changed = true;
+                if (picks.Count == 0)
+                    _queries.Remove(query);
+            }
+            if (!changed) return;
+            _ranking = null;
             _dirty = true;
         }
         Flush();
@@ -486,7 +633,7 @@ public sealed class SnippetData : IDisposable
     // Unter _gate: Bonus neu rechnen lassen und gesammelt speichern
     void Changed()
     {
-        _usageBonus = null;
+        _ranking = null;
         _dirty = true;
         if (_disposed) return;
         _saveTimer ??= new Timer(_ => Flush());

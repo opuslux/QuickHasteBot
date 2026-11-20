@@ -232,6 +232,19 @@ internal partial class SearchPopup : Window
     }
 
     /// <summary>Die Bibliothek wurde neu eingelesen (Datei geändert, anderer Ordner).</summary>
+    /// <summary>Am Icon einer Zeile: wie oft benutzt, zuletzt wann, gelernte Suchtexte und ob der Suchtext ihn hochholt.</summary>
+    void OnIconToolTipOpening(object sender, ToolTipEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: SnippetItem item } icon) return;
+        if (UsageTooltip(item) is { } text)
+            icon.ToolTip = text;
+        else
+            e.Handled = true;
+    }
+
+    internal string? UsageTooltip(SnippetItem item) =>
+        UsageText.Tooltip(_app.SnippetData.StatsFor(item.Snippet.RelativePath), _viewModel.IsSearching ? _viewModel.Query : null, DateTime.UtcNow);
+
     public void OnLibraryChanged()
     {
         if (IsVisible)

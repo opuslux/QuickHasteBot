@@ -38,6 +38,7 @@ public partial class WindowSmokeTests
             SwitchLanguage();
             ThemeAndDialogs();
             FileHotkeys();
+            UsageStatistics();
             PopupGrowsWithFolderList();
             KeptOpenPopupIsAnOrdinaryWindow();
             PopupPreviewColors();

@@ -145,24 +145,36 @@ public class SnippetSearchBonusTests
             SnippetSearch.Search(snippets, query, bonus: data.BonusFor(query));
         }
 
-        var without = Median(() => { foreach (var q in queries) SnippetSearch.Search(snippets, q); });
-        var with = Median(() => { foreach (var q in queries) SnippetSearch.Search(snippets, q, bonus: data.BonusFor(q)); });
+        var (without, with) = Medians(
+            () => { foreach (var q in queries) SnippetSearch.Search(snippets, q); },
+            () => { foreach (var q in queries) SnippetSearch.Search(snippets, q, bonus: data.BonusFor(q)); });
 
         // Pro Tastendruck (eine Suche) höchstens ein paar Millisekunden mehr
         var extraPerSearch = (with - without).TotalMilliseconds / queries.Length;
         Assert.True(extraPerSearch < 3, $"ohne {without.TotalMilliseconds:0.0} ms, mit {with.TotalMilliseconds:0.0} ms für {queries.Length} Suchen");
     }
 
-    static TimeSpan Median(Action run)
+    /// <summary>
+    /// Beide abwechselnd messen, nicht nacheinander: Laufen andere Tests parallel, trifft eine Lastspitze sonst nur
+    /// eine der beiden Reihen.
+    /// </summary>
+    static (TimeSpan First, TimeSpan Second) Medians(Action first, Action second)
     {
-        var times = new List<TimeSpan>();
-        for (var i = 0; i < 9; i++)
+        var (a, b) = (new List<TimeSpan>(), new List<TimeSpan>());
+        for (var i = 0; i < 15; i++)
         {
-            var watch = Stopwatch.StartNew();
-            run();
-            times.Add(watch.Elapsed);
+            a.Add(Time(first));
+            b.Add(Time(second));
         }
-        times.Sort();
-        return times[times.Count / 2];
+        a.Sort();
+        b.Sort();
+        return (a[a.Count / 2], b[b.Count / 2]);
+    }
+
+    static TimeSpan Time(Action run)
+    {
+        var watch = Stopwatch.StartNew();
+        run();
+        return watch.Elapsed;
     }
 }

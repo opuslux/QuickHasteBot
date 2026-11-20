@@ -62,6 +62,9 @@ internal partial class SettingsWindow : Window
         {
             RememberFolderInput.IsChecked = _app.Settings.RememberFolder;
             RememberQueryInput.IsChecked = _app.Settings.RememberQuery;
+            // Inzwischen eingefügt oder umbenannt: die Statistik frisch, wenn sie gerade zu sehen ist
+            if (StatsTab.IsSelected)
+                UpdateStats();
         };
 
         // Solange der Hotkey aufgenommen wird, darf er nicht das Popup öffnen
@@ -291,8 +294,10 @@ internal partial class SettingsWindow : Window
     void OnClearUsage(object sender, MouseButtonEventArgs e)
     {
         var answer = MessageDialog.Show(this, Strings.ClearUsageConfirm, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
-        if (answer == MessageBoxResult.Yes)
-            _app.ClearUsage();
+        if (answer != MessageBoxResult.Yes) return;
+        _app.ClearUsage();
+        if (_statsLoaded)
+            UpdateStats();
     }
 
     void OnAiServiceChanged(object sender, SelectionChangedEventArgs e)

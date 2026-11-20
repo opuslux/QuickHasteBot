@@ -466,6 +466,34 @@ The date of next Monday</value></data>
   <data name="FileHotkeyStatusOk" xml:space="preserve"><value>Active</value></data>
   <data name="FileHotkeyOrphan" xml:space="preserve"><value>Entry not found</value></data>
   <data name="FileHotkeysOrphansFormat" xml:space="preserve"><value>, {0} without entry (renamed or moved while QuickHasteBot was not running?)</value></data>
+  <!-- Statistik -->
+  <data name="StatsTab" xml:space="preserve"><value>Statistics</value></data>
+  <data name="StatsIntro" xml:space="preserve"><value>How often each snippet was pasted or opened (from the search, while browsing or by hotkey) and after which search texts. Double-click shows it in Explorer; right-click to edit it, forget a learned search text or reset it.</value></data>
+  <data name="StatsSummaryFormat" xml:space="preserve"><value>Since {0} · used {1}× · {2} of {3} snippets</value></data>
+  <data name="StatsSummaryToolTip" xml:space="preserve"><value>Counted while "Frequently chosen snippets first" (General) is on, since the first start with this feature or since "Clear history".</value></data>
+  <data name="StatsFilterPlaceholder" xml:space="preserve"><value>Filter…</value></data>
+  <data name="StatsNeverUsed" xml:space="preserve"><value>Never used only</value></data>
+  <data name="StatsColumnName" xml:space="preserve"><value>Name</value></data>
+  <data name="StatsColumnFolder" xml:space="preserve"><value>Folder</value></data>
+  <data name="StatsColumnTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="StatsColumnSearch" xml:space="preserve"><value>Search</value></data>
+  <data name="StatsColumnBrowse" xml:space="preserve"><value>Browse</value></data>
+  <data name="StatsColumnHotkey" xml:space="preserve"><value>Hotkey</value></data>
+  <data name="StatsColumnLast" xml:space="preserve"><value>Last used</value></data>
+  <data name="StatsColumnLearned" xml:space="preserve"><value>Learned search texts</value></data>
+  <data name="StatsNever" xml:space="preserve"><value>never</value></data>
+  <data name="StatsForgetQuery" xml:space="preserve"><value>Forget learned search text</value></data>
+  <data name="StatsResetEntry" xml:space="preserve"><value>Reset statistics</value></data>
+  <data name="AgoToday" xml:space="preserve"><value>today</value></data>
+  <data name="AgoYesterday" xml:space="preserve"><value>yesterday</value></data>
+  <data name="AgoDaysFormat" xml:space="preserve"><value>{0} days ago</value></data>
+  <data name="AgoWeeksFormat" xml:space="preserve"><value>{0} weeks ago</value></data>
+  <data name="AgoMonthsFormat" xml:space="preserve"><value>{0} months ago</value></data>
+  <data name="LearnedQueryFormat" xml:space="preserve"><value>“{0}” ({1}×)</value></data>
+  <data name="UsageTooltipFormat" xml:space="preserve"><value>Used {0}× (search {1} · browse {2} · hotkey {3})</value></data>
+  <data name="UsageTooltipLastFormat" xml:space="preserve"><value>Last used {0}</value></data>
+  <data name="UsageTooltipLearnedFormat" xml:space="preserve"><value>Learned: {0}</value></data>
+  <data name="UsageTooltipBoostFormat" xml:space="preserve"><value>Ranked higher: picked {1}× after “{0}”</value></data>
   <!-- Neuer Ordner -->
   <data name="MenuNewFolder" xml:space="preserve"><value>New folder…</value></data>
   <data name="NewFolderTitle" xml:space="preserve"><value>New folder</value></data>

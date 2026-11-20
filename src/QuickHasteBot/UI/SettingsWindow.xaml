@@ -80,7 +80,7 @@
 
         <!-- Darunter die Einstellungen in zwei Tabs, jeweils zweispaltig wie oben -->
         <TabControl x:Name="SettingsTabs" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,16,0,0"
-                    PreviewMouseLeftButtonDown="OnTabsMouseDown">
+                    PreviewMouseLeftButtonDown="OnTabsMouseDown" SelectionChanged="OnTabChanged">
             <TabItem Header="{x:Static ui:Strings.GeneralHeading}">
                 <Grid Margin="0,16,0,0">
                     <Grid.ColumnDefinitions>
@@ -279,6 +279,98 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </TabItem>
+
+            <!-- Wie oft was benutzt wurde. Erst beim Anwählen gebaut, Spaltenköpfe sortieren, Doppelklick zeigt im Explorer. -->
+            <TabItem x:Name="StatsTab" Header="{x:Static ui:Strings.StatsTab}">
+                <StackPanel Margin="0,16,0,0">
+                    <TextBlock Text="{x:Static ui:Strings.StatsIntro}" TextWrapping="Wrap" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <DockPanel Margin="0,8,0,8">
+                        <TextBlock DockPanel.Dock="Right" Text="{x:Static ui:Strings.ClearUsage}" Style="{StaticResource LinkText}"
+                                   Margin="12,0,0,0" VerticalAlignment="Center"
+                                   ToolTip="{x:Static ui:Strings.ClearUsageToolTip}" MouseLeftButtonUp="OnClearUsage" />
+                        <CheckBox x:Name="StatsNeverUsedInput" DockPanel.Dock="Right" Content="{x:Static ui:Strings.StatsNeverUsed}"
+                                  Margin="12,0,0,0" Click="OnStatsFilterChanged" />
+                        <Grid DockPanel.Dock="Right" Width="180">
+                            <TextBox x:Name="StatsFilterInput" TextChanged="OnStatsFilterChanged" />
+                            <TextBlock x:Name="StatsFilterPlaceholder" Text="{x:Static ui:Strings.StatsFilterPlaceholder}" Margin="11,0,0,0"
+                                       VerticalAlignment="Center" IsHitTestVisible="False" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </Grid>
+                        <TextBlock x:Name="StatsSummary" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   ToolTip="{x:Static ui:Strings.StatsSummaryToolTip}"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </DockPanel>
+                    <!-- Wie bei den Hotkeys: Kopf und Zeilen mit denselben festen Spalten, Zahlen rechtsbündig -->
+                    <Grid x:Name="StatsHeader" Margin="12,0,12,4" TextElement.FontSize="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="165" />
+                            <ColumnDefinition Width="125" />
+                            <ColumnDefinition Width="70" />
+                            <ColumnDefinition Width="62" />
+                            <ColumnDefinition Width="74" />
+                            <ColumnDefinition Width="66" />
+                            <ColumnDefinition Width="96" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.Resources>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <Setter Property="Cursor" Value="Hand" />
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                <EventSetter Event="MouseLeftButtonUp" Handler="OnStatsHeaderClick" />
+                            </Style>
+                        </Grid.Resources>
+                        <TextBlock Tag="Name" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="1" Tag="Location" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="2" Tag="Total" TextAlignment="Right" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="3" Tag="Search" TextAlignment="Right" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="4" Tag="Browse" TextAlignment="Right" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="5" Tag="Hotkey" TextAlignment="Right" Margin="0,0,10,0" />
+                        <TextBlock Grid.Column="6" Tag="Last" Margin="6,0,8,0" />
+                        <TextBlock Grid.Column="7" Tag="Learned" />
+                    </Grid>
+                    <ListBox x:Name="StatsList" Height="190" MouseDoubleClick="OnStatsDoubleClick" KeyDown="OnStatsKeyDown"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" ContextMenuOpening="OnStatsContextMenuOpening"
+                             VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{x:Static ui:Strings.MenuShowInExplorer}" Click="OnStatsRevealMenu" />
+                                <MenuItem Header="{x:Static ui:Strings.MenuEdit}" Click="OnStatsEditMenu" />
+                                <Separator />
+                                <MenuItem x:Name="StatsForgetMenu" Header="{x:Static ui:Strings.StatsForgetQuery}" />
+                                <MenuItem x:Name="StatsResetMenu" Header="{x:Static ui:Strings.StatsResetEntry}" Click="OnStatsResetMenu" />
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ToolTip="{Binding ToolTip}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="165" />
+                                        <ColumnDefinition Width="125" />
+                                        <ColumnDefinition Width="70" />
+                                        <ColumnDefinition Width="62" />
+                                        <ColumnDefinition Width="74" />
+                                        <ColumnDefinition Width="66" />
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Location}" TextTrimming="CharacterEllipsis" Margin="0,0,8,0"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding TotalText}" TextAlignment="Right" Margin="0,0,10,0" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="3" Text="{Binding SearchText}" TextAlignment="Right" Margin="0,0,10,0" />
+                                    <TextBlock Grid.Column="4" Text="{Binding BrowseText}" TextAlignment="Right" Margin="0,0,10,0" />
+                                    <TextBlock Grid.Column="5" Text="{Binding HotkeyText}" TextAlignment="Right" Margin="0,0,10,0" />
+                                    <TextBlock Grid.Column="6" Text="{Binding LastText}" TextTrimming="CharacterEllipsis" Margin="6,0,8,0"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Grid.Column="7" Text="{Binding LearnedText}" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
