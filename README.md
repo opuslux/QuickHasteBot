@@ -147,13 +147,13 @@ Right-clicking an entry, in either column, selects it so you can see what the me
 |---|---|
 | **Edit** | Opens a text snippet in the [editor](#editor), like Ctrl+O |
 | **Open with default program** | Opens it with the program Windows uses for the file type, e.g. Notepad++ |
-| **Show in Explorer** | Like Ctrl+E for the entry under the pointer: a file is selected in its folder, a folder opens |
+| **Show in Explorer** | Like Ctrl+E for the entry under the pointer: a file or folder is selected in the folder that contains it |
 | **New snippet…** | In that folder, or next to that file |
 | **New folder…** | Likewise: in that folder, or next to that file; the dialog says where |
 | **Rename…** | Also for folders; F2 does the same for the selected entry |
 | **Set hotkey…** | See [Hotkeys for files and folders](#hotkeys-for-files-and-folders) |
 | **Clone…** | A copy in the same folder, with a name suggested like Explorer does (`Name - Copy.txt`) |
-| **Delete…** | Asks first, then moves the file to the Recycle Bin. Where there is none, e.g. on a network drive, Windows asks whether to delete it permanently |
+| **Delete…** | Also for folders, with everything in them. Asks first, then moves the file or folder to the Recycle Bin. Where there is none, e.g. on a network drive, Windows asks whether to delete it permanently |
 
 Right-clicking the empty space next to the entries offers **New snippet…** and **New folder…** for the folder that column shows: on the left the open folder, on the right the folder selected on the left. This also works in an empty folder.
 

@@ -433,6 +433,7 @@ The date of next Monday</value></data>
   <data name="CloneErrorFormat" xml:space="preserve"><value>The copy could not be created:
 {0}</value></data>
   <data name="DeleteConfirmFormat" xml:space="preserve"><value>Move "{0}" to the Recycle Bin?</value></data>
+  <data name="DeleteFolderConfirmFormat" xml:space="preserve"><value>Move the folder "{0}" with everything in it to the Recycle Bin?</value></data>
   <data name="DeleteErrorFormat" xml:space="preserve"><value>"{0}" could not be deleted:
 {1}</value></data>
   <data name="SnippetReadErrorFormat" xml:space="preserve"><value>The snippet could not be read:

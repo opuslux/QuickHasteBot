@@ -747,7 +747,7 @@ internal partial class SearchPopup : Window
         e.Handled = true;
     }
 
-    /// <summary>Dateien: Bearbeiten, Umbenennen, Klonen, Löschen. Ordner: Umbenennen. Beide: Hotkey festlegen. Beide: Im Explorer anzeigen, Neuer Baustein.</summary>
+    /// <summary>Textbausteine: Bearbeiten. Dateien: Klonen. Beide, auch Ordner: Im Explorer anzeigen, Neuer Baustein, Neuer Ordner, Umbenennen, Hotkey festlegen, Löschen.</summary>
     void ShowItemMenu(Snippet snippet, UIElement target)
     {
         var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
@@ -766,7 +766,7 @@ internal partial class SearchPopup : Window
                     _app.Edit(snippet);
                 }));
         }
-        // Wie Strg+E, aber für den Eintrag unter der Maus: Dateien markiert im Ordner, Ordner selbst geöffnet
+        // Wie Strg+E, aber für den Eintrag unter der Maus: Dateien wie Ordner markiert im übergeordneten Ordner
         menu.Items.Add(MenuEntry(Strings.MenuShowInExplorer, MenuIcons.Explorer, () =>
         {
             HideUnlessKeptOpen();
@@ -783,10 +783,9 @@ internal partial class SearchPopup : Window
         menu.Items.Add(MenuEntry(Strings.MenuRename, MenuIcons.Rename, () => Rename(snippet)));
         menu.Items.Add(MenuEntry(Strings.MenuSetHotkey, MenuIcons.Hotkey, () => SetHotkey(snippet)));
         if (!snippet.IsFolder)
-        {
             menu.Items.Add(MenuEntry(Strings.MenuClone, MenuIcons.Clone, () => Clone(snippet)));
-            menu.Items.Add(MenuEntry(Strings.MenuDelete, MenuIcons.Delete, () => Delete(snippet)));
-        }
+        // Ordner mit allem Inhalt, die Rückfrage sagt es
+        menu.Items.Add(MenuEntry(Strings.MenuDelete, MenuIcons.Delete, () => Delete(snippet)));
         menu.IsOpen = true;
     }
 
@@ -887,7 +886,8 @@ internal partial class SearchPopup : Window
     void Delete(Snippet snippet)
     {
         var name = Path.GetFileName(snippet.FullPath);
-        var answer = WithDialog(() => MessageDialog.Show(this, string.Format(Strings.DeleteConfirmFormat, name),
+        var question = snippet.IsFolder ? Strings.DeleteFolderConfirmFormat : Strings.DeleteConfirmFormat;
+        var answer = WithDialog(() => MessageDialog.Show(this, string.Format(question, name),
             MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No));
         if (answer != MessageBoxResult.Yes) return;
 

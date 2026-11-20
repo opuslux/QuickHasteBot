@@ -369,9 +369,10 @@ internal sealed class AppController : IDisposable
     /// <summary>Die eigene Vorlage für "HasteScript AI", hastescript-prompt.txt.</summary>
     internal PromptTemplate HasteScriptTemplate => new(_paths.HasteScriptPromptFile, HasteScriptPrompt.DefaultTemplate);
 
+    /// <summary>Dateien wie Ordner markiert im übergeordneten Ordner. Nur der oberste Ordner wird selbst geöffnet.</summary>
     public void RevealInExplorer(Snippet snippet)
     {
-        if (snippet.IsFolder)
+        if (snippet.Parent is null)
             Shell.Open(snippet.FullPath);
         else
             Shell.TryStart(new ProcessStartInfo("explorer.exe", $"/select,\"{snippet.FullPath}\"") { UseShellExecute = true });
