@@ -66,7 +66,9 @@ Beim Überschreiben werden gleichnamige Beispieldateien ersetzt, alle anderen Da
   <data name="RankByUsageToolTip" xml:space="preserve"><value>Suchtreffer, die du oft wählst, rutschen nach oben, und was du nach demselben Suchtext gewählt hast, steht zuerst. Gespeichert neben der exe in snippets.json, nur für dich.</value></data>
   <data name="ClearUsage" xml:space="preserve"><value>Verlauf löschen</value></data>
   <data name="ClearUsageToolTip" xml:space="preserve"><value>Vergessen, wie oft Bausteine benutzt und was nach welchem Suchtext gewählt wurde. Die Hotkeys bleiben.</value></data>
-  <data name="ClearUsageConfirm" xml:space="preserve"><value>Vergessen, wie oft Bausteine benutzt wurden, und die gelernten Suchtexte? Die Hotkeys bleiben.</value></data>
+  <data name="ClearUsageConfirm" xml:space="preserve"><value>Den ganzen Verlauf löschen?
+
+Alles Gelernte wird für alle Bausteine gelöscht: wie oft sie benutzt wurden und sämtliche gelernten Suchtexte. Die Suchergebnisse werden danach von vorne gewichtet, und das lässt sich nicht rückgängig machen. Die Hotkeys bleiben.</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>{{ … }} in Textbausteinen als JavaScript ausführen</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>Beim Einfügen wird z.B. {{ date() }} zum heutigen Datum. Aus: {{ … }} wird unverändert eingefügt.</value></data>
   <data name="EvaluateKeyTags" xml:space="preserve"><value>Tasten-Tags wie {tab} und {enter} drücken (Formulare ausfüllen)</value></data>
@@ -483,7 +485,10 @@ Das Datum vom nächsten Montag</value></data>
   <data name="StatsColumnLearned" xml:space="preserve"><value>Gelernte Suchtexte</value></data>
   <data name="StatsNever" xml:space="preserve"><value>nie</value></data>
   <data name="StatsForgetQuery" xml:space="preserve"><value>Gelernten Suchtext vergessen</value></data>
-  <data name="StatsResetEntry" xml:space="preserve"><value>Statistik zurücksetzen</value></data>
+  <data name="StatsResetEntry" xml:space="preserve"><value>Statistik zurücksetzen…</value></data>
+  <data name="StatsResetConfirmFormat" xml:space="preserve"><value>Statistik von „{0}“ zurücksetzen?
+
+Alles für diesen Baustein Gelernte wird gelöscht: wie oft er benutzt wurde und alle seine gelernten Suchtexte. Er wird danach behandelt, als wäre er nie gewählt worden, und das lässt sich nicht rückgängig machen. Der Hotkey bleibt.</value></data>
   <data name="AgoToday" xml:space="preserve"><value>heute</value></data>
   <data name="AgoYesterday" xml:space="preserve"><value>gestern</value></data>
   <data name="AgoDaysFormat" xml:space="preserve"><value>vor {0} Tagen</value></data>

@@ -66,7 +66,9 @@ Overwriting replaces example files with the same name, all other files stay as t
   <data name="RankByUsageToolTip" xml:space="preserve"><value>Search results you often choose move up, and what you chose after the same search text comes first. Stored next to the exe in snippets.json, only for you.</value></data>
   <data name="ClearUsage" xml:space="preserve"><value>Clear history</value></data>
   <data name="ClearUsageToolTip" xml:space="preserve"><value>Forget how often snippets were used and what was chosen after which search text. Hotkeys stay.</value></data>
-  <data name="ClearUsageConfirm" xml:space="preserve"><value>Forget how often snippets were used and the learned search texts? The hotkeys stay.</value></data>
+  <data name="ClearUsageConfirm" xml:space="preserve"><value>Clear the whole history?
+
+Everything learned is deleted for all snippets: how often they were used and every learned search text. The search results then rank from scratch, and this can't be undone. The hotkeys stay.</value></data>
   <data name="EvaluateScripts" xml:space="preserve"><value>Run {{ … }} in snippets as JavaScript</value></data>
   <data name="EvaluateScriptsToolTip" xml:space="preserve"><value>When pasting, e.g. {{ date() }} becomes today's date. Off: {{ … }} is pasted as is.</value></data>
   <data name="EvaluateKeyTags" xml:space="preserve"><value>Press key tags like {tab} and {enter} (fill in forms)</value></data>
@@ -483,7 +485,10 @@ The date of next Monday</value></data>
   <data name="StatsColumnLearned" xml:space="preserve"><value>Learned search texts</value></data>
   <data name="StatsNever" xml:space="preserve"><value>never</value></data>
   <data name="StatsForgetQuery" xml:space="preserve"><value>Forget learned search text</value></data>
-  <data name="StatsResetEntry" xml:space="preserve"><value>Reset statistics</value></data>
+  <data name="StatsResetEntry" xml:space="preserve"><value>Reset statistics…</value></data>
+  <data name="StatsResetConfirmFormat" xml:space="preserve"><value>Reset the statistics of "{0}"?
+
+Everything learned for this snippet is deleted: how often it was used and all its learned search texts. It then ranks as if it had never been chosen, and this can't be undone. The hotkey stays.</value></data>
   <data name="AgoToday" xml:space="preserve"><value>today</value></data>
   <data name="AgoYesterday" xml:space="preserve"><value>yesterday</value></data>
   <data name="AgoDaysFormat" xml:space="preserve"><value>{0} days ago</value></data>
