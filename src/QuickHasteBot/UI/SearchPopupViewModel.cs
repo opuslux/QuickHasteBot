@@ -196,7 +196,14 @@ internal sealed class SearchPopupViewModel(AppController app) : ObservableObject
     public void Refresh(string? selectRelativePath = null) => Refresh([selectRelativePath ?? _selected?.Snippet.RelativePath]);
 
     /// <summary>Nach dem Klonen: die Kopie markieren, falls sie in der Liste steht, sonst bleibt die Auswahl.</summary>
-    public void RefreshSelecting(string relativePath) => Refresh([relativePath, _selected?.Snippet.RelativePath]);
+    public void RefreshSelecting(string relativePath)
+    {
+        Refresh([relativePath, _selected?.Snippet.RelativePath]);
+        // Steht er nicht links, sondern rechts im markierten Ordner (umbenannt, geklont, neu), wird er dort markiert
+        if (_selected is not null && !SamePath(_selected.Snippet.RelativePath, relativePath)
+            && DetailItems.FirstOrDefault(item => SamePath(item.Snippet.RelativePath, relativePath)) is { } detail)
+            DetailSelected = detail;
+    }
 
     /// <summary>
     /// Was nach dem Löschen markiert sein soll: War es die Auswahl links, der nächste Eintrag (am Ende der vorige),
