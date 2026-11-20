@@ -159,7 +159,14 @@
                     </StackPanel>
                 </Button>
                 <!-- Aufnehmen: ein Formular einmal selbst ausfüllen, daraus werden Tags -->
-                <Button x:Name="RecordButton" Margin="0,0,8,6" ToolTip="{x:Static ui:Strings.EditorRecordToolTip}" Click="OnRecord">
+                <Button x:Name="RecordButton" Margin="0,0,8,6" Click="OnRecord">
+                    <Button.ToolTip>
+                        <!-- Experimentell hervorheben: die Aufnahme ohne Hook hat bewusst Grenzen -->
+                        <StackPanel MaxWidth="380">
+                            <TextBlock Text="{x:Static ui:Strings.EditorRecordToolTipTitle}" FontWeight="SemiBold" Foreground="{DynamicResource SystemFillColorCautionBrush}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                            <TextBlock Text="{x:Static ui:Strings.EditorRecordToolTip}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button.ToolTip>
                     <StackPanel Orientation="Horizontal">
                         <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource SystemFillColorCriticalBrush}" />
                         <TextBlock x:Name="RecordButtonText" Text="{x:Static ui:Strings.EditorRecord}" Margin="6,0,0,0" />

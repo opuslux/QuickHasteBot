@@ -241,7 +241,7 @@ Besides the popup hotkey, every snippet, file or folder can have a global hotkey
 - **Formatted text:** Ctrl+Shift+V inserts formatted text from the clipboard as an [`{html}` block](#formatted-text); Ctrl+V stays plain text.
 - **Indentation:** Enter keeps the indentation of the line above, and after `{if,…}`, `{elseif,…}` or `{else}` it indents one level (4 spaces). Typing `{else}` or `{/if}` on its own line moves it back. **Tidy indentation** (Ctrl+Shift+F) indents all `{if}` blocks, or only the selected lines. It only changes [layout](#forms-key-tags), so what gets typed stays the same. Tags from **Insert tag ▾**, the picker and the recorder take the indentation of the line they go on.
 - **Right-click** in the text opens a menu: cut, copy, paste, undo and redo as icons at the top, below them paste formatted text, select all, find, replace and tidy indentation, with their shortcuts.
-- **Record** writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
+- **Record** (experimental) writes the tags for you while you fill in a form once yourself, see [Recording a form](#recording-a-form).
 - **Pick element** opens the [crosshair picker](#elements-focus-click-set); its "Insert into editor" puts the tag at the cursor in the editor used last. The **JavaScript AI** button opens the [script prompt window](#writing-a-block-with-ai), which can insert its block the same way.
 - **HasteScript AI** puts a complete prompt for any AI on the clipboard, with the whole snippet and this manual, to [fix, improve or extend the snippet](#improving-a-script-with-hastescript-ai).
 - **Narrow window:** buttons that don't fit move to a second row.
@@ -560,6 +560,8 @@ QuickHasteBot uses UI Automation, Windows' accessibility interface, which Chrome
 With "Include the window" (remembered), the tag starts with `{window,process=…}` for the program it was picked in.
 
 ### Recording a form
+
+> **Experimental:** recording deliberately works without a keyboard or mouse hook and only sees what UI Automation shows. So nothing listens to your keyboard, but it has limits: keys and shortcuts are missing, some programs stay invisible, and some web forms give incomplete steps (listed below under "What the recording leaves out"). Treat a recording as a first draft: test it, and add what is missing by hand.
 
 **Record** in the editor watches while you fill in a form once yourself and turns that into tags. Click it, click into the target window, and work as usual: type into fields, pick from dropdowns, tick checkboxes, click buttons. A bar at the bottom of the target window shows how many steps there are and the last one as a tag; like the step-by-step bar, it never takes the focus away. **Done** puts the tags at the cursor in the editor, one step per line; **Discard**, or closing the editor, throws them away. While recording, the text is locked, and pressing the button again or Esc in the editor works like Done.
 
