@@ -426,7 +426,13 @@ Das Datum vom nächsten Montag</value></data>
   <data name="MenuCut" xml:space="preserve"><value>Ausschneiden</value></data>
   <data name="MenuPaste" xml:space="preserve"><value>Einfügen</value></data>
   <data name="MenuPasteFormat" xml:space="preserve"><value>«{0}» hier einfügen</value></data>
-  <data name="PasteExistsFormat" xml:space="preserve"><value>Dort gibt es schon eine Datei oder einen Ordner «{0}».</value></data>
+  <data name="PasteConflictFormat" xml:space="preserve"><value>In «{1}» gibt es «{0}» schon.</value></data>
+  <data name="PasteConflictReplaceHint" xml:space="preserve"><value>Ersetzen legt das Vorhandene in den Papierkorb.</value></data>
+  <data name="PasteConflictReplaceFolderHint" xml:space="preserve"><value>Ersetzen legt den vorhandenen Ordner mit allem Inhalt in den Papierkorb, zusammengeführt wird nichts.</value></data>
+  <data name="PasteConflictNoReplaceFormat" xml:space="preserve"><value>Ersetzen geht nicht, denn «{0}» liegt darin.</value></data>
+  <data name="PasteConflictReplace" xml:space="preserve"><value>Ersetzen</value></data>
+  <data name="PasteRenameTitle" xml:space="preserve"><value>Unter anderem Namen einfügen</value></data>
+  <data name="PasteRenamePromptFormat" xml:space="preserve"><value>Name für «{0}» in «{1}»:</value></data>
   <data name="MoveErrorFormat" xml:space="preserve"><value>Konnte nicht verschoben werden:
 {0}</value></data>
   <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>

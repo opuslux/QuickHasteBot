@@ -426,7 +426,13 @@ The date of next Monday</value></data>
   <data name="MenuCut" xml:space="preserve"><value>Cut</value></data>
   <data name="MenuPaste" xml:space="preserve"><value>Paste</value></data>
   <data name="MenuPasteFormat" xml:space="preserve"><value>Paste "{0}" here</value></data>
-  <data name="PasteExistsFormat" xml:space="preserve"><value>There already is a file or folder named "{0}" there.</value></data>
+  <data name="PasteConflictFormat" xml:space="preserve"><value>"{0}" already exists in "{1}".</value></data>
+  <data name="PasteConflictReplaceHint" xml:space="preserve"><value>Replace moves the existing one to the Recycle Bin.</value></data>
+  <data name="PasteConflictReplaceFolderHint" xml:space="preserve"><value>Replace moves the existing folder with everything in it to the Recycle Bin, nothing is merged.</value></data>
+  <data name="PasteConflictNoReplaceFormat" xml:space="preserve"><value>It can't be replaced, because "{0}" is inside it.</value></data>
+  <data name="PasteConflictReplace" xml:space="preserve"><value>Replace</value></data>
+  <data name="PasteRenameTitle" xml:space="preserve"><value>Paste under another name</value></data>
+  <data name="PasteRenamePromptFormat" xml:space="preserve"><value>Name for "{0}" in "{1}":</value></data>
   <data name="MoveErrorFormat" xml:space="preserve"><value>Could not move:
 {0}</value></data>
   <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>

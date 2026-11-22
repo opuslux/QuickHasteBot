@@ -19,6 +19,23 @@ public class SnippetFilesTests
     }
 
     [Fact]
+    public void Moved_name_counts_up_without_copy_suffix()
+    {
+        using var source = new TempDirectory();
+        using var target = new TempDirectory();
+        var file = source.File("Gruss.txt", "Gruss");
+        target.File("Gruss.txt", "");
+
+        Assert.Equal("Gruss (2).txt", SnippetFiles.SuggestFreeName(file, target.Path));
+        target.File("Gruss (2).txt", "");
+        Assert.Equal("Gruss (3).txt", SnippetFiles.SuggestFreeName(file, target.Path));
+        // Ein Ordner zählt den ganzen Namen, auch mit Punkt darin
+        var folder = Directory.CreateDirectory(Path.Combine(source.Path, "v1.2")).FullName;
+        Directory.CreateDirectory(Path.Combine(target.Path, "v1.2"));
+        Assert.Equal("v1.2 (2)", SnippetFiles.SuggestFreeName(folder, target.Path));
+    }
+
+    [Fact]
     public void New_folder_name_counts_up_like_explorer()
     {
         using var dir = new TempDirectory();

@@ -5,7 +5,7 @@ using QuickHasteBot.Core;
 namespace QuickHasteBot.UI;
 
 /// <summary>
-/// Fragt nach einem Namen, zum Umbenennen oder für einen neuen Ordner. Bei Dateien ist der Vorschlag bis auf
+/// Fragt nach einem Namen, zum Umbenennen, für einen neuen Ordner oder zum Einfügen, wo es den Namen schon gibt. Bei Dateien ist der Vorschlag bis auf
 /// die Endung markiert, Tippen ersetzt also nur den Namen; bei Ordnern alles.
 /// </summary>
 internal partial class NameDialog : Window
@@ -55,6 +55,15 @@ internal partial class NameDialog : Window
         return new(parent, currentName: null, Strings.NewFolderTitle, Strings.NewFolderPrompt, Strings.NewFolderConfirm, suggestion,
             suggestion.Length, string.Format(Strings.NewFolderHintFormat, parentDisplay));
     }
+
+    /// <summary>Einfügen, wo es den Namen schon gibt: unter welchem Namen stattdessen. Der vorhandene gilt als belegt.</summary>
+    /// <param name="folder">Vollständiger Pfad des Ordners, in den eingefügt wird.</param>
+    /// <param name="folderDisplay">Derselbe Ordner zum Anzeigen, z.B. "Bausteine › 3-SQL".</param>
+    /// <param name="suggestion">Ein freier Name, z.B. "Gruss - Kopie.txt" oder "Gruss (2).txt".</param>
+    public static NameDialog ForPaste(Snippet clipped, string folder, string folderDisplay, string suggestion) =>
+        new(folder, currentName: null, Strings.PasteRenameTitle,
+            string.Format(Strings.PasteRenamePromptFormat, Path.GetFileName(clipped.FullPath), folderDisplay), Strings.MenuPaste,
+            suggestion, clipped.IsFolder ? suggestion.Length : Path.GetFileNameWithoutExtension(suggestion).Length, hint: null);
 
     public static NameDialog ForRename(Snippet snippet) =>
         new(snippet, Strings.RenameTitle, Strings.RenamePromptFormat, Strings.RenameConfirm, Path.GetFileName(snippet.FullPath));

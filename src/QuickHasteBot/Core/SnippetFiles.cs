@@ -37,6 +37,12 @@ public static class SnippetFiles
         return name;
     }
 
+    /// <summary>
+    /// Beim Verschieben in einen Ordner, wo es den Namen schon gibt: "Gruss.txt" wird zu "Gruss (2).txt", gibt es die
+    /// schon, zu "Gruss (3).txt" usw. Eine "Kopie" wäre es ja nicht.
+    /// </summary>
+    public static string SuggestFreeName(string path, string folder) => SuggestCopyName(path, "", folder);
+
     /// <param name="currentName">Beim Umbenennen der bisherige Dateiname: Nur Gross/Klein zu ändern ist dann erlaubt.</param>
     public static NameProblem Check(string folder, string fileName, string? currentName = null)
     {
