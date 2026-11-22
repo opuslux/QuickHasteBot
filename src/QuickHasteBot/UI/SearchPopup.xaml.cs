@@ -788,13 +788,7 @@ internal partial class SearchPopup : Window
     /// für alle Im Explorer anzeigen, Neuer Baustein, Neuer Ordner, Hotkey festlegen. Geklont wird mit Kopieren und
     /// Einfügen im selben Ordner.
     /// </summary>
-    void ShowItemMenu(Snippet snippet, UIElement target)
-    {
-        var menu = ItemMenu(snippet);
-        menu.PlacementTarget = target;
-        menu.Placement = PlacementMode.MousePoint;
-        menu.IsOpen = true;
-    }
+    void ShowItemMenu(Snippet snippet, UIElement target) => MenuPlacement.OpenAtMouse(ItemMenu(snippet), target);
 
     internal ContextMenu ItemMenu(Snippet snippet)
     {
@@ -859,7 +853,7 @@ internal partial class SearchPopup : Window
 
     void ShowFolderMenu(UIElement target, Snippet parent)
     {
-        var menu = new ContextMenu { PlacementTarget = target, Placement = PlacementMode.MousePoint };
+        var menu = new ContextMenu();
         menu.Items.Add(MenuIconRow.Create(menu, [PasteCommand(parent)]));
         menu.Items.Add(new Separator());
         menu.Items.Add(MenuEntry(Strings.MenuNewSnippet, MenuIcons.NewSnippet, () =>
@@ -868,15 +862,13 @@ internal partial class SearchPopup : Window
             _app.NewSnippet(parent);
         }));
         menu.Items.Add(MenuEntry(Strings.MenuNewFolder, MenuIcons.NewFolder, () => NewFolder(parent)));
-        menu.IsOpen = true;
+        MenuPlacement.OpenAtMouse(menu, target);
     }
 
     /// <summary>Neuer Ordner in diesem Ordner, danach markiert, links oder rechts.</summary>
     void NewFolder(Snippet parent)
     {
-        var display = string.Join(" › ", new[] { Strings.BreadcrumbRoot }
-            .Concat(parent.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)));
-        var dialog = NameDialog.ForNewFolder(parent.FullPath, display);
+        var dialog = NameDialog.ForNewFolder(parent.FullPath, FolderDisplay(parent));
         dialog.Owner = this;
         if (WithDialog(dialog.ShowDialog) == true)
             ChangeFile(parent, Strings.NewFolderErrorFormat, () => SnippetFiles.CreateFolder(parent.FullPath, dialog.FileName));
@@ -901,27 +893,29 @@ internal partial class SearchPopup : Window
     }
 
     /// <summary>
-    /// Ausgeschnittenes wird verschoben, mit Hotkey und Nutzung; gibt es den Namen dort schon, bleibt alles, wie es ist.
-    /// Kopiertes bekommt dann wie im Explorer "Name - Kopie", im selben Ordner ist das ein Klon. Die Kopie hat keinen
-    /// Hotkey, der steht beim Pfad des Originals. Danach ist das Eingefügte markiert, wenn es zu sehen ist.
+    /// Ausgeschnittenes wird verschoben, mit Hotkey und Nutzung. Die Kopie hat keinen Hotkey, der steht beim Pfad des
+    /// Originals; im selben Ordner ist sie ein Klon und heisst wie im Explorer "Name - Kopie". Gibt es den Namen sonst
+    /// schon, kommt die Frage aus <see cref="AskPasteConflict"/>. Danach ist das Eingefügte markiert, wenn es zu sehen ist.
     /// </summary>
     void Paste(Snippet folder)
     {
         if (_viewModel.Clipped is not { } clipped) return;
+        var cut = _viewModel.ClippedIsCut;
         var name = Path.GetFileName(clipped.FullPath);
-        var exists = SnippetFiles.Check(folder.FullPath, name) == NameProblem.Exists;
 
-        if (!_viewModel.ClippedIsCut)
+        if (SnippetFiles.Check(folder.FullPath, name) == NameProblem.Exists)
         {
-            if (exists)
+            if (!cut && string.Equals(clipped.Parent?.RelativePath, folder.RelativePath, StringComparison.OrdinalIgnoreCase))
                 name = SnippetFiles.SuggestCopyName(clipped.FullPath, Strings.CopySuffix, folder.FullPath);
-            ChangeFile(clipped, Strings.CopyErrorFormat, () => SnippetFiles.Copy(clipped.FullPath, folder.FullPath, name));
-            return;
+            else if (AskPasteConflict(clipped, folder, cut) is { } chosen)
+                name = chosen;
+            else
+                return;
         }
 
-        if (exists)
+        if (!cut)
         {
-            WithDialog(() => MessageDialog.Show(this, string.Format(Strings.PasteExistsFormat, name), MessageBoxButton.OK, MessageBoxImage.Warning));
+            ChangeFile(clipped, Strings.CopyErrorFormat, () => SnippetFiles.Copy(clipped.FullPath, folder.FullPath, name));
             return;
         }
         ChangeFile(clipped, Strings.MoveErrorFormat, () =>
@@ -932,6 +926,69 @@ internal partial class SearchPopup : Window
             return path;
         });
     }
+
+    /// <summary>
+    /// Im Zielordner gibt es den Namen schon: Umbenennen (Standard, mit einem freien Namen als Vorschlag), Ersetzen
+    /// (das Vorhandene in den Papierkorb, ein Ordner ganz, nichts wird zusammengeführt) oder Abbrechen. Ersetzen fehlt,
+    /// wenn das Eingefügte im Vorhandenen liegt, es käme sonst mit in den Papierkorb.
+    /// </summary>
+    /// <returns>Der Name, unter dem eingefügt wird, null für Abbrechen.</returns>
+    string? AskPasteConflict(Snippet clipped, Snippet folder, bool cut)
+    {
+        var name = Path.GetFileName(clipped.FullPath);
+        var existing = Path.Combine(folder.FullPath, name);
+        var display = FolderDisplay(folder);
+        var canReplace = !(clipped.FullPath + Path.DirectorySeparatorChar).StartsWith(existing + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase);
+
+        var text = string.Format(Strings.PasteConflictFormat, name, display) + "\n\n" + (!canReplace
+            ? string.Format(Strings.PasteConflictNoReplaceFormat, name)
+            : Directory.Exists(existing) ? Strings.PasteConflictReplaceFolderHint : Strings.PasteConflictReplaceHint);
+        (MessageBoxResult, string)[] buttons = canReplace
+            ? [(MessageBoxResult.Yes, Strings.MenuRename), (MessageBoxResult.No, Strings.PasteConflictReplace), (MessageBoxResult.Cancel, Strings.Cancel)]
+            : [(MessageBoxResult.Yes, Strings.MenuRename), (MessageBoxResult.Cancel, Strings.Cancel)];
+
+        switch (WithDialog(() => MessageDialog.Show(this, text, MessageBoxImage.Question, MessageBoxResult.Cancel, buttons)))
+        {
+            case MessageBoxResult.Yes:
+                var suggestion = cut
+                    ? SnippetFiles.SuggestFreeName(clipped.FullPath, folder.FullPath)
+                    : SnippetFiles.SuggestCopyName(clipped.FullPath, Strings.CopySuffix, folder.FullPath);
+                var dialog = NameDialog.ForPaste(clipped, folder.FullPath, display, suggestion);
+                dialog.Owner = this;
+                return WithDialog(dialog.ShowDialog) == true ? dialog.FileName : null;
+            case MessageBoxResult.No:
+                return RecycleForReplace(existing) ? name : null;
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>Ersetzen beim Einfügen: Das Vorhandene kommt in den Papierkorb, mit ihm sein Hotkey und seine Nutzung.</summary>
+    /// <returns>false, wenn es nicht ging oder in der Rückfrage von Windows abgebrochen wurde.</returns>
+    bool RecycleForReplace(string path)
+    {
+        var existing = _app.Library.RelativeOf(path) is { } relative ? _app.Library.Find(relative) : null;
+        try
+        {
+            if (!WithDialog(() => RecycleBin.Delete(path, new WindowInteropHelper(this).Handle))) return false;
+        }
+        catch (IOException ex)
+        {
+            Log.Error($"Ersetzen: {path} liess sich nicht löschen", ex);
+            WithDialog(() => MessageDialog.Show(this, string.Format(Strings.DeleteErrorFormat, Path.GetFileName(path), ex.Message),
+                MessageBoxButton.OK, MessageBoxImage.Warning));
+            return false;
+        }
+        if (existing is not null)
+            _app.SnippetDeleted(existing);
+        return true;
+    }
+
+    /// <summary>Ein Ordner zum Anzeigen, z.B. "Bausteine › 3-SQL".</summary>
+    static string FolderDisplay(Snippet folder) =>
+        string.Join(" › ", new[] { Strings.BreadcrumbRoot }
+            .Concat(folder.RelativePath.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries)));
 
     void Rename(Snippet snippet)
     {

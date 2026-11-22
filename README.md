@@ -148,7 +148,7 @@ Right-clicking an entry, in either column, selects it so you can see what the me
 |---|---|
 | **Copy** (icon at the top) | Marks the file or folder for copying; it can be pasted as often as you like |
 | **Cut** (icon at the top) | Marks the file or folder for moving; it is shown faded until it is pasted somewhere else |
-| **Paste** (icon at the top) | Into that folder, or next to that file. What was cut is moved, with its hotkey and usage; greyed out where it already is. A copy gets no hotkey, and if the name is taken it is named like Explorer does (`Name - Copy.txt`), so pasting it in the same folder clones it. A folder can't go into itself. Ctrl+X, Ctrl+C and Ctrl+V stay with the search box |
+| **Paste** (icon at the top) | Into that folder, or next to that file. What was cut is moved, with its hotkey and usage; greyed out where it already is. A copy gets no hotkey; pasted in the same folder it is a clone named like Explorer does (`Name - Copy.txt`). If the name is already taken in another folder, you are asked: **Rename…** suggests a free name (`Name (2).txt` when moving, `Name - Copy.txt` when copying), **Replace** moves the existing file or folder to the Recycle Bin (a folder as a whole, nothing is merged), or **Cancel**. A folder can't go into itself. Ctrl+X, Ctrl+C and Ctrl+V stay with the search box |
 | **Rename** (icon at the top) | Also for folders; F2 does the same for the selected entry |
 | **Delete** (icon at the top) | Also for folders, with everything in them. Asks first, then moves the file or folder to the Recycle Bin. Where there is none, e.g. on a network drive, Windows asks whether to delete it permanently |
 | **Edit** | Opens a text snippet in the [editor](#editor), like Ctrl+O |

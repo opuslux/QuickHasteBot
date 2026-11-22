@@ -196,19 +196,16 @@ internal partial class SnippetEditorWindow : Window
             var menu = EditMenu();
             if (e.CursorLeft >= 0)
             {
-                menu.PlacementTarget = BodyInput;
-                menu.Placement = PlacementMode.MousePoint;
+                MenuPlacement.OpenAtMouse(menu, BodyInput);
+                return;
             }
-            else
-            {
-                // Kontextmenü-Taste oder Umschalt+F10: unter der Schreibmarke
-                var view = area.TextView;
-                var caret = area.Caret.CalculateCaretRectangle();
-                caret.Offset(-view.ScrollOffset.X, -view.ScrollOffset.Y);
-                menu.PlacementTarget = view;
-                menu.PlacementRectangle = caret;
-                menu.Placement = PlacementMode.Bottom;
-            }
+            // Kontextmenü-Taste oder Umschalt+F10: unter der Schreibmarke
+            var view = area.TextView;
+            var caret = area.Caret.CalculateCaretRectangle();
+            caret.Offset(-view.ScrollOffset.X, -view.ScrollOffset.Y);
+            menu.PlacementTarget = view;
+            menu.PlacementRectangle = caret;
+            menu.Placement = PlacementMode.Bottom;
             menu.IsOpen = true;
         };
     }
